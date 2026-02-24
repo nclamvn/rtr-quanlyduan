@@ -1,0 +1,151 @@
+/* ── Theme Variables ─────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --bg-main: #060A0F;
+  --bg-card: #080C10;
+  --bg-input: #0F1419;
+  --bg-modal: #0A0E13;
+  --text-primary: #E2E8F0;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
+  --text-dim: #64748B;
+  --text-faint: #475569;
+  --text-disabled: #334155;
+  --border: #1E2A3A;
+  --border-a10: #1E2A3A10;
+  --border-a20: #1E2A3A20;
+  --hover-bg: #1E2A3A;
+  --hover-bg-subtle: #0F1419;
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  --overlay: rgba(0, 0, 0, 0.85);
+  --scrollbar-thumb-hover: #2D3F54;
+  --selection-color: #E2E8F0;
+  --login-gradient: radial-gradient(ellipse at 30% 20%, #0A1628 0%, #060A0F 70%);
+}
+
+[data-theme="light"] {
+  --bg-main: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-input: #F1F5F9;
+  --bg-modal: #FFFFFF;
+  --text-primary: #0F172A;
+  --text-secondary: #1E293B;
+  --text-muted: #475569;
+  --text-dim: #64748B;
+  --text-faint: #94A3B8;
+  --text-disabled: #CBD5E1;
+  --border: #CBD5E1;
+  --border-a10: #CBD5E110;
+  --border-a20: #CBD5E120;
+  --hover-bg: #E2E8F0;
+  --hover-bg-subtle: #F1F5F9;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --overlay: rgba(0, 0, 0, 0.5);
+  --scrollbar-thumb-hover: #94A3B8;
+  --selection-color: #0F172A;
+  --login-gradient: radial-gradient(ellipse at 30% 20%, #E0E7FF 0%, #F8FAFC 70%);
+}
+
+/* ── Base Reset ─────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-card);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+input, select, textarea {
+  font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+}
+
+button {
+  font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+}
+
+::selection {
+  background: #3B82F640;
+  color: var(--selection-color);
+}
+
+/* ── Tab Bar Horizontal Scroll ──────────────────────────────── */
+.tab-bar {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.tab-bar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Responsive: Metric Cards ─────────────────────────────── */
+.metric-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Responsive: Tablet (768–1024px) ──────────────────────── */
+@media (max-width: 1024px) {
+  .metric-row > * {
+    min-width: calc(33.333% - 6px) !important;
+    flex: 1 1 calc(33.333% - 6px) !important;
+  }
+  .chart-grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Responsive: Mobile (<768px) ──────────────────────────── */
+@media (max-width: 768px) {
+  .metric-row > * {
+    min-width: calc(50% - 4px) !important;
+    flex: 1 1 calc(50% - 4px) !important;
+  }
+  .chart-grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+  .issue-grid-row {
+    grid-template-columns: 1fr !important;
+    gap: 4px !important;
+  }
+  .issue-grid-header {
+    display: none !important;
+  }
+  .content-pad {
+    padding: 10px 12px !important;
+  }
+  .modal-full-mobile {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    min-height: 100vh !important;
+  }
+  .risk-panel-flex {
+    flex-direction: column !important;
+  }
+}

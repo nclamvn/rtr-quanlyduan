@@ -22,7 +22,8 @@ function Badge({ label, color, size = "sm", icon: IconComp }) {
   );
 }
 
-export default function DecisionsModule({ lang, t, project, issues, onViewIssue }) {
+export default function DecisionsModule({ lang, t, project, issues, onViewIssue, perm }) {
+  const readOnly = perm?.isReadOnly ? perm.isReadOnly() : false;
   const [expandedId, setExpandedId] = useState(null);
   const [filterStatus, setFilterStatus] = useState("ALL");
 
@@ -43,6 +44,7 @@ export default function DecisionsModule({ lang, t, project, issues, onViewIssue 
             {lang === "vi" ? "Nhật Ký Quyết Định" : "Decision Records"}
           </span>
           <span style={{ fontSize: 13, color: "var(--text-dim)" }}>— {decisions.length} {lang === "vi" ? "quyết định" : "decisions"}</span>
+          {readOnly && <span style={{ fontSize: 11, color: "var(--text-faint)", background: "var(--hover-bg)", padding: "2px 8px", borderRadius: 3, fontWeight: 600 }}>{lang === "vi" ? "Chỉ xem" : "Read-only"}</span>}
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}

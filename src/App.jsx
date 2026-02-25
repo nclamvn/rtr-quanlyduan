@@ -12,7 +12,7 @@ import {
   LogOut, RefreshCw, ScrollText, Download, Trash2,
   Package, Truck, Scale,
   Upload, Settings, Mail, FileSpreadsheet,
-  Sun, Moon, SearchX, FilterX
+  Sun, Moon, SearchX, FilterX, Search, WifiOff
 } from "lucide-react";
 import { useAuth } from "./contexts/AuthContext";
 import { usePermission } from "./hooks/usePermission";
@@ -29,7 +29,11 @@ import IssueCharts from "./components/IssueCharts";
 import GateRadar from "./components/GateRadar";
 import AIRiskPanel from "./components/AIRiskPanel";
 import { FLIGHT_TESTS_DATA } from "./data/v2Data";
+import { isSupabaseConnected } from "./lib/supabase";
+import { useProjectsData, useIssuesData, useNotificationsData } from "./hooks/useAppData";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
+
+const normalizeVN = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 
 // ===================================================================
 // RtR CONTROL TOWER V1 — Full Interactive Prototype
@@ -64,7 +68,9 @@ const LANG = {
     blockingIssues: "v\u1EA5n \u0111\u1EC1 ch\u1EB7n",
     readOnlyMode: "Ch\u1EBF \u0111\u1ED9 xem",
     audit: { tab: "Nh\u1EADt k\u00FD", export: "Xu\u1EA5t CSV", clear: "X\u00F3a t\u1EA5t c\u1EA3", noLogs: "Ch\u01B0a c\u00F3 nh\u1EADt k\u00FD", allActions: "T\u1EA5t c\u1EA3 h\u00E0nh \u0111\u1ED9ng", allUsers: "T\u1EA5t c\u1EA3 ng\u01B0\u1EDDi d\u00F9ng", confirmClear: "X\u00E1c nh\u1EADn x\u00F3a to\u00E0n b\u1ED9 nh\u1EADt k\u00FD?" },
-    save: "L\u01B0u", cancel: "H\u1EE7y", close: "\u0110\u00F3ng", search: "T\u00ECm ki\u1EBFm...",
+    save: "L\u01B0u", cancel: "H\u1EE7y", close: "\u0110\u00F3ng", search: "T\u00ECm ki\u1EBFm...", searchIssues: "T\u00ECm v\u1EA5n \u0111\u1EC1...",
+    deleteConfirm: "X\u00E1c nh\u1EADn x\u00F3a v\u1EA5n \u0111\u1EC1 n\u00E0y?", deleted: "\u0110\u00E3 x\u00F3a", markAllRead: "\u0110\u00E1nh d\u1EA5u t\u1EA5t c\u1EA3 \u0111\u00E3 \u0111\u1ECDc",
+    offline: "Ngo\u1EA1i tuy\u1EBFn", unsavedChanges: "C\u00F3 thay \u0111\u1ED5i ch\u01B0a l\u01B0u. B\u1EA1n c\u00F3 ch\u1EAFc mu\u1ED1n \u0111\u00F3ng?",
   },
   en: {
     appName: "RtR Control Tower",
@@ -90,7 +96,9 @@ const LANG = {
     blockingIssues: "blocking issues",
     readOnlyMode: "Read-only mode",
     audit: { tab: "Audit Log", export: "Export CSV", clear: "Clear All", noLogs: "No audit entries yet", allActions: "All Actions", allUsers: "All Users", confirmClear: "Confirm clear all audit logs?" },
-    save: "Save", cancel: "Cancel", close: "Close", search: "Search...",
+    save: "Save", cancel: "Cancel", close: "Close", search: "Search...", searchIssues: "Search issues...",
+    deleteConfirm: "Confirm delete this issue?", deleted: "Deleted", markAllRead: "Mark all as read",
+    offline: "Offline", unsavedChanges: "You have unsaved changes. Are you sure you want to close?",
   },
 };
 
@@ -98,9 +106,9 @@ const LANG = {
 const PHASES = ["CONCEPT", "EVT", "DVT", "PVT", "MP"];
 const PHASE_COLORS = { CONCEPT: "#6B7280", EVT: "#F59E0B", DVT: "#3B82F6", PVT: "#8B5CF6", MP: "#10B981" };
 const STATUS_LIST = ["DRAFT", "OPEN", "IN_PROGRESS", "BLOCKED", "CLOSED"];
-const STATUS_COLORS = { DRAFT: "#6B7280", OPEN: "#EF4444", IN_PROGRESS: "#F59E0B", BLOCKED: "#DC2626", CLOSED: "#10B981" };
+const STATUS_COLORS = { DRAFT: "#94A3B8", OPEN: "#EF4444", IN_PROGRESS: "#F59E0B", BLOCKED: "#DC2626", CLOSED: "#10B981" };
 const SEV_LIST = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
-const SEV_COLORS = { CRITICAL: "#EF4444", HIGH: "#F59E0B", MEDIUM: "#3B82F6", LOW: "#6B7280" };
+const SEV_COLORS = { CRITICAL: "#EF4444", HIGH: "#F59E0B", MEDIUM: "#3B82F6", LOW: "#64748B" };
 const SRC_LIST = ["INTERNAL", "EXTERNAL", "CROSS_TEAM"];
 const SRC_COLORS = { INTERNAL: "#8B5CF6", EXTERNAL: "#F97316", CROSS_TEAM: "#06B6D4" };
 
@@ -340,7 +348,7 @@ function Metric({ label, value, color = "var(--text-primary)", sub, icon: IconCo
         })()}
       </div>
       {sparkData && (
-        <div style={{ marginTop: 4, height: 28 }}>
+        <div style={{ marginTop: 4, height: 28, minWidth: 50, minHeight: 28 }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={sparkData.map(v => ({ v }))}>
               <Line type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
@@ -414,6 +422,8 @@ function GateItem({ cond, lang, t, checked, onClick, disabled }) {
 function CreateIssueForm({ t, lang, selProject, onClose, onCreate, initialStatus = "DRAFT" }) {
   const [form, setForm] = useState({ title: "", titleVi: "", desc: "", rootCause: "Investigating", sev: "HIGH", src: "INTERNAL", owner: "", phase: "DVT", due: "" });
   const owners = TEAM.filter(m => m.role === "engineer").map(m => m.name);
+  const isDirty = form.title || form.titleVi || form.desc || form.owner || form.due || form.rootCause !== "Investigating" || form.sev !== "HIGH" || form.src !== "INTERNAL" || form.phase !== "DVT";
+  const handleClose = () => { if (!isDirty || window.confirm(t.unsavedChanges)) onClose(); };
 
   const handleCreate = () => {
     if (!form.title || !form.owner) return;
@@ -475,7 +485,7 @@ function CreateIssueForm({ t, lang, selProject, onClose, onCreate, initialStatus
         <input type="date" style={inputStyle} value={form.due} onChange={e => setForm(f => ({ ...f, due: e.target.value }))} />
       </div>
       <div style={{ gridColumn: "1 / -1", display: "flex", gap: 6, justifyContent: "flex-end" }}>
-        <Btn onClick={onClose}><X size={11} /> {t.cancel}</Btn>
+        <Btn onClick={handleClose}><X size={11} /> {t.cancel}</Btn>
         <Btn variant="primary" onClick={handleCreate} disabled={!form.title || !form.owner}><Plus size={11} /> {t.issue.create} ({initialStatus})</Btn>
       </div>
     </div>
@@ -489,27 +499,57 @@ export default function App() {
   const { user: currentUser, isAuthenticated, isLoading, logout, switchUser, demoUsers } = useAuth();
   const perm = usePermission();
   const audit = useAuditLog();
-  const [lang, setLang] = useState("vi");
-  const [tab, setTab] = useState("tower");
-  const [selProject, setSelProject] = useState("PRJ-001");
+  const [lang, setLang] = useState(() => localStorage.getItem('rtr-lang') || "vi");
+  const [tab, setTab] = useState(() => localStorage.getItem('rtr-tab') || "tower");
+  const [selProject, setSelProject] = useState(() => localStorage.getItem('rtr-project') || "PRJ-001");
   const [selIssue, setSelIssue] = useState(null);
   const [filters, setFilters] = useState({ status: "ALL", sev: "ALL", src: "ALL" });
-  const [projects, setProjects] = useState(PROJECTS);
-  const [issues, setIssues] = useState(ISSUES_DATA);
-  const [notifications, setNotifications] = useState(NOTIFICATIONS_DATA);
+  const [issueSearch, setIssueSearch] = useState("");
+
+  // Supabase hooks (no-op when offline)
+  const {
+    projects: sbProjects, gateConfig: sbGateConfig, loading: projLoading,
+    refetch: refetchProjects, setProjects: setSbProjects, toggleGate: sbToggleGate,
+  } = useProjectsData();
+  const {
+    issues: sbIssues, loading: issLoading,
+    refetch: refetchIssues, setIssues: setSbIssues,
+    createIssue: sbCreateIssue, updateStatus: sbUpdateStatus,
+  } = useIssuesData();
+  const {
+    notifications: sbNotifications, loading: notifLoading,
+    setNotifications: setSbNotifications, markRead: sbMarkRead, markAllAsRead: sbMarkAllRead,
+  } = useNotificationsData(currentUser?.id);
+
+  // Decide data source: Supabase when connected & has data, else static mock
+  const online = isSupabaseConnected();
+  const [offlineProjects, setOfflineProjects] = useState(PROJECTS);
+  const [offlineIssues, setOfflineIssues] = useState(ISSUES_DATA);
+  const [offlineNotifications, setOfflineNotifications] = useState(NOTIFICATIONS_DATA);
+
+  const projects = online && sbProjects.length > 0 ? sbProjects : offlineProjects;
+  const setProjects = online && sbProjects.length > 0 ? setSbProjects : setOfflineProjects;
+  const issues = online && sbIssues.length > 0 ? sbIssues : offlineIssues;
+  const setIssues = online && sbIssues.length > 0 ? setSbIssues : setOfflineIssues;
+  const notifications = online && sbNotifications.length > 0 ? sbNotifications : offlineNotifications;
+  const setNotifications = online && sbNotifications.length > 0 ? setSbNotifications : setOfflineNotifications;
+
+  // Dynamic gate config: from Supabase or static constant
+  const activeGateConfig = online && sbGateConfig ? sbGateConfig : GATE_CONFIG;
+
   const [showNotif, setShowNotif] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [auditFilter, setAuditFilter] = useState({ action: "ALL", user: "ALL" });
-  const [bomSubTab, setBomSubTab] = useState("tree");
-  const [testSubTab, setTestSubTab] = useState("flights");
+  const [bomSubTab, setBomSubTab] = useState(() => sessionStorage.getItem('rtr-bomSubTab') || "tree");
+  const [testSubTab, setTestSubTab] = useState(() => sessionStorage.getItem('rtr-testSubTab') || "flights");
   const [time, setTime] = useState(new Date());
   const [showImport, setShowImport] = useState(false);
   const [showExport, setShowExport] = useState(null);
   const [toast, setToast] = useState(null);
   const [selMetric, setSelMetric] = useState(null);
   const [selProjMetric, setSelProjMetric] = useState(null); // { projId, type: "open"|"critical"|"gate"|"cascade" }
-  const [issueSubTab, setIssueSubTab] = useState("list");
+  const [issueSubTab, setIssueSubTab] = useState(() => sessionStorage.getItem('rtr-issueSubTab') || "list");
   const [theme, setTheme] = useState(() => localStorage.getItem('rtr-theme') || 'dark');
 
   const t = LANG[lang];
@@ -518,6 +558,21 @@ export default function App() {
 
   useEffect(() => { const i = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(i); }, []);
   useEffect(() => { document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('rtr-theme', theme); }, [theme]);
+  useEffect(() => { localStorage.setItem('rtr-lang', lang); }, [lang]);
+  useEffect(() => { localStorage.setItem('rtr-tab', tab); }, [tab]);
+  // Validate persisted tab against current role
+  useEffect(() => {
+    if (tab === "review" && !perm.canViewReviewQueue()) setTab("tower");
+    if (tab === "audit" && currentUser?.role !== "admin") setTab("tower");
+  }, [currentUser?.role]);
+  useEffect(() => { localStorage.setItem('rtr-project', selProject); }, [selProject]);
+  // Validate persisted project exists
+  useEffect(() => {
+    if (projects.length > 0 && !projects.find(p => p.id === selProject)) setSelProject(projects[0].id);
+  }, [projects]);
+  useEffect(() => { sessionStorage.setItem('rtr-bomSubTab', bomSubTab); }, [bomSubTab]);
+  useEffect(() => { sessionStorage.setItem('rtr-testSubTab', testSubTab); }, [testSubTab]);
+  useEffect(() => { sessionStorage.setItem('rtr-issueSubTab', issueSubTab); }, [issueSubTab]);
 
   // --- Escape key handler ---
   useEffect(() => {
@@ -543,8 +598,18 @@ export default function App() {
     if (filters.status !== "ALL") f = f.filter(i => i.status === filters.status);
     if (filters.sev !== "ALL") f = f.filter(i => i.sev === filters.sev);
     if (filters.src !== "ALL") f = f.filter(i => i.src === filters.src);
+    if (issueSearch.trim()) {
+      const s = normalizeVN(issueSearch.trim());
+      f = f.filter(i =>
+        normalizeVN(i.id).includes(s) ||
+        normalizeVN(i.title).includes(s) ||
+        normalizeVN(i.titleVi || "").includes(s) ||
+        normalizeVN(i.owner || "").includes(s) ||
+        normalizeVN(i.rootCause || "").includes(s)
+      );
+    }
     return f;
-  }, [issues, selProject, filters]);
+  }, [issues, selProject, filters, issueSearch]);
 
   // Auth guard — loading spinner
   if (isLoading) {
@@ -570,7 +635,7 @@ export default function App() {
 
   // --- Gate helpers ---
   const getGateProgress = (proj, phase) => {
-    const conds = GATE_CONFIG[phase]?.conditions || [];
+    const conds = activeGateConfig[phase]?.conditions || [];
     const checks = proj.gateChecks[phase] || {};
     const total = conds.length;
     const passed = conds.filter(c => checks[c.id]).length;
@@ -583,7 +648,11 @@ export default function App() {
     const proj = projects.find(p => p.id === selProject);
     const oldVal = proj?.gateChecks[phase]?.[condId] ? "true" : "false";
     const newVal = oldVal === "true" ? "false" : "true";
-    const cond = GATE_CONFIG[phase]?.conditions.find(c => c.id === condId);
+    const cond = activeGateConfig[phase]?.conditions.find(c => c.id === condId);
+    // Supabase: toggle gate via service
+    if (online) {
+      sbToggleGate(condId, newVal === "true", currentUser?.id);
+    }
     setProjects(prev => prev.map(p => {
       if (p.id !== selProject) return p;
       const gc = { ...p.gateChecks };
@@ -597,8 +666,11 @@ export default function App() {
   const updateIssueStatus = (issueId, newStatus) => {
     const issue = issues.find(i => i.id === issueId);
     const oldStatus = issue?.status;
+    // Optimistic local update
     setIssues(prev => prev.map(i => i.id === issueId ? { ...i, status: newStatus } : i));
     if (selIssue?.id === issueId) setSelIssue(prev => ({ ...prev, status: newStatus }));
+    // Persist to Supabase
+    if (online) sbUpdateStatus(issueId, newStatus);
     const action = newStatus === "CLOSED" ? "ISSUE_CLOSED" : oldStatus === "DRAFT" && newStatus === "OPEN" ? "ISSUE_REVIEWED" : "ISSUE_STATUS_CHANGED";
     audit.log(action, "issue", issueId, issue?.title || issueId, oldStatus, newStatus);
     setToast({ type: "success", message: `${issueId} → ${t.status[newStatus]}` });
@@ -656,10 +728,18 @@ export default function App() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          {/* Offline indicator */}
+          {!online && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 8px", height: 28, background: "#F59E0B15", border: "1px solid #F59E0B30", borderRadius: 4 }}>
+              <WifiOff size={12} color="#F59E0B" />
+              <span style={{ fontSize: 11, color: "#F59E0B", fontWeight: 700 }}>{t.offline}</span>
+            </div>
+          )}
           {/* Project selector */}
           <div style={{ display: "flex", gap: 3 }}>
             {projects.map(p => (
-              <button key={p.id} onClick={() => { setSelProject(p.id); setSelIssue(null); setFilters({ status: "ALL", sev: "ALL", src: "ALL" }); }}
+              <button key={p.id} onClick={() => { setSelProject(p.id); setSelIssue(null); setIssueSearch(""); }}
+                aria-label={p.name} aria-pressed={selProject === p.id}
                 style={{ background: selProject === p.id ? "var(--hover-bg)" : "transparent", border: `1px solid ${selProject === p.id ? "#3B82F6" : "var(--border)"}`, borderRadius: 4, padding: "0 8px", height: 28, color: selProject === p.id ? "var(--text-primary)" : "var(--text-dim)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center" }}>
                 {p.name.split(" ")[0]}
               </button>
@@ -669,16 +749,16 @@ export default function App() {
           <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 4, overflow: "hidden", alignItems: "center", height: 28 }}>
             <Globe size={11} style={{ margin: "0 4px", color: "var(--text-faint)" }} />
             {["vi", "en"].map(l => (
-              <button key={l} onClick={() => setLang(l)} style={{ background: lang === l ? "var(--hover-bg)" : "transparent", border: "none", padding: "0 8px", height: 28, color: lang === l ? "var(--text-primary)" : "var(--text-faint)", fontSize: 12, fontWeight: 700, cursor: "pointer", textTransform: "uppercase" }}>{l}</button>
+              <button key={l} onClick={() => setLang(l)} aria-label={l === "vi" ? "Tiếng Việt" : "English"} style={{ background: lang === l ? "var(--hover-bg)" : "transparent", border: "none", padding: "0 8px", height: 28, color: lang === l ? "var(--text-primary)" : "var(--text-faint)", fontSize: 12, fontWeight: 700, cursor: "pointer", textTransform: "uppercase" }}>{l}</button>
             ))}
           </div>
           {/* Theme toggle */}
-          <button onClick={() => setTheme(th => th === 'dark' ? 'light' : 'dark')} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 4, padding: "0 8px", height: 28, color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}>
+          <button onClick={() => setTheme(th => th === 'dark' ? 'light' : 'dark')} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 4, padding: "0 8px", height: 28, color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}>
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
           </button>
           {/* Notifications */}
           <div style={{ position: "relative" }}>
-            <button onClick={() => setShowNotif(!showNotif)} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 4, padding: "0 8px", height: 28, color: "var(--text-muted)", cursor: "pointer", fontSize: 14, position: "relative", display: "flex", alignItems: "center" }}>
+            <button onClick={() => setShowNotif(!showNotif)} aria-label={t.notifications} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 4, padding: "0 8px", height: 28, color: "var(--text-muted)", cursor: "pointer", fontSize: 14, position: "relative", display: "flex", alignItems: "center" }}>
               <Bell size={14} />
               {unreadCount > 0 && <span style={{ position: "absolute", top: -4, right: -4, background: "#EF4444", color: "#fff", borderRadius: "50%", width: 14, height: 14, fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{unreadCount}</span>}
             </button>
@@ -686,9 +766,13 @@ export default function App() {
               <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 6, width: 320, background: "var(--bg-modal)", border: "1px solid var(--border)", borderRadius: 8, boxShadow: "0 20px 40px var(--shadow-color)", zIndex: 200, overflow: "hidden" }}>
                 <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
                   <Bell size={13} /> {t.notifications}
+                  {unreadCount > 0 && <button onClick={(e) => { e.stopPropagation(); if (online) sbMarkAllRead(); setNotifications(prev => prev.map(n => ({ ...n, read: true }))); }}
+                    style={{ marginLeft: "auto", background: "none", border: "1px solid var(--border)", borderRadius: 3, padding: "2px 8px", fontSize: 11, color: "var(--text-dim)", cursor: "pointer", fontWeight: 600 }}>
+                    {t.markAllRead}
+                  </button>}
                 </div>
                 {notifications.map(n => (
-                  <div key={n.id} onClick={() => { setNotifications(prev => prev.map(nn => nn.id === n.id ? { ...nn, read: true } : nn)); }} style={{ padding: "8px 14px", borderBottom: "1px solid var(--border-a10)", cursor: "pointer", background: n.read ? "transparent" : "var(--border-a20)", display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  <div key={n.id} onClick={() => { if (online) sbMarkRead(n.id); setNotifications(prev => prev.map(nn => nn.id === n.id ? { ...nn, read: true } : nn)); }} style={{ padding: "8px 14px", borderBottom: "1px solid var(--border-a10)", cursor: "pointer", background: n.read ? "transparent" : "var(--border-a20)", display: "flex", gap: 8, alignItems: "flex-start" }}>
                     <span style={{ marginTop: 2 }}><NotifIcon type={n.type} /></span>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, color: n.read ? "var(--text-dim)" : "var(--text-primary)", fontWeight: n.read ? 400 : 600 }}>{lang === "vi" ? n.titleVi : n.title}</div>
@@ -703,6 +787,7 @@ export default function App() {
           {/* User Menu */}
           <div style={{ position: "relative" }}>
             <button onClick={() => { setShowUserMenu(!showUserMenu); setShowNotif(false); }}
+              aria-label={lang === "vi" ? "Menu người dùng" : "User menu"}
               style={{ background: showUserMenu ? "var(--hover-bg)" : "transparent", border: "1px solid var(--border)", borderRadius: 4, padding: "0 8px", height: 28, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
               <div style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", flexShrink: 0 }}>{currentUser.avatar || currentUser.name[0]}</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1, whiteSpace: "nowrap" }}>{currentUser.name}</div>
@@ -783,6 +868,14 @@ export default function App() {
       {/* === CONTENT === */}
       <div className="content-pad" style={{ padding: "16px 20px", maxWidth: 1400, margin: "0 auto", flex: 1, width: "100%" }} onClick={() => { if (showNotif) setShowNotif(false); if (showUserMenu) setShowUserMenu(false); }}>
 
+        {/* Loading Skeleton — shown when Supabase is fetching and no data yet */}
+        {online && (projLoading || issLoading) && sbProjects.length === 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", gap: 8 }}>{[1,2,3,4].map(i => <div key={i} className="skeleton skeleton-metric" />)}</div>
+            {[1,2,3,4,5].map(i => <div key={i} className="skeleton skeleton-row" />)}
+          </div>
+        )}
+
         {/* === CONTROL TOWER === */}
         {tab === "tower" && project && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -795,8 +888,11 @@ export default function App() {
             {/* Create Issue Form (Dashboard) */}
             {showCreate && tab === "tower" && (
               <Section title={<><Plus size={13} /> {t.issue.create}</>}>
-                <CreateIssueForm t={t} lang={lang} selProject={selProject} initialStatus={perm.getNewIssueStatus()} onClose={() => setShowCreate(false)}
-                  onCreate={(newIssue) => { setIssues(prev => [newIssue, ...prev]); setShowCreate(false); audit.log("ISSUE_CREATED", "issue", newIssue.id, newIssue.title, null, newIssue.status); }} />
+                <CreateIssueForm key={"create-tower-" + showCreate} t={t} lang={lang} selProject={selProject} initialStatus={perm.getNewIssueStatus()} onClose={() => setShowCreate(false)}
+                  onCreate={async (newIssue) => {
+                    if (online) { await sbCreateIssue(newIssue); } else { setIssues(prev => [newIssue, ...prev]); }
+                    setShowCreate(false); audit.log("ISSUE_CREATED", "issue", newIssue.id, newIssue.title, null, newIssue.status);
+                  }} />
               </Section>
             )}
             {/* Global Metrics */}
@@ -934,7 +1030,7 @@ export default function App() {
             })()}
 
             {/* AI Risk Assessment */}
-            <AIRiskPanel projects={projects} issues={issues} gateConfig={GATE_CONFIG} flightTests={FLIGHT_TESTS_DATA} lang={lang} />
+            <AIRiskPanel projects={projects} issues={issues} gateConfig={activeGateConfig} flightTests={FLIGHT_TESTS_DATA} lang={lang} />
 
             {/* Project Cards */}
             {projects.map(proj => {
@@ -1006,7 +1102,7 @@ export default function App() {
                     const pmType = selProjMetric.type;
                     const pBlocked = pOpen.filter(i => i.status === "BLOCKED");
                     const pCascade = getCascade(proj);
-                    const gateConds = GATE_CONFIG[proj.phase]?.conditions || [];
+                    const gateConds = activeGateConfig[proj.phase]?.conditions || [];
                     const gateChecks = proj.gateChecks[proj.phase] || {};
                     const pmTitles = {
                       open: `${proj.id} — ${lang === "vi" ? "Vấn đề đang mở" : "Open Issues"} (${pOpen.length})`,
@@ -1162,6 +1258,13 @@ export default function App() {
             {issueSubTab === "list" && <>
             {/* Filters */}
             <div style={{ display: "flex", gap: 10, alignItems: "center", background: "var(--bg-card)", padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)", flexWrap: "wrap", position: "sticky", top: 48, zIndex: 20 }}>
+              {/* Issue search */}
+              <div style={{ position: "relative", minWidth: 160 }}>
+                <Search size={12} color="var(--text-faint)" style={{ position: "absolute", left: 8, top: 7 }} />
+                <input value={issueSearch} onChange={e => setIssueSearch(e.target.value)}
+                  placeholder={t.searchIssues}
+                  style={{ background: "var(--bg-input)", border: "1px solid var(--border)", borderRadius: 4, padding: "5px 8px 5px 26px", color: "var(--text-primary)", fontSize: 12, width: "100%", outline: "none", fontFamily: "'Outfit', 'Segoe UI', system-ui, sans-serif" }} />
+              </div>
               {[{ key: "status", opts: ["ALL", ...STATUS_LIST], colors: { ALL: "var(--text-dim)", ...STATUS_COLORS }, labels: t.status },
                 { key: "sev", opts: ["ALL", ...SEV_LIST], colors: { ALL: "var(--text-dim)", ...SEV_COLORS }, labels: t.severity },
                 { key: "src", opts: ["ALL", ...SRC_LIST], colors: { ALL: "var(--text-dim)", ...SRC_COLORS }, labels: t.source },
@@ -1175,15 +1278,15 @@ export default function App() {
                   ))}
                 </div>
               ))}
-              {(filters.status !== "ALL" || filters.sev !== "ALL" || filters.src !== "ALL") && (
-                <button onClick={() => setFilters({ status: "ALL", sev: "ALL", src: "ALL" })}
+              {(filters.status !== "ALL" || filters.sev !== "ALL" || filters.src !== "ALL" || issueSearch) && (
+                <button onClick={() => { setFilters({ status: "ALL", sev: "ALL", src: "ALL" }); setIssueSearch(""); }}
                   style={{ background: "#EF444415", border: "1px solid #EF444430", borderRadius: 3, padding: "2px 8px", color: "#EF4444", fontSize: 11, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 3 }}>
                   <FilterX size={11} /> {lang === "vi" ? "Xoá lọc" : "Reset"}
                 </button>
               )}
               <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
                 <span style={{ fontSize: 12, color: "var(--text-faint)" }}>{filteredIssues.length} issues</span>
-                <Btn small onClick={() => setShowImport("issues")}><Upload size={11} /> {t.importExport?.import || "Import"}</Btn>
+                {perm.canImport() && <Btn small onClick={() => setShowImport("issues")}><Upload size={11} /> {t.importExport?.import || "Import"}</Btn>}
                 <Btn small onClick={() => exportIssuesExcel(issues.filter(i => i.pid === selProject), project, lang)}><FileSpreadsheet size={11} /> {t.importExport?.exportExcel || "Export Excel"}</Btn>
                 {perm.canCreateIssue() && <Btn variant="primary" small onClick={() => setShowCreate(!showCreate)}><Plus size={11} /> {t.issue.create}</Btn>}
               </div>
@@ -1192,8 +1295,11 @@ export default function App() {
             {/* Create Form */}
             {showCreate && (
               <Section title={<><Plus size={13} /> {t.issue.create}</>}>
-                <CreateIssueForm t={t} lang={lang} selProject={selProject} initialStatus={perm.getNewIssueStatus()} onClose={() => setShowCreate(false)}
-                  onCreate={(newIssue) => { setIssues(prev => [newIssue, ...prev]); setShowCreate(false); audit.log("ISSUE_CREATED", "issue", newIssue.id, newIssue.title, null, newIssue.status); }} />
+                <CreateIssueForm key={"create-issues-" + showCreate} t={t} lang={lang} selProject={selProject} initialStatus={perm.getNewIssueStatus()} onClose={() => setShowCreate(false)}
+                  onCreate={async (newIssue) => {
+                    if (online) { await sbCreateIssue(newIssue); } else { setIssues(prev => [newIssue, ...prev]); }
+                    setShowCreate(false); audit.log("ISSUE_CREATED", "issue", newIssue.id, newIssue.title, null, newIssue.status);
+                  }} />
               </Section>
             )}
 
@@ -1205,7 +1311,8 @@ export default function App() {
                 ))}
               </div>
               {filteredIssues.map(issue => (
-                <div key={issue.id} onClick={() => setSelIssue(selIssue?.id === issue.id ? null : issue)}
+                <div key={issue.id} tabIndex={0} role="button" onClick={() => setSelIssue(selIssue?.id === issue.id ? null : issue)}
+                  onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelIssue(selIssue?.id === issue.id ? null : issue); } }}
                   style={{ display: "grid", gridTemplateColumns: "64px 1fr 82px 72px 76px 80px 56px", gap: 6, padding: "8px 12px", borderBottom: "1px solid var(--border-a10)", cursor: "pointer", background: selIssue?.id === issue.id ? "var(--hover-bg)" : "transparent", alignItems: "center", transition: "background 0.1s" }}
                   onMouseEnter={e => { if (selIssue?.id !== issue.id) e.currentTarget.style.background = "var(--bg-input)"; }}
                   onMouseLeave={e => { if (selIssue?.id !== issue.id) e.currentTarget.style.background = "transparent"; }}>
@@ -1248,12 +1355,14 @@ export default function App() {
                     </div>
                     <div style={{ fontSize: 18, fontWeight: 700 }}>{lang === "vi" ? selIssue.titleVi : selIssue.title}</div>
                   </div>
-                  <div style={{ display: "flex", gap: 4 }}>
+                  {!perm.isReadOnly() && <div style={{ display: "flex", gap: 4 }}>
                     {selIssue.status === "DRAFT" && perm.canReviewIssue() && <Btn variant="success" small onClick={() => updateIssueStatus(selIssue.id, "OPEN")}><Check size={11} /> {t.review.approve}</Btn>}
                     {selIssue.status === "OPEN" && perm.canEditIssue(selIssue) && <Btn variant="primary" small onClick={() => updateIssueStatus(selIssue.id, "IN_PROGRESS")}><Activity size={11} /> Start</Btn>}
                     {selIssue.status !== "CLOSED" && perm.canCloseIssue(selIssue) && <Btn variant="success" small onClick={() => updateIssueStatus(selIssue.id, "CLOSED")}><CheckCircle2 size={11} /> {t.close}</Btn>}
+                    {perm.canDeleteIssue(selIssue) && <Btn variant="danger" small onClick={() => { if (confirm(t.deleteConfirm)) { const id = selIssue.id; setIssues(prev => prev.filter(i => i.id !== id)); setSelIssue(null); audit.log("ISSUE_DELETED", "issue", id, selIssue.title, selIssue.status, null); setToast({ type: "success", message: `${id} ${t.deleted}` }); setTimeout(() => setToast(null), 3000); } }}><Trash2 size={11} /></Btn>}
                     <Btn small onClick={() => setSelIssue(null)}><X size={11} /></Btn>
-                  </div>
+                  </div>}
+                  {perm.isReadOnly() && <Btn small onClick={() => setSelIssue(null)}><X size={11} /></Btn>}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
                   {[[t.issue.owner, selIssue.owner, User], [t.issue.phase, selIssue.phase, Layers], [t.issue.dueDate, selIssue.due, Calendar], ["Created", selIssue.created, Clock]].map(([k, v, Icon]) => (
@@ -1330,10 +1439,10 @@ export default function App() {
             </div>
 
             {/* Gate Radar Chart */}
-            <GateRadar gateConfig={GATE_CONFIG} gateChecks={project.gateChecks} phase={project.phase} lang={lang} />
+            <GateRadar gateConfig={activeGateConfig} gateChecks={project.gateChecks} phase={project.phase} lang={lang} />
 
             {PHASES.filter(ph => ph !== "CONCEPT" || project.phase === "CONCEPT").map(phase => {
-              const config = GATE_CONFIG[phase];
+              const config = activeGateConfig[phase];
               if (!config) return null;
               const checks = project.gateChecks[phase] || {};
               const gp = getGateProgress(project, phase);
@@ -1547,12 +1656,12 @@ export default function App() {
                 </button>
               ))}
               <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                <Btn small onClick={() => setShowImport("bom")}><Upload size={11} /> {t.importExport?.import || "Import"}</Btn>
+                {perm.canImport() && <Btn small onClick={() => setShowImport("bom")}><Upload size={11} /> {t.importExport?.import || "Import"}</Btn>}
                 <Btn small onClick={() => exportBomExcel(selProject, lang)}><FileSpreadsheet size={11} /> {t.importExport?.exportExcel || "Export Excel"}</Btn>
               </div>
             </div>
-            {bomSubTab === "tree" && <BomModule lang={lang} t={t} project={project} perm={currentUser?.role} />}
-            {bomSubTab === "suppliers" && <SupplierModule lang={lang} t={t} project={project} />}
+            {bomSubTab === "tree" && <BomModule lang={lang} t={t} project={project} perm={perm} />}
+            {bomSubTab === "suppliers" && <SupplierModule lang={lang} t={t} project={project} perm={perm} />}
           </div>
         )}
 
@@ -1578,11 +1687,11 @@ export default function App() {
                 </button>
               ))}
               <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                <Btn small onClick={() => setShowImport("flightTests")}><Upload size={11} /> {t.importExport?.import || "Import"}</Btn>
+                {perm.canImport() && <Btn small onClick={() => setShowImport("flightTests")}><Upload size={11} /> {t.importExport?.import || "Import"}</Btn>}
                 <Btn small onClick={() => exportFlightTestsExcel(selProject, lang)}><FileSpreadsheet size={11} /> {t.importExport?.exportExcel || "Export Excel"}</Btn>
               </div>
             </div>
-            {testSubTab === "flights" && <FlightTestModule lang={lang} t={t} project={project} issues={issues}
+            {testSubTab === "flights" && <FlightTestModule lang={lang} t={t} project={project} issues={issues} perm={perm}
               onViewIssue={(id) => { setTab("issues"); setSelIssue(issues.find(i => i.id === id) || null); }}
               onCreateAutoIssue={(ft) => {
                 const sevMap = { FAIL: "CRITICAL", PARTIAL: "HIGH" };
@@ -1600,11 +1709,11 @@ export default function App() {
                   updates: [{ date: new Date().toISOString().split("T")[0], author: "System", text: `Auto-created from flight FLT-${String(ft.testNumber).padStart(3, "0")} (${ft.result})` }],
                 };
                 ft.autoIssueId = issueId;
-                setIssues(prev => [newIssue, ...prev]);
+                if (online) { sbCreateIssue(newIssue); } else { setIssues(prev => [newIssue, ...prev]); }
                 audit.log("ISSUE_CREATED", "issue", issueId, newIssue.title, null, "DRAFT", { source: "flight_test", flightId: ft.id });
               }}
             />}
-            {testSubTab === "decisions" && <DecisionsModule lang={lang} t={t} project={project} issues={issues} onViewIssue={(id) => { setTab("issues"); setSelIssue(issues.find(i => i.id === id) || null); }} />}
+            {testSubTab === "decisions" && <DecisionsModule lang={lang} t={t} project={project} issues={issues} perm={perm} onViewIssue={(id) => { setTab("issues"); setSelIssue(issues.find(i => i.id === id) || null); }} />}
           </div>
         )}
 
@@ -1725,7 +1834,11 @@ export default function App() {
               importedItems.forEach(item => {
                 audit.log("ISSUE_CREATED", "issue", item.id, item.title, null, item.status, { source: "import" });
               });
-              notificationEngine.notify("issue_created", { count: importedItems.length, source: "import" });
+              notificationEngine.notify("CRITICAL_ISSUE_CREATED", {
+                title: `Imported ${importedItems.length} issues`,
+                titleVi: `Đã nhập ${importedItems.length} vấn đề`,
+                entityType: "import",
+              }, { userId: currentUser?.id });
             }
             setToast({ type: "success", message: lang === "vi" ? `Đã nhập ${importedItems.length} bản ghi` : `Imported ${importedItems.length} records` });
             setTimeout(() => setToast(null), 4000);

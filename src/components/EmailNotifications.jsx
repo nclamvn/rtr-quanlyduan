@@ -2,12 +2,13 @@
 // RtR CONTROL TOWER V3 — Email Notification System
 // Preferences UI, mock sending, toast feedback, templates
 // ===================================================================
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Mail, Bell, BellOff, Zap, Calendar, Clock,
   AlertTriangle, Plane, GitBranch, UserCheck, ShieldAlert,
   FileText, Check, X, Send, Eye,
 } from "lucide-react";
+import { supabase, isSupabaseConnected } from "../lib/supabase";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
 const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
@@ -66,7 +67,7 @@ function getDefaultPreferences() {
   return prefs;
 }
 
-// ── NOTIFICATION ENGINE (mock) ────────────────────────────────
+// ── NOTIFICATION ENGINE ───────────────────────────────────────
 
 export class NotificationEngine {
   constructor() {
@@ -84,9 +85,37 @@ export class NotificationEngine {
     }
   }
 
-  savePreferences(prefs) {
+  savePreferences(prefs, userId) {
     this.preferences = prefs;
     localStorage.setItem("rtr_email_prefs", JSON.stringify(prefs));
+    // Persist to Supabase
+    if (isSupabaseConnected() && userId) {
+      const rows = Object.entries(prefs).map(([eventType, cfg]) => ({
+        user_id: userId,
+        event_type: eventType,
+        email_enabled: cfg.email,
+        in_app_enabled: cfg.inApp,
+        frequency: cfg.frequency,
+      }));
+      supabase.from('email_preferences').upsert(rows, { onConflict: 'user_id,event_type' });
+    }
+  }
+
+  async loadFromSupabase(userId) {
+    if (!isSupabaseConnected() || !userId) return;
+    const { data } = await supabase.from('email_preferences').select('*').eq('user_id', userId);
+    if (data?.length) {
+      const prefs = { ...this.preferences };
+      data.forEach(row => {
+        prefs[row.event_type] = {
+          email: row.email_enabled,
+          inApp: row.in_app_enabled,
+          frequency: row.frequency,
+        };
+      });
+      this.preferences = prefs;
+      localStorage.setItem("rtr_email_prefs", JSON.stringify(prefs));
+    }
   }
 
   onToast(callback) {
@@ -104,33 +133,36 @@ export class NotificationEngine {
     return channel === "email" ? pref.email : pref.inApp;
   }
 
-  // Queue or send a notification
-  notify(eventType, data) {
+  // Send notification — creates Supabase row (triggers handle email)
+  // Falls back to toast-only when offline
+  async notify(eventType, data, { userId, projectId } = {}) {
     const pref = this.preferences[eventType];
     if (!pref) return;
     const eventDef = EMAIL_EVENTS.find((e) => e.id === eventType);
 
-    if (pref.email) {
-      if (pref.frequency === "REALTIME") {
-        // Mock realtime send
-        console.log(`[EMAIL] Realtime: ${eventType}`, data);
-        this._toast(
-          `Email sent: ${eventDef?.label || eventType} → ${data.recipients?.join(", ") || "team"}`,
-          "email"
-        );
-      } else {
-        // Add to digest queue
-        this.digestQueue.push({ eventType, data, timestamp: new Date().toISOString() });
-        console.log(`[EMAIL] Queued for digest: ${eventType}`, data);
-      }
-    }
-
+    // In-app toast (always, for immediate feedback)
     if (pref.inApp) {
-      // In-app notification (toast)
       this._toast(
         `${eventDef?.label || eventType}: ${data.title || data.message || ""}`,
         eventType.includes("CRITICAL") || eventType.includes("FAIL") ? "warning" : "info"
       );
+    }
+
+    // Create notification row in Supabase → DB triggers handle email dispatch
+    if (isSupabaseConnected() && userId) {
+      const { error } = await supabase.from("notifications").insert({
+        user_id: userId,
+        type: eventType,
+        title: data.title || eventDef?.label || eventType,
+        title_vi: data.titleVi || eventDef?.labelVi || null,
+        body: data.body || null,
+        project_id: projectId || data.projectId || null,
+        entity_type: data.entityType || null,
+        entity_id: data.entityId || null,
+      });
+      if (error) {
+        console.warn("[NotificationEngine] Insert failed:", error.message);
+      }
     }
   }
 
@@ -374,6 +406,12 @@ function EmailPreview({ eventType, lang, currentUser, onClose }) {
 // ── TOAST NOTIFICATION COMPONENT ──────────────────────────────
 
 export function NotificationToast({ message, type, onClose }) {
+  const durations = { error: 6000, warning: 6000, success: 3000, info: 4000, email: 4000 };
+  useEffect(() => {
+    const timer = setTimeout(() => onClose(), durations[type] || 4000);
+    return () => clearTimeout(timer);
+  }, [message, type]);
+
   const colors = {
     info: { bg: "#3B82F615", border: "#3B82F640", text: "#60A5FA", icon: Bell },
     email: { bg: "#8B5CF615", border: "#8B5CF640", text: "#A78BFA", icon: Send },

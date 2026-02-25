@@ -111,7 +111,7 @@ export default function BomModule({ lang, t, project, perm }) {
   const [filterLifecycle, setFilterLifecycle] = useState("ALL");
   const [search, setSearch] = useState("");
 
-  const canViewCost = perm ? ["admin", "pm"].includes(perm) : true;
+  const canViewCost = perm?.canViewCost ? perm.canViewCost() : true;
   const supplierMap = useMemo(() => new Map(SUPPLIERS_DATA.map(s => [s.id, s])), []);
 
   // Compute BOM with costs
@@ -435,7 +435,7 @@ export default function BomModule({ lang, t, project, perm }) {
             return (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginTop: 16 }}>
                 {/* Sub-assembly Pie */}
-                <div>
+                <div style={{ minWidth: 0, minHeight: 200 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{lang === "vi" ? "Chi phí theo cụm lắp ráp" : "Cost by Sub-Assembly"}</div>
                   <ResponsiveContainer width="100%" height={200}>
                     <PieChart>
@@ -449,7 +449,7 @@ export default function BomModule({ lang, t, project, perm }) {
                   </ResponsiveContainer>
                 </div>
                 {/* Supplier Bar */}
-                <div>
+                <div style={{ minWidth: 0, minHeight: 200 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{lang === "vi" ? "Chi phí theo nhà cung cấp" : "Cost by Supplier"}</div>
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={costSummary.bySupplier} layout="vertical" margin={{ left: 5 }}>

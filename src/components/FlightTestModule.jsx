@@ -45,7 +45,8 @@ function SensorBar({ label, value, unit, min, max, warn, color = "#3B82F6" }) {
 
 const ATTACH_ICONS = { VIDEO: Video, LOG: FileText, PHOTO: Camera };
 
-export default function FlightTestModule({ lang, t, project, issues, onViewIssue, onCreateAutoIssue }) {
+export default function FlightTestModule({ lang, t, project, issues, onViewIssue, onCreateAutoIssue, perm }) {
+  const canCreateIssue = perm?.canCreateIssue ? perm.canCreateIssue() : true;
   const [selectedTest, setSelectedTest] = useState(null);
   const [filterType, setFilterType] = useState("ALL");
   const [filterResult, setFilterResult] = useState("ALL");
@@ -124,7 +125,7 @@ export default function FlightTestModule({ lang, t, project, issues, onViewIssue
                 </button>
               </div>
             )}
-            {!ft.autoIssueId && (ft.result === "FAIL" || ft.result === "PARTIAL") && onCreateAutoIssue && (
+            {!ft.autoIssueId && (ft.result === "FAIL" || ft.result === "PARTIAL") && onCreateAutoIssue && canCreateIssue && (
               <div style={{ marginTop: 10 }}>
                 <button onClick={() => onCreateAutoIssue(ft)}
                   style={{ background: "#EF444415", border: "1px solid #EF444430", borderRadius: 4, padding: "6px 12px", color: "#FCA5A5", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontFamily: sans }}>

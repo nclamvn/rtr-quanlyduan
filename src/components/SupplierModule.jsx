@@ -48,7 +48,8 @@ function ScoreBar({ label, value, unit = "%", max = 100, color = "#10B981", warn
   );
 }
 
-export default function SupplierModule({ lang, t, project }) {
+export default function SupplierModule({ lang, t, project, perm }) {
+  const readOnly = perm?.isReadOnly ? perm.isReadOnly() : false;
   const [selectedSupplier, setSelectedSupplier] = useState(null);
 
   // Get suppliers that supply parts for this project
@@ -189,6 +190,7 @@ export default function SupplierModule({ lang, t, project }) {
           {lang === "vi" ? "Nhà Cung Cấp" : "Suppliers"}
         </span>
         <span style={{ fontSize: 13, color: "var(--text-dim)" }}>— {suppliers.length} {lang === "vi" ? "nhà cung cấp" : "suppliers"}</span>
+        {readOnly && <span style={{ fontSize: 11, color: "var(--text-faint)", background: "var(--hover-bg)", padding: "2px 8px", borderRadius: 3, fontWeight: 600 }}>{lang === "vi" ? "Chỉ xem" : "Read-only"}</span>}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 10 }}>

@@ -12,3 +12,12 @@ export const supabase = supabaseUrl && supabaseAnonKey
   : null;
 
 export const isSupabaseConnected = () => supabase !== null;
+
+// Timeout wrapper — if Supabase is paused/unreachable, reject after 5s
+const TIMEOUT_MS = 5000;
+export function withTimeout(promise, ms = TIMEOUT_MS) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase timeout')), ms)),
+  ]);
+}

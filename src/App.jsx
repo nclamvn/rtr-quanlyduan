@@ -12,7 +12,7 @@ import {
   LogOut, RefreshCw, ScrollText, Download, Trash2,
   Package, Truck, Scale,
   Upload, Settings, Mail, FileSpreadsheet,
-  Sun, Moon, SearchX, FilterX, Search, WifiOff
+  Sun, Moon, SearchX, FilterX, Search, WifiOff, Brain
 } from "lucide-react";
 import { useAuth } from "./contexts/AuthContext";
 import { usePermission } from "./hooks/usePermission";
@@ -28,10 +28,13 @@ import EmailPreferences, { notificationEngine, NotificationToast } from "./compo
 import IssueCharts from "./components/IssueCharts";
 import GateRadar from "./components/GateRadar";
 import AIRiskPanel from "./components/AIRiskPanel";
-import { FLIGHT_TESTS_DATA } from "./data/v2Data";
+import IntelligencePanel from "./components/IntelligencePanel";
+import { useFlightTestData, useDeliveryData, useBomData } from "./hooks/useV2Data";
+import { useSignalHub } from "./intelligence";
 import { isSupabaseConnected } from "./lib/supabase";
 import { useProjectsData, useIssuesData, useNotificationsData } from "./hooks/useAppData";
-import { LineChart, Line, ResponsiveContainer } from "recharts";
+import { LineChart, Line } from "recharts";
+import SafeResponsiveContainer from "./components/SafeChart";
 
 const normalizeVN = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 
@@ -47,7 +50,7 @@ const LANG = {
   vi: {
     appName: "RtR Control Tower",
     appSub: "Real-time Robotics • Qu\u1EA3n l\u00FD D\u1EF1 \u00E1n Drone",
-    tabs: { tower: "B\u1EA3ng \u0110i\u1EC1u Khi\u1EC3n", issues: "V\u1EA5n \u0110\u1EC1", gates: "C\u1ED5ng Phase", impact: "B\u1EA3n \u0110\u1ED3 \u1EA2nh H\u01B0\u1EDFng", team: "\u0110\u1ED9i Ng\u0169", review: "Duy\u1EC7t", audit: "Nh\u1EADt K\u00FD", bom: "BOM & NCC", testing: "Test & Q\u0110", settings: "C\u00E0i \u0110\u1EB7t" },
+    tabs: { tower: "B\u1EA3ng \u0110i\u1EC1u Khi\u1EC3n", issues: "V\u1EA5n \u0110\u1EC1", gates: "C\u1ED5ng Phase", impact: "B\u1EA3n \u0110\u1ED3 \u1EA2nh H\u01B0\u1EDFng", team: "\u0110\u1ED9i Ng\u0169", review: "Duy\u1EC7t", audit: "Nh\u1EADt K\u00FD", bom: "BOM & NCC", testing: "Test & Q\u0110", intelligence: "Tr\u00ED Tu\u1EC7", settings: "C\u00E0i \u0110\u1EB7t" },
     importExport: { import: "Nh\u1EADp", export: "Xu\u1EA5t", exportExcel: "Xu\u1EA5t Excel", exportPdf: "Xu\u1EA5t PDF", exportSlides: "Slide T\u1ED5ng Quan", importData: "Nh\u1EADp D\u1EEF Li\u1EC7u" },
     email: { preferences: "C\u00E0i \u0111\u1EB7t Email", eventType: "Lo\u1EA1i s\u1EF1 ki\u1EC7n", emailNotif: "Email", inApp: "Trong \u1EE9ng d\u1EE5ng", frequency: "T\u1EA7n su\u1EA5t", save: "L\u01B0u c\u00E0i \u0111\u1EB7t", preview: "Xem tr\u01B0\u1EDBc", realtime: "Th\u1EDDi gian th\u1EF1c", daily: "H\u00E0ng ng\u00E0y", weekly: "H\u00E0ng tu\u1EA7n" },
     metrics: { activeProjects: "D\u1EF1 \u00E1n", openIssues: "\u0110ang m\u1EDF", critical: "Nghi\u00EAm tr\u1ECDng", blocked: "B\u1ECB ch\u1EB7n", closureRate: "T\u1EF7 l\u1EC7 \u0111\u00F3ng", cascadeAlerts: "C\u1EA3nh b\u00E1o delay" },
@@ -71,11 +74,12 @@ const LANG = {
     save: "L\u01B0u", cancel: "H\u1EE7y", close: "\u0110\u00F3ng", search: "T\u00ECm ki\u1EBFm...", searchIssues: "T\u00ECm v\u1EA5n \u0111\u1EC1...",
     deleteConfirm: "X\u00E1c nh\u1EADn x\u00F3a v\u1EA5n \u0111\u1EC1 n\u00E0y?", deleted: "\u0110\u00E3 x\u00F3a", markAllRead: "\u0110\u00E1nh d\u1EA5u t\u1EA5t c\u1EA3 \u0111\u00E3 \u0111\u1ECDc",
     offline: "Ngo\u1EA1i tuy\u1EBFn", unsavedChanges: "C\u00F3 thay \u0111\u1ED5i ch\u01B0a l\u01B0u. B\u1EA1n c\u00F3 ch\u1EAFc mu\u1ED1n \u0111\u00F3ng?",
+    intel: { title: "Tr\u00ED tu\u1EC7 D\u1EF1 \u00E1n", overview: "T\u1ED5ng quan", convergence: "H\u1ED9i t\u1EE5", anomaly: "B\u1EA5t th\u01B0\u1EDDng", freshness: "\u0110\u1ED9 t\u01B0\u01A1i", signals: "t\u00EDn hi\u1EC7u", signalTypes: "lo\u1EA1i", events: "s\u1EF1 ki\u1EC7n", signalCount: "T\u00EDn hi\u1EC7u", convergenceCount: "H\u1ED9i t\u1EE5", anomalyCount: "B\u1EA5t th\u01B0\u1EDDng", dataFreshness: "\u0110\u1ED9 t\u01B0\u01A1i", projectHealth: "S\u1EE9c kh\u1ECFe D\u1EF1 \u00E1n (PHI)", recentConvergences: "H\u1ED9i t\u1EE5 g\u1EA7n \u0111\u00E2y", noConvergences: "Kh\u00F4ng ph\u00E1t hi\u1EC7n h\u1ED9i t\u1EE5", noConvergencesSub: "H\u1EC7 th\u1ED1ng s\u1EBD c\u1EA3nh b\u00E1o khi nhi\u1EC1u t\u00EDn hi\u1EC7u xu\u1EA5t hi\u1EC7n c\u00F9ng l\u00FAc", noAnomalies: "Kh\u00F4ng c\u00F3 b\u1EA5t th\u01B0\u1EDDng", noAnomaliesSub: "C\u1EA7n th\u00EAm d\u1EEF li\u1EC7u baseline", observed: "Th\u1EF1c t\u1EBF", expected: "D\u1EF1 ki\u1EBFn", contributingSignals: "T\u00EDn hi\u1EC7u \u0111\u00F3ng g\u00F3p", freshSources: "T\u01B0\u01A1i", staleSources: "C\u0169", errorSources: "L\u1ED7i", coverage: "Ph\u1EE7", degradedDecisions: "Quy\u1EBFt \u0111\u1ECBnh suy gi\u1EA3m", modifiersActive: "Modifier \u0111ang ho\u1EA1t \u0111\u1ED9ng", levels: { healthy: "Kh\u1ECFe", attention: "Ch\u00FA \u00FD", warning: "C\u1EA3nh b\u00E1o", critical: "Nghi\u00EAm tr\u1ECDng", unknown: "Ch\u01B0a r\u00F5" }, convergenceDetected: "Ph\u00E1t hi\u1EC7n h\u1ED9i t\u1EE5", anomalyDetected: "Ph\u00E1t hi\u1EC7n b\u1EA5t th\u01B0\u1EDDng", healthCritical: "S\u1EE9c kh\u1ECFe nghi\u00EAm tr\u1ECDng" },
   },
   en: {
     appName: "RtR Control Tower",
     appSub: "Real-time Robotics • Drone Program Management",
-    tabs: { tower: "Control Tower", issues: "Issues", gates: "Phase Gates", impact: "Impact Map", team: "Team", review: "Review", audit: "Audit Log", bom: "BOM & Suppliers", testing: "Testing & Decisions", settings: "Settings" },
+    tabs: { tower: "Control Tower", issues: "Issues", gates: "Phase Gates", impact: "Impact Map", team: "Team", review: "Review", audit: "Audit Log", bom: "BOM & Suppliers", testing: "Testing & Decisions", intelligence: "Intelligence", settings: "Settings" },
     importExport: { import: "Import", export: "Export", exportExcel: "Export Excel", exportPdf: "Export PDF", exportSlides: "Executive Slides", importData: "Import Data" },
     email: { preferences: "Email Preferences", eventType: "Event Type", emailNotif: "Email", inApp: "In-App", frequency: "Frequency", save: "Save Preferences", preview: "Preview", realtime: "Realtime", daily: "Daily Digest", weekly: "Weekly" },
     metrics: { activeProjects: "Projects", openIssues: "Open", critical: "Critical", blocked: "Blocked", closureRate: "Closure", cascadeAlerts: "Cascade Alerts" },
@@ -99,6 +103,7 @@ const LANG = {
     save: "Save", cancel: "Cancel", close: "Close", search: "Search...", searchIssues: "Search issues...",
     deleteConfirm: "Confirm delete this issue?", deleted: "Deleted", markAllRead: "Mark all as read",
     offline: "Offline", unsavedChanges: "You have unsaved changes. Are you sure you want to close?",
+    intel: { title: "Project Intelligence", overview: "Overview", convergence: "Convergence", anomaly: "Anomaly", freshness: "Freshness", signals: "signals", signalTypes: "types", events: "events", signalCount: "Signals", convergenceCount: "Convergences", anomalyCount: "Anomalies", dataFreshness: "Freshness", projectHealth: "Project Health Index (PHI)", recentConvergences: "Recent Convergences", noConvergences: "No convergences detected", noConvergencesSub: "System will alert when multiple signal types appear together", noAnomalies: "No anomalies detected", noAnomaliesSub: "Need more baseline data for comparison", observed: "Observed", expected: "Expected", contributingSignals: "Contributing signals", freshSources: "Fresh", staleSources: "Stale", errorSources: "Error", coverage: "Coverage", degradedDecisions: "Degraded Decisions", modifiersActive: "Modifiers active", levels: { healthy: "Healthy", attention: "Attention", warning: "Warning", critical: "Critical", unknown: "Unknown" }, convergenceDetected: "Convergence Detected", anomalyDetected: "Anomaly Detected", healthCritical: "Health Critical" },
   },
 };
 
@@ -349,11 +354,11 @@ function Metric({ label, value, color = "var(--text-primary)", sub, icon: IconCo
       </div>
       {sparkData && (
         <div style={{ marginTop: 4, height: 28, minWidth: 50, minHeight: 28 }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <SafeResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <LineChart data={sparkData.map(v => ({ v }))}>
               <Line type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
             </LineChart>
-          </ResponsiveContainer>
+          </SafeResponsiveContainer>
         </div>
       )}
       {sub && <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 3, fontFamily: sans }}>{sub}</div>}
@@ -556,6 +561,14 @@ export default function App() {
   const project = projects.find(p => p.id === selProject);
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  // --- V2 Data hooks for Intelligence (all projects, not filtered) ---
+  const { data: allFlights } = useFlightTestData(null);
+  const { data: allDeliveries } = useDeliveryData(null);
+  const { data: allBom } = useBomData(null);
+
+  // --- SignalHub Intelligence ---
+  const intel = useSignalHub(issues, projects, allFlights, allDeliveries, allBom);
+
   useEffect(() => { const i = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(i); }, []);
   useEffect(() => { document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('rtr-theme', theme); }, [theme]);
   useEffect(() => { localStorage.setItem('rtr-lang', lang); }, [lang]);
@@ -573,6 +586,26 @@ export default function App() {
   useEffect(() => { sessionStorage.setItem('rtr-bomSubTab', bomSubTab); }, [bomSubTab]);
   useEffect(() => { sessionStorage.setItem('rtr-testSubTab', testSubTab); }, [testSubTab]);
   useEffect(() => { sessionStorage.setItem('rtr-issueSubTab', issueSubTab); }, [issueSubTab]);
+
+  // --- Intelligence event → toast notifications ---
+  useEffect(() => {
+    const latestEvent = intel.events[intel.events.length - 1];
+    if (!latestEvent) return;
+    if (latestEvent.type === 'convergence_detected') {
+      const dims = Object.entries(latestEvent.alert.dimensionValues).map(([k, v]) => `${v}`).join('/');
+      setToast({ type: "warning", message: `${t.intel?.convergenceDetected || "Convergence"}: ${latestEvent.alert.signalTypes.length} ${t.intel?.signalTypes || "types"} @ ${dims}` });
+      setTimeout(() => setToast(null), 5000);
+    } else if (latestEvent.type === 'anomaly_detected') {
+      setToast({ type: "info", message: `${t.intel?.anomalyDetected || "Anomaly"}: ${latestEvent.anomaly.message}` });
+      setTimeout(() => setToast(null), 5000);
+    } else if (latestEvent.type === 'index_updated') {
+      const crit = latestEvent.scores.find(s => s.level === 'critical');
+      if (crit) {
+        setToast({ type: "error", message: `${t.intel?.healthCritical || "Health Critical"}: ${crit.entityId} ${Math.round(crit.score)}/100` });
+        setTimeout(() => setToast(null), 5000);
+      }
+    }
+  }, [intel.events.length]);
 
   // --- Escape key handler ---
   useEffect(() => {
@@ -616,7 +649,7 @@ export default function App() {
     return (
       <div style={{ minHeight: "100vh", background: "var(--bg-main)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <RefreshCw size={24} color="#3B82F6" style={{ animation: "spin 1s linear infinite" }} />
-        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
       </div>
     );
   }
@@ -660,6 +693,7 @@ export default function App() {
       return { ...p, gateChecks: gc };
     }));
     audit.log("GATE_CHECK_TOGGLED", "gate", `${selProject} ${phase}`, cond ? (lang === "vi" ? cond.label_vi : cond.label) : condId, oldVal, newVal);
+    intel.ingestGateToggle(selProject, phase, condId, newVal === "true");
   };
 
   // --- Issue actions ---
@@ -675,6 +709,9 @@ export default function App() {
     audit.log(action, "issue", issueId, issue?.title || issueId, oldStatus, newStatus);
     setToast({ type: "success", message: `${issueId} → ${t.status[newStatus]}` });
     setTimeout(() => setToast(null), 3000);
+    // Ingest to intelligence
+    const updatedIssue = { ...issue, status: newStatus };
+    intel.ingestIssue(updatedIssue, newStatus === "CLOSED" ? 'closed' : 'updated');
   };
 
   // --- Cascade calculation ---
@@ -705,6 +742,7 @@ export default function App() {
     { id: "team", label: t.tabs.team, Icon: Users },
     ...(perm.canViewReviewQueue() ? [{ id: "review", label: t.tabs.review, Icon: ClipboardCheck, badge: draftIssues.length }] : []),
     ...(currentUser?.role === "admin" ? [{ id: "audit", label: t.tabs.audit, Icon: ScrollText, badge: audit.logs.length > 0 ? audit.logs.length : undefined }] : []),
+    { id: "intelligence", label: t.tabs.intelligence, Icon: Brain, badge: intel.convergences.length > 0 ? intel.convergences.length : undefined },
     { id: "settings", label: t.tabs.settings, Icon: Settings },
   ];
 
@@ -892,6 +930,7 @@ export default function App() {
                   onCreate={async (newIssue) => {
                     if (online) { await sbCreateIssue(newIssue); } else { setIssues(prev => [newIssue, ...prev]); }
                     setShowCreate(false); audit.log("ISSUE_CREATED", "issue", newIssue.id, newIssue.title, null, newIssue.status);
+                    intel.ingestIssue(newIssue, 'created');
                   }} />
               </Section>
             )}
@@ -1030,7 +1069,7 @@ export default function App() {
             })()}
 
             {/* AI Risk Assessment */}
-            <AIRiskPanel projects={projects} issues={issues} gateConfig={activeGateConfig} flightTests={FLIGHT_TESTS_DATA} lang={lang} />
+            <AIRiskPanel projects={projects} issues={issues} gateConfig={activeGateConfig} flightTests={allFlights} lang={lang} />
 
             {/* Project Cards */}
             {projects.map(proj => {
@@ -1046,6 +1085,8 @@ export default function App() {
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
                         <span style={{ fontSize: 13, color: "#3B82F6", fontFamily: mono, fontWeight: 700 }}>{proj.id}</span>
                         <Badge label={proj.phase} color={PHASE_COLORS[proj.phase]} size="md" glow />
+                        {(() => { const ps = intel.getProjectScore(proj.id); if (!ps) return null; const lc = { healthy: "#10B981", attention: "#F59E0B", warning: "#F97316", critical: "#EF4444" }[ps.level] || "#6B7280"; return <Badge label={`PHI ${Math.round(ps.score)}`} color={lc} />; })()}
+                        {intel.getProjectConvergences(proj.id).length > 0 && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#EF4444", display: "inline-block", animation: "pulse 1.5s infinite" }} />}
                       </div>
                       <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.02em" }}>{proj.name}</div>
                       <div style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 1 }}>{lang === "vi" ? proj.descVi : proj.desc}</div>
@@ -1299,6 +1340,7 @@ export default function App() {
                   onCreate={async (newIssue) => {
                     if (online) { await sbCreateIssue(newIssue); } else { setIssues(prev => [newIssue, ...prev]); }
                     setShowCreate(false); audit.log("ISSUE_CREATED", "issue", newIssue.id, newIssue.title, null, newIssue.status);
+                    intel.ingestIssue(newIssue, 'created');
                   }} />
               </Section>
             )}
@@ -1806,6 +1848,16 @@ export default function App() {
             </Section>
           );
         })()}
+
+        {/* === INTELLIGENCE === */}
+        {tab === "intelligence" && (
+          <IntelligencePanel
+            intel={intel}
+            projects={projects}
+            lang={lang}
+            t={t}
+          />
+        )}
 
         {/* === SETTINGS === */}
         {tab === "settings" && (

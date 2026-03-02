@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell } from "recharts";
+import SafeResponsiveContainer from "./SafeChart";
 import { AlertTriangle, Ban, DoorOpen, Plane, Zap, Bot, ShieldAlert } from "lucide-react";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
@@ -93,13 +94,13 @@ function RiskGauge({ score, color, level }) {
   ];
   return (
     <div style={{ position: "relative", width: 160, height: 160 }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <SafeResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <PieChart>
           <Pie data={gaugeData} cx="50%" cy="50%" innerRadius={55} outerRadius={72} startAngle={225} endAngle={-45} paddingAngle={2} dataKey="value" stroke="none" animationDuration={1000} animationEasing="ease-in-out">
             {gaugeData.map((d, i) => <Cell key={i} fill={i === 0 ? d.color : "var(--hover-bg)"} />)}
           </Pie>
         </PieChart>
-      </ResponsiveContainer>
+      </SafeResponsiveContainer>
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center" }}>
         <div style={{ fontSize: 32, fontWeight: 900, color, fontFamily: mono, lineHeight: 1 }}>{score}</div>
         <div style={{ fontSize: 10, fontWeight: 700, color, letterSpacing: "0.08em", marginTop: 2 }}>{level}</div>

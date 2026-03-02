@@ -6,8 +6,9 @@ import {
   ArrowRight, Check, X, FilterX, SearchX
 } from "lucide-react";
 import {
-  FLIGHT_TESTS_DATA, FLIGHT_TEST_TYPES, FLIGHT_RESULT_COLORS,
+  FLIGHT_TEST_TYPES, FLIGHT_RESULT_COLORS,
 } from "../data/v2Data";
+import { useFlightTestData } from "../hooks/useV2Data";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
 const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
@@ -51,23 +52,32 @@ export default function FlightTestModule({ lang, t, project, issues, onViewIssue
   const [filterType, setFilterType] = useState("ALL");
   const [filterResult, setFilterResult] = useState("ALL");
 
+  // Fetch from Supabase (or static fallback)
+  const { data: flightTests, loading: flightsLoading } = useFlightTestData(project?.id);
+
   const tests = useMemo(() =>
-    FLIGHT_TESTS_DATA.filter(ft => ft.projectId === project?.id)
+    flightTests
       .filter(ft => filterType === "ALL" || ft.testType === filterType)
       .filter(ft => filterResult === "ALL" || ft.result === filterResult)
       .sort((a, b) => b.testNumber - a.testNumber),
-    [project?.id, filterType, filterResult]
+    [flightTests, filterType, filterResult]
   );
 
-  const stats = useMemo(() => {
-    const all = FLIGHT_TESTS_DATA.filter(ft => ft.projectId === project?.id);
-    return {
-      total: all.length,
-      pass: all.filter(f => f.result === "PASS").length,
-      fail: all.filter(f => f.result === "FAIL").length,
-      partial: all.filter(f => f.result === "PARTIAL").length,
-    };
-  }, [project?.id]);
+  const stats = useMemo(() => ({
+    total: flightTests.length,
+    pass: flightTests.filter(f => f.result === "PASS").length,
+    fail: flightTests.filter(f => f.result === "FAIL").length,
+    partial: flightTests.filter(f => f.result === "PARTIAL").length,
+  }), [flightTests]);
+
+  if (flightsLoading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 60, color: "var(--text-dim)", fontSize: 14 }}>
+        <Plane size={16} style={{ marginRight: 8, opacity: 0.5 }} />
+        {lang === "vi" ? "Đang tải dữ liệu bay..." : "Loading flight tests..."}
+      </div>
+    );
+  }
 
   if (selectedTest) {
     const ft = selectedTest;

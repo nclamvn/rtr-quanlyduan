@@ -1,12 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { supabase, isSupabaseConnected } from "../lib/supabase";
+import { supabase, isSupabaseConnected, withTimeout } from "../lib/supabase";
 
 // ═══ FALLBACK: Mock users cho offline mode ═══
 const DEMO_USERS = [
-  { id: "usr-001", email: "quynh@rtr.vn", password: "demo123", name: "Quỳnh Anh", role: "admin", avatar: "QA", department: "AI", projects: ["PRJ-001", "PRJ-002"] },
-  { id: "usr-002", email: "tuan@rtr.vn", password: "demo123", name: "Minh Tuấn", role: "pm", avatar: "MT", department: "R&D", projects: ["PRJ-001"] },
-  { id: "usr-003", email: "anh@rtr.vn", password: "demo123", name: "Đức Anh", role: "engineer", avatar: "ĐA", department: "R&D", projects: ["PRJ-001"] },
-  { id: "usr-004", email: "huong@rtr.vn", password: "demo123", name: "Lê Hương", role: "viewer", avatar: "LH", department: "QC", projects: ["PRJ-001", "PRJ-002"] },
+  { id: "usr-001", email: "quynhanh@rtr.vn", password: "RtR2026Admin", name: "Quỳnh Anh", role: "admin", avatar: "QA", department: "AI", projects: ["PRJ-001", "PRJ-002"] },
+  { id: "usr-002", email: "minhtuan@rtr.vn", password: "RtR2026Pm01", name: "Minh Tuấn", role: "pm", avatar: "MT", department: "R&D", projects: ["PRJ-001"] },
+  { id: "usr-003", email: "ducanh@rtr.vn", password: "RtR2026Eng01", name: "Đức Anh", role: "engineer", avatar: "ĐA", department: "R&D", projects: ["PRJ-001"] },
+  { id: "usr-004", email: "lehuong@rtr.vn", password: "RtR2026View01", name: "Lê Hương", role: "viewer", avatar: "LH", department: "QC", projects: ["PRJ-001", "PRJ-002"] },
 ];
 
 const STORAGE_KEY = "rtr_auth_user";
@@ -76,16 +76,32 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    // Online mode — Supabase session
+    // Online mode — Supabase session (with timeout fallback)
+    let settled = false;
+    const settle = () => { if (!settled) { settled = true; setIsLoading(false); } };
+    const timeout = setTimeout(() => {
+      console.warn("Supabase getSession timed out — falling back to offline mode");
+      settle();
+    }, 5000);
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      clearTimeout(timeout);
       if (session?.user) {
-        const prof = await fetchProfile(session.user.id);
-        if (prof) {
-          setProfile(prof);
-          setUser(buildUserFromProfile(prof));
+        try {
+          const prof = await fetchProfile(session.user.id);
+          if (prof) {
+            setProfile(prof);
+            setUser(buildUserFromProfile(prof));
+          }
+        } catch (err) {
+          console.warn("Profile fetch failed:", err);
         }
       }
-      setIsLoading(false);
+      settle();
+    }).catch((err) => {
+      clearTimeout(timeout);
+      console.error("Supabase getSession failed:", err);
+      settle();
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -122,34 +138,66 @@ export function AuthProvider({ children }) {
       return { success: false, error: "invalid_credentials" };
     }
 
-    // Online Supabase login
-    const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-    if (authError) {
-      setError(authError.message);
-      return { success: false, error: authError.message };
+    // Online Supabase login (with timeout → offline fallback)
+    try {
+      const { data, error: authError } = await withTimeout(supabase.auth.signInWithPassword({ email, password }));
+      if (authError) {
+        setError(authError.message);
+        return { success: false, error: authError.message };
+      }
+      const prof = await withTimeout(fetchProfile(data.user.id));
+      if (prof) {
+        setProfile(prof);
+        const userObj = buildUserFromProfile(prof);
+        setUser(userObj);
+        return { success: true, user: userObj };
+      }
+      return { success: false, error: "Profile not found" };
+    } catch (err) {
+      console.warn("Login Supabase timeout, trying offline:", err.message);
+      // Fall through to offline demo login
+      const found = DEMO_USERS.find((u) => u.email === email && u.password === password);
+      if (found) {
+        const userObj = buildUserObj(found);
+        setUser(userObj);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(found));
+        return { success: true, user: userObj };
+      }
+      return { success: false, error: "invalid_credentials" };
     }
-
-    const prof = await fetchProfile(data.user.id);
-    if (prof) {
-      setProfile(prof);
-      const userObj = buildUserFromProfile(prof);
-      setUser(userObj);
-      return { success: true, user: userObj };
-    }
-    return { success: false, error: "Profile not found" };
   }, [fetchProfile, buildUserObj, buildUserFromProfile]);
 
-  // ─── Quick Login (offline/demo only) ───
-  const quickLogin = useCallback((userId) => {
+  // ─── Quick Login (tries Supabase first, falls back to offline) ───
+  const quickLogin = useCallback(async (userId) => {
     const found = DEMO_USERS.find((u) => u.id === userId);
-    if (found) {
-      const userObj = buildUserObj(found);
-      setUser(userObj);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(found));
-      return { success: true, user: userObj };
+    if (!found) return { success: false };
+
+    if (isSupabaseConnected()) {
+      try {
+        const { data, error: authError } = await withTimeout(supabase.auth.signInWithPassword({
+          email: found.email,
+          password: found.password,
+        }));
+        if (!authError && data?.user) {
+          const prof = await withTimeout(fetchProfile(data.user.id));
+          if (prof) {
+            setProfile(prof);
+            const userObj = buildUserFromProfile(prof);
+            setUser(userObj);
+            return { success: true, user: userObj };
+          }
+        }
+      } catch (err) {
+        console.warn("Quick login Supabase timeout, falling back to offline:", err.message);
+      }
     }
-    return { success: false };
-  }, [buildUserObj]);
+
+    // Offline fallback
+    const userObj = buildUserObj(found);
+    setUser(userObj);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(found));
+    return { success: true, user: userObj };
+  }, [buildUserObj, buildUserFromProfile, fetchProfile]);
 
   // ─── Switch User (admin, offline only) ───
   const switchUser = useCallback((userId) => {

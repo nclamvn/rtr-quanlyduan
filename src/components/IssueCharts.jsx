@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell, Legend,
   BarChart, Bar,
 } from "recharts";
+import SafeResponsiveContainer from "./SafeChart";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
 const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
@@ -76,7 +77,7 @@ export default function IssueCharts({ issues, lang }) {
       {/* Trend Chart — full width */}
       <div style={sectionStyle}>
         <div style={titleStyle}>{isVi ? "Xu hướng vấn đề 12 tuần" : "Issue Trend — 12 Weeks"}</div>
-        <ResponsiveContainer width="100%" height={220}>
+        <SafeResponsiveContainer width="100%" height={220} minWidth={0} minHeight={0}>
           <AreaChart data={trendData}>
             <defs>
               <linearGradient id="gradOpen" x1="0" y1="0" x2="0" y2="1">
@@ -95,7 +96,7 @@ export default function IssueCharts({ issues, lang }) {
             <Area type="monotone" dataKey="opened" name={isVi ? "Mở mới" : "Opened"} stroke="#EF4444" fill="url(#gradOpen)" strokeWidth={2} dot={{ r: 3, fill: "#EF4444" }} />
             <Area type="monotone" dataKey="closed" name={isVi ? "Đã đóng" : "Closed"} stroke="#22C55E" fill="url(#gradClosed)" strokeWidth={2} dot={{ r: 3, fill: "#22C55E" }} />
           </AreaChart>
-        </ResponsiveContainer>
+        </SafeResponsiveContainer>
       </div>
 
       {/* Row 2: Severity Donut + Status Bar */}
@@ -103,14 +104,14 @@ export default function IssueCharts({ issues, lang }) {
         {/* Severity Donut */}
         <div style={sectionStyle}>
           <div style={titleStyle}>{isVi ? "Phân bổ mức độ" : "Severity Breakdown"}</div>
-          <ResponsiveContainer width="100%" height={220}>
+          <SafeResponsiveContainer width="100%" height={220} minWidth={0} minHeight={0}>
             <PieChart>
               <Pie data={sevData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value" nameKey="name" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={{ stroke: tickColor }} style={{ fontSize: 11, fontFamily: sans }}>
                 {sevData.map((d, i) => <Cell key={i} fill={d.color} />)}
               </Pie>
               <Tooltip content={<ChartTooltip />} />
             </PieChart>
-          </ResponsiveContainer>
+          </SafeResponsiveContainer>
           <div style={{ textAlign: "center", fontSize: 13, color: "var(--text-dim)", fontFamily: sans, marginTop: -8 }}>
             {isVi ? "Tổng" : "Total"}: <span style={{ fontFamily: mono, fontWeight: 700, color: "var(--text-primary)" }}>{issues.length}</span>
           </div>
@@ -119,7 +120,7 @@ export default function IssueCharts({ issues, lang }) {
         {/* Status Distribution */}
         <div style={sectionStyle}>
           <div style={titleStyle}>{isVi ? "Phân bổ trạng thái" : "Status Distribution"}</div>
-          <ResponsiveContainer width="100%" height={220}>
+          <SafeResponsiveContainer width="100%" height={220} minWidth={0} minHeight={0}>
             <BarChart data={statusData} layout="vertical" margin={{ left: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} horizontal={false} />
               <XAxis type="number" tick={{ fill: tickColor, fontSize: 11, fontFamily: mono }} axisLine={{ stroke: gridColor }} tickLine={false} allowDecimals={false} />
@@ -129,7 +130,7 @@ export default function IssueCharts({ issues, lang }) {
                 {statusData.map((d, i) => <Cell key={i} fill={d.fill} />)}
               </Bar>
             </BarChart>
-          </ResponsiveContainer>
+          </SafeResponsiveContainer>
         </div>
       </div>
     </div>

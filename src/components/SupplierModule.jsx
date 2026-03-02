@@ -5,9 +5,9 @@ import {
   TrendingUp, ShieldCheck, ShieldAlert, CircleAlert
 } from "lucide-react";
 import {
-  SUPPLIERS_DATA, DELIVERY_RECORDS_DATA, BOM_DATA,
   SUPPLIER_QUAL_COLORS, DELIVERY_STATUS_COLORS,
 } from "../data/v2Data";
+import { useSupplierData, useDeliveryData, useBomData } from "../hooks/useV2Data";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
 const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
@@ -52,22 +52,36 @@ export default function SupplierModule({ lang, t, project, perm }) {
   const readOnly = perm?.isReadOnly ? perm.isReadOnly() : false;
   const [selectedSupplier, setSelectedSupplier] = useState(null);
 
+  // Fetch from Supabase (or static fallback)
+  const { data: allSuppliers, loading: suppLoading } = useSupplierData();
+  const { data: allDeliveries } = useDeliveryData(null);
+  const { data: allBom } = useBomData(project?.id);
+
   // Get suppliers that supply parts for this project
   const projectSupplierIds = useMemo(() => {
     const ids = new Set();
-    BOM_DATA.filter(b => b.projectId === project?.id && b.supplierId).forEach(b => ids.add(b.supplierId));
+    allBom.filter(b => b.supplierId).forEach(b => ids.add(b.supplierId));
     return ids;
-  }, [project?.id]);
+  }, [allBom]);
 
   const suppliers = useMemo(() =>
-    SUPPLIERS_DATA.filter(s => projectSupplierIds.has(s.id)),
-    [projectSupplierIds]
+    allSuppliers.filter(s => projectSupplierIds.has(s.id)),
+    [allSuppliers, projectSupplierIds]
   );
+
+  if (suppLoading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 60, color: "var(--text-dim)", fontSize: 14 }}>
+        <Truck size={16} style={{ marginRight: 8, opacity: 0.5 }} />
+        {lang === "vi" ? "Đang tải nhà cung cấp..." : "Loading suppliers..."}
+      </div>
+    );
+  }
 
   if (selectedSupplier) {
     const s = selectedSupplier;
-    const deliveries = DELIVERY_RECORDS_DATA.filter(d => d.supplierId === s.id).sort((a, b) => b.orderDate.localeCompare(a.orderDate));
-    const suppliedParts = BOM_DATA.filter(b => b.supplierId === s.id && b.projectId === project?.id);
+    const deliveries = allDeliveries.filter(d => d.supplierId === s.id).sort((a, b) => b.orderDate.localeCompare(a.orderDate));
+    const suppliedParts = allBom.filter(b => b.supplierId === s.id);
     const qualColor = SUPPLIER_QUAL_COLORS[s.qualificationStatus] || "var(--text-dim)";
 
     return (
@@ -160,7 +174,7 @@ export default function SupplierModule({ lang, t, project, perm }) {
           </div>
           <div style={{ borderLeft: "2px solid var(--border)", paddingLeft: 14, display: "flex", flexDirection: "column", gap: 8 }}>
             {deliveries.map((d, i) => {
-              const part = BOM_DATA.find(b => b.id === d.bomPartId);
+              const part = allBom.find(b => b.id === d.bomPartId);
               const statusColor = DELIVERY_STATUS_COLORS[d.status] || "var(--text-dim)";
               return (
                 <div key={d.id} style={{ position: "relative" }}>
@@ -196,7 +210,7 @@ export default function SupplierModule({ lang, t, project, perm }) {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 10 }}>
         {suppliers.map(s => {
           const qualColor = SUPPLIER_QUAL_COLORS[s.qualificationStatus] || "var(--text-dim)";
-          const partsCount = BOM_DATA.filter(b => b.supplierId === s.id && b.projectId === project?.id).length;
+          const partsCount = allBom.filter(b => b.supplierId === s.id).length;
           return (
             <div key={s.id} onClick={() => setSelectedSupplier(s)}
               style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: 14, cursor: "pointer", transition: "border-color 0.2s" }}

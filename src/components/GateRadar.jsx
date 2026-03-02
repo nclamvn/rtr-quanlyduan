@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  ResponsiveContainer, Tooltip,
+  Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell,
 } from "recharts";
+import SafeResponsiveContainer from "./SafeChart";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
 const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
@@ -88,7 +89,7 @@ export default function GateRadar({ gateConfig, gateChecks, phase, lang }) {
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", fontFamily: sans, marginBottom: 12 }}>
           {isVi ? `Tiến độ cổng ${phase}` : `${phase} Gate Progress`}
         </div>
-        <ResponsiveContainer width="100%" height={160}>
+        <SafeResponsiveContainer width="100%" height={160} minWidth={0} minHeight={0}>
           <BarChart data={data} margin={{ left: 10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#1E2A3A" : "#E2E8F0"} />
             <XAxis dataKey="label" tick={{ fill: "#64748B", fontSize: 11, fontFamily: sans }} axisLine={false} tickLine={false} />
@@ -98,7 +99,7 @@ export default function GateRadar({ gateConfig, gateChecks, phase, lang }) {
               {data.map((d, i) => <Cell key={i} fill={d.color} />)}
             </Bar>
           </BarChart>
-        </ResponsiveContainer>
+        </SafeResponsiveContainer>
       </div>
     );
   }
@@ -108,7 +109,7 @@ export default function GateRadar({ gateConfig, gateChecks, phase, lang }) {
       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", fontFamily: sans, marginBottom: 8 }}>
         {isVi ? `Radar tiến độ cổng ${phase}` : `${phase} Gate Radar`}
       </div>
-      <ResponsiveContainer width="100%" height={280}>
+      <SafeResponsiveContainer width="100%" height={280} minWidth={0} minHeight={0}>
         <RadarChart data={data} cx="50%" cy="50%" outerRadius="70%">
           <PolarGrid stroke={isDark ? "#1E2A3A" : "#CBD5E1"} />
           <PolarAngleAxis dataKey="label" tick={{ fill: isDark ? "#94A3B8" : "#475569", fontSize: 11, fontFamily: sans }} />
@@ -116,7 +117,7 @@ export default function GateRadar({ gateConfig, gateChecks, phase, lang }) {
           <Tooltip content={<ChartTooltip />} />
           <Radar dataKey="progress" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.25} strokeWidth={2} dot={{ r: 4, fill: "#fff", stroke: "#3B82F6", strokeWidth: 2 }} animationDuration={800} />
         </RadarChart>
-      </ResponsiveContainer>
+      </SafeResponsiveContainer>
       {/* Legend */}
       <div style={{ display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap", marginTop: 4 }}>
         {data.map((d, i) => (

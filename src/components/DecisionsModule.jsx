@@ -5,8 +5,9 @@ import {
   ArrowRight, CircleDot
 } from "lucide-react";
 import {
-  DECISIONS_DATA, DECISION_STATUS_COLORS,
+  DECISION_STATUS_COLORS,
 } from "../data/v2Data";
+import { useDecisionData } from "../hooks/useV2Data";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
 const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
@@ -27,12 +28,24 @@ export default function DecisionsModule({ lang, t, project, issues, onViewIssue,
   const [expandedId, setExpandedId] = useState(null);
   const [filterStatus, setFilterStatus] = useState("ALL");
 
+  // Fetch from Supabase (or static fallback)
+  const { data: allDecisions, loading: decLoading } = useDecisionData(project?.id);
+
   const decisions = useMemo(() =>
-    DECISIONS_DATA.filter(d => d.projectId === project?.id)
+    allDecisions
       .filter(d => filterStatus === "ALL" || d.status === filterStatus)
       .sort((a, b) => b.date.localeCompare(a.date)),
-    [project?.id, filterStatus]
+    [allDecisions, filterStatus]
   );
+
+  if (decLoading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 60, color: "var(--text-dim)", fontSize: 14 }}>
+        <Scale size={16} style={{ marginRight: 8, opacity: 0.5 }} />
+        {lang === "vi" ? "Đang tải quyết định..." : "Loading decisions..."}
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

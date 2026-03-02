@@ -5,13 +5,14 @@ import {
   CircleAlert, Check, ShieldAlert, FilterX
 } from "lucide-react";
 import {
-  BOM_DATA, calcBomCosts, SUPPLIERS_DATA,
   BOM_CATEGORY_COLORS, BOM_LIFECYCLE_COLORS,
 } from "../data/v2Data";
+import { useBomData, useSupplierData } from "../hooks/useV2Data";
 import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts";
+import SafeResponsiveContainer from "./SafeChart";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
 const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
@@ -112,13 +113,14 @@ export default function BomModule({ lang, t, project, perm }) {
   const [search, setSearch] = useState("");
 
   const canViewCost = perm?.canViewCost ? perm.canViewCost() : true;
-  const supplierMap = useMemo(() => new Map(SUPPLIERS_DATA.map(s => [s.id, s])), []);
 
-  // Compute BOM with costs
-  const projectBom = useMemo(() => {
-    const items = BOM_DATA.filter(b => b.projectId === project?.id);
-    return calcBomCosts(items);
-  }, [project?.id]);
+  // Fetch from Supabase (or static fallback)
+  const { data: bomParts, loading: bomLoading } = useBomData(project?.id);
+  const { data: suppliers } = useSupplierData();
+  const supplierMap = useMemo(() => new Map(suppliers.map(s => [s.id, s])), [suppliers]);
+
+  // BOM already comes with costs calculated from the hook
+  const projectBom = bomParts;
 
   // Build tree structure
   const childrenMap = useMemo(() => {
@@ -207,6 +209,15 @@ export default function BomModule({ lang, t, project, perm }) {
   ];
 
   const selectedSupplier = selectedItem?.supplierId ? supplierMap.get(selectedItem.supplierId) : null;
+
+  if (bomLoading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 60, color: "var(--text-dim)", fontSize: 14 }}>
+        <Package size={16} style={{ marginRight: 8, opacity: 0.5 }} />
+        {lang === "vi" ? "Đang tải BOM..." : "Loading BOM..."}
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -437,7 +448,7 @@ export default function BomModule({ lang, t, project, perm }) {
                 {/* Sub-assembly Pie */}
                 <div style={{ minWidth: 0, minHeight: 200 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{lang === "vi" ? "Chi phí theo cụm lắp ráp" : "Cost by Sub-Assembly"}</div>
-                  <ResponsiveContainer width="100%" height={200}>
+                  <SafeResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
                     <PieChart>
                       <Pie data={costSummary.bySubAssy} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={2} dataKey="value" nameKey="name"
                         label={({ name, percent }) => `${name.length > 12 ? name.slice(0, 12) + "..." : name} ${(percent * 100).toFixed(0)}%`}
@@ -446,12 +457,12 @@ export default function BomModule({ lang, t, project, perm }) {
                       </Pie>
                       <Tooltip content={bomTooltip} />
                     </PieChart>
-                  </ResponsiveContainer>
+                  </SafeResponsiveContainer>
                 </div>
                 {/* Supplier Bar */}
                 <div style={{ minWidth: 0, minHeight: 200 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{lang === "vi" ? "Chi phí theo nhà cung cấp" : "Cost by Supplier"}</div>
-                  <ResponsiveContainer width="100%" height={200}>
+                  <SafeResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
                     <BarChart data={costSummary.bySupplier} layout="vertical" margin={{ left: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke={gridColor} horizontal={false} />
                       <XAxis type="number" tick={{ fill: tickColor, fontSize: 10, fontFamily: mono }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}`} />
@@ -461,20 +472,20 @@ export default function BomModule({ lang, t, project, perm }) {
                         {costSummary.bySupplier.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                       </Bar>
                     </BarChart>
-                  </ResponsiveContainer>
+                  </SafeResponsiveContainer>
                 </div>
                 {/* Lifecycle Donut */}
                 <div style={{ gridColumn: "1 / -1" }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>{lang === "vi" ? "Rủi ro vòng đời linh kiện" : "Component Lifecycle Risk"}</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
-                    <ResponsiveContainer width={160} height={140}>
+                    <SafeResponsiveContainer width={160} height={140} minWidth={0} minHeight={0}>
                       <PieChart>
                         <Pie data={costSummary.byLifecycle} cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={2} dataKey="value" nameKey="name">
                           {costSummary.byLifecycle.map((d, i) => <Cell key={i} fill={d.color} />)}
                         </Pie>
                         <Tooltip />
                       </PieChart>
-                    </ResponsiveContainer>
+                    </SafeResponsiveContainer>
                     <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                       {costSummary.byLifecycle.map((d, i) => (
                         <div key={i} style={{ display: "flex", alignItems: "center", gap: 5 }}>

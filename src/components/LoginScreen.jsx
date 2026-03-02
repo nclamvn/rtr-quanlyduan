@@ -47,6 +47,7 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
   const [error, setError] = useState("");
   const [shake, setShake] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('rtr-theme') || 'dark');
 
   const t = LANG[lang];
@@ -59,24 +60,34 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
 
   useEffect(() => { document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('rtr-theme', theme); }, [theme]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
-    const result = login(email, password);
-    if (result.success) {
-      onLogin(result.user, lang);
-    } else {
-      setError(t.invalidCredentials);
-      setShake(true);
-      setTimeout(() => setShake(false), 600);
+    setLoading(true);
+    try {
+      const result = await login(email, password);
+      if (result.success) {
+        onLogin(result.user, lang);
+      } else {
+        setError(t.invalidCredentials);
+        setShake(true);
+        setTimeout(() => setShake(false), 600);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleQuickLogin = (userId) => {
+  const handleQuickLogin = async (userId) => {
     setError("");
-    const result = quickLogin(userId);
-    if (result.success) {
-      onLogin(result.user, lang);
+    setLoading(true);
+    try {
+      const result = await quickLogin(userId);
+      if (result.success) {
+        onLogin(result.user, lang);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -227,6 +238,7 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
 
           <button
             type="submit"
+            disabled={loading}
             style={{
               width: "100%",
               background: "linear-gradient(135deg, #1D4ED8, #2563EB)",
@@ -236,18 +248,19 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
               color: "#fff",
               fontSize: 15,
               fontWeight: 700,
-              cursor: "pointer",
+              cursor: loading ? "wait" : "pointer",
               fontFamily: sans,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               gap: 6,
               transition: "opacity 0.2s",
+              opacity: loading ? 0.7 : 1,
             }}
-            onMouseEnter={(e) => { e.target.style.opacity = 0.9; }}
-            onMouseLeave={(e) => { e.target.style.opacity = 1; }}
+            onMouseEnter={(e) => { if (!loading) e.target.style.opacity = 0.9; }}
+            onMouseLeave={(e) => { if (!loading) e.target.style.opacity = 1; }}
           >
-            <LogIn size={14} /> {t.login}
+            <LogIn size={14} /> {loading ? "..." : t.login}
           </button>
         </form>
 

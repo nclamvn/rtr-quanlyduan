@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { isSupabaseConnected } from '../lib/supabase';
+import { isSupabaseConnected, withTimeout } from '../lib/supabase';
 import { useRealtimeSubscription } from './useRealtime';
 import {
   fetchProjects,
@@ -118,37 +118,40 @@ export function useProjectsData() {
       return; // App.jsx will use static fallback
     }
 
-    const { data: projData } = await fetchProjects();
-    if (!projData?.length) {
-      setLoading(false);
-      return;
+    try {
+      const { data: projData } = await withTimeout(fetchProjects());
+      if (!projData?.length) {
+        setLoading(false);
+        return;
+      }
+
+      // Fetch milestones and gates for all projects in parallel
+      const allMilestones = {};
+      const allGateData = {};
+      const mergedConfig = {};
+
+      await withTimeout(Promise.all(projData.map(async (proj) => {
+        const [milRes, gateRes] = await Promise.all([
+          fetchMilestones(proj.id),
+          fetchGateConditions(proj.id),
+        ]);
+        allMilestones[proj.id] = buildMilestonesMap(milRes.data || []);
+        const gd = buildGateChecksMap(gateRes.data || []);
+        allGateData[proj.id] = gd;
+        Object.entries(gd.config).forEach(([phase, cfg]) => {
+          if (!mergedConfig[phase]) mergedConfig[phase] = cfg;
+        });
+      })), 8000);
+
+      const transformed = projData.map(p =>
+        transformProject(p, allMilestones[p.id] || {}, allGateData[p.id] || { checks: {}, config: {} })
+      );
+
+      setProjects(transformed);
+      setGateConfig(mergedConfig);
+    } catch (err) {
+      console.warn('Projects fetch timeout/error, using static fallback:', err.message);
     }
-
-    // Fetch milestones and gates for all projects in parallel
-    const allMilestones = {};
-    const allGateData = {};
-    const mergedConfig = {};
-
-    await Promise.all(projData.map(async (proj) => {
-      const [milRes, gateRes] = await Promise.all([
-        fetchMilestones(proj.id),
-        fetchGateConditions(proj.id),
-      ]);
-      allMilestones[proj.id] = buildMilestonesMap(milRes.data || []);
-      const gd = buildGateChecksMap(gateRes.data || []);
-      allGateData[proj.id] = gd;
-      // Merge gate config (same structure across projects for same phase)
-      Object.entries(gd.config).forEach(([phase, cfg]) => {
-        if (!mergedConfig[phase]) mergedConfig[phase] = cfg;
-      });
-    }));
-
-    const transformed = projData.map(p =>
-      transformProject(p, allMilestones[p.id] || {}, allGateData[p.id] || { checks: {}, config: {} })
-    );
-
-    setProjects(transformed);
-    setGateConfig(mergedConfig);
     setLoading(false);
   }, []);
 
@@ -203,8 +206,12 @@ export function useIssuesData() {
       return; // App.jsx will use static fallback
     }
 
-    const { data } = await fetchIssues();
-    setIssues((data || []).map(transformIssue));
+    try {
+      const { data } = await withTimeout(fetchIssues());
+      setIssues((data || []).map(transformIssue));
+    } catch (err) {
+      console.warn('Issues fetch timeout/error, using static fallback:', err.message);
+    }
     setLoading(false);
   }, []);
 
@@ -257,15 +264,19 @@ export function useNotificationsData(userId) {
       return;
     }
     setLoading(true);
-    const { data } = await fetchNotifications(userId);
-    setNotifications((data || []).map(n => ({
-      ...n,
-      titleVi: n.title_vi,
-      time: n.time_ago || formatTimeAgo(n.created_at),
-      timeVi: n.time_ago_vi || formatTimeAgo(n.created_at, 'vi'),
-      read: n.is_read,
-      ref: n.reference_id,
-    })));
+    try {
+      const { data } = await withTimeout(fetchNotifications(userId));
+      setNotifications((data || []).map(n => ({
+        ...n,
+        titleVi: n.title_vi,
+        time: n.time_ago || formatTimeAgo(n.created_at),
+        timeVi: n.time_ago_vi || formatTimeAgo(n.created_at, 'vi'),
+        read: n.is_read,
+        ref: n.reference_id,
+      })));
+    } catch (err) {
+      console.warn('Notifications fetch timeout/error:', err.message);
+    }
     setLoading(false);
   }, [userId]);
 

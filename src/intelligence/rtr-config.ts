@@ -22,6 +22,9 @@ export const RTR_CONFIG: DomainConfig = {
     { id: 'src-flights', name: 'Flight Tests', tier: 1, signalTypes: ['flight_result'], enabled: true },
     { id: 'src-delivery', name: 'Supplier Deliveries', tier: 2, signalTypes: ['delivery_event'], enabled: true },
     { id: 'src-import', name: 'Data Import', tier: 3, signalTypes: ['import_batch'], enabled: true },
+    { id: 'src-orders', name: 'Order Management', tier: 1, signalTypes: ['order_event'], enabled: true },
+    { id: 'src-production', name: 'Production', tier: 1, signalTypes: ['production_event'], enabled: true },
+    { id: 'src-inventory', name: 'Inventory', tier: 2, signalTypes: ['inventory_alert'], enabled: true },
   ],
 
   // ── Classification Rules (8 rules) ──
@@ -114,6 +117,87 @@ export const RTR_CONFIG: DomainConfig = {
         ],
         assign: { severity: 'low', categories: ['milestone', 'progress'] },
         confidence: 0.8,
+        terminal: false,
+      },
+      // ── Business Operations Rules ──
+      {
+        id: 'crit_order_overdue_urgent',
+        priority: 9,
+        conditions: [
+          { field: 'signalType', op: 'equals', value: 'order_event' },
+          { field: 'dimension', key: 'priority', op: 'equals', value: 'URGENT' },
+          { field: 'value', op: 'gt', threshold: 3 }, // overdue > 3 days
+        ],
+        assign: { severity: 'critical', categories: ['order', 'overdue', 'escalation'] },
+        confidence: 0.95,
+        terminal: true,
+      },
+      {
+        id: 'high_order_overdue',
+        priority: 10,
+        conditions: [
+          { field: 'signalType', op: 'equals', value: 'order_event' },
+          { field: 'value', op: 'gt', threshold: 7 }, // overdue > 7 days
+        ],
+        assign: { severity: 'high', categories: ['order', 'overdue'] },
+        confidence: 0.9,
+        terminal: false,
+      },
+      {
+        id: 'high_payment_overdue',
+        priority: 11,
+        conditions: [
+          { field: 'signalType', op: 'equals', value: 'order_event' },
+          { field: 'dimension', key: 'payment_status', op: 'equals', value: 'OVERDUE' },
+        ],
+        assign: { severity: 'high', categories: ['finance', 'overdue'] },
+        confidence: 0.9,
+        terminal: false,
+      },
+      {
+        id: 'high_production_delayed',
+        priority: 12,
+        conditions: [
+          { field: 'signalType', op: 'equals', value: 'production_event' },
+          { field: 'dimension', key: 'action', op: 'equals', value: 'delayed' },
+          { field: 'value', op: 'gt', threshold: 3 }, // delayed > 3 days
+        ],
+        assign: { severity: 'high', categories: ['production', 'schedule'] },
+        confidence: 0.9,
+        terminal: false,
+      },
+      {
+        id: 'med_low_yield',
+        priority: 13,
+        conditions: [
+          { field: 'signalType', op: 'equals', value: 'production_event' },
+          { field: 'dimension', key: 'action', op: 'equals', value: 'completed' },
+          { field: 'value', op: 'gt', threshold: 10 }, // defect rate > 10%
+        ],
+        assign: { severity: 'medium', categories: ['production', 'quality'] },
+        confidence: 0.85,
+        terminal: false,
+      },
+      {
+        id: 'high_inventory_critical',
+        priority: 14,
+        conditions: [
+          { field: 'signalType', op: 'equals', value: 'inventory_alert' },
+          { field: 'dimension', key: 'stock_status', op: 'equals', value: 'CRITICAL' },
+        ],
+        assign: { severity: 'high', categories: ['inventory', 'supply_chain'] },
+        confidence: 0.9,
+        terminal: true,
+      },
+      {
+        id: 'med_inventory_low',
+        priority: 15,
+        conditions: [
+          { field: 'signalType', op: 'equals', value: 'inventory_alert' },
+          { field: 'dimension', key: 'stock_status', op: 'in', values: ['LOW', 'low_stock'] },
+        ],
+        assign: { severity: 'medium', categories: ['inventory', 'supply_chain'] },
+        confidence: 0.85,
         terminal: false,
       },
     ],
@@ -266,6 +350,9 @@ export const RTR_CONFIG: DomainConfig = {
       flight_result: 'Flight Test',
       delivery_event: 'Delivery',
       import_batch: 'Import',
+      order_event: 'Order',
+      production_event: 'Production',
+      inventory_alert: 'Inventory',
     },
   },
 };

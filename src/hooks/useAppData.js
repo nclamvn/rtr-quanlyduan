@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { isSupabaseConnected, withTimeout } from '../lib/supabase';
+import { isSupabaseConnected, withTimeout, warmUpSupabase, getConnectionStatus } from '../lib/supabase';
 import { useRealtimeSubscription } from './useRealtime';
 import {
   fetchProjects,
@@ -113,7 +113,7 @@ export function useProjectsData() {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (!isSupabaseConnected()) {
+    if (getConnectionStatus() !== 'online') {
       setLoading(false);
       return; // App.jsx will use static fallback
     }
@@ -155,7 +155,7 @@ export function useProjectsData() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
 
   // Toggle gate condition (Supabase)
   const toggleGate = useCallback(async (gateId, isChecked, userId) => {
@@ -201,7 +201,7 @@ export function useIssuesData() {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (!isSupabaseConnected()) {
+    if (getConnectionStatus() !== 'online') {
       setLoading(false);
       return; // App.jsx will use static fallback
     }
@@ -215,7 +215,7 @@ export function useIssuesData() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
 
   // Create issue via Supabase
   const createIssue = useCallback(async (issueData) => {
@@ -259,7 +259,7 @@ export function useNotificationsData(userId) {
   const [loading, setLoading] = useState(true);
 
   const refetch = useCallback(async () => {
-    if (!isSupabaseConnected() || !userId) {
+    if (getConnectionStatus() !== 'online' || !userId) {
       setLoading(false);
       return;
     }
@@ -280,7 +280,7 @@ export function useNotificationsData(userId) {
     setLoading(false);
   }, [userId]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
 
   const markRead = useCallback(async (notifId) => {
     if (!isSupabaseConnected()) return;

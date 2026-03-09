@@ -82,7 +82,7 @@ export function AuthProvider({ children }) {
     const timeout = setTimeout(() => {
       console.warn("Supabase getSession timed out — falling back to offline mode");
       settle();
-    }, 5000);
+    }, 15000);
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       clearTimeout(timeout);

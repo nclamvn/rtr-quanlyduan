@@ -154,6 +154,99 @@ export function importBatchToSignal(
   };
 }
 
+// ── Order → Signal ──────────────────────────────────────────────────
+
+export function orderToSignal(
+  order: any,
+  action: 'created' | 'updated' | 'status_changed',
+): SignalInput {
+  const isOverdue = order.requiredDeliveryDate
+    ? Math.max(0, Math.floor((Date.now() - new Date(order.requiredDeliveryDate).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
+  return {
+    sourceId: 'src-orders',
+    signalType: 'order_event',
+    title: `[${order.orderNumber}] ${order.customerName} — ${action}`,
+    body: order.notes,
+    value: isOverdue,
+    entities: [
+      { name: order.orderNumber, type: 'order', id: order.id },
+      { name: order.customerName, type: 'customer' },
+    ],
+    dimensions: {
+      project: order.projectId || 'global',
+      status: order.status,
+      priority: order.priority,
+      payment_status: order.paymentStatus,
+      customer: order.customerName,
+      action,
+    },
+    timestamp: new Date(order.orderDate || Date.now()),
+    ttl: 30 * 24 * 60 * 60,
+    sourceTier: 1,
+  };
+}
+
+// ── Production Order → Signal ───────────────────────────────────────
+
+export function productionToSignal(
+  wo: any,
+  action: 'created' | 'updated' | 'completed' | 'delayed',
+): SignalInput {
+  const isLate = wo.plannedEnd
+    ? Math.max(0, Math.floor((Date.now() - new Date(wo.plannedEnd).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
+  const yieldRate = wo.quantity > 0 ? (wo.yieldQuantity || 0) / wo.quantity : 1;
+
+  return {
+    sourceId: 'src-production',
+    signalType: 'production_event',
+    title: `[${wo.woNumber}] ${wo.productName} — ${action}`,
+    value: action === 'completed' ? (1 - yieldRate) * 100 : isLate, // defect% or delay days
+    entities: [
+      { name: wo.woNumber, type: 'work_order', id: wo.id },
+      { name: wo.productName, type: 'product' },
+    ],
+    dimensions: {
+      project: wo.projectId || 'global',
+      status: wo.status,
+      station: wo.currentStation || 'unknown',
+      priority: wo.priority || 'NORMAL',
+      action,
+    },
+    timestamp: new Date(wo.updatedAt || Date.now()),
+    ttl: 30 * 24 * 60 * 60,
+    sourceTier: 1,
+  };
+}
+
+// ── Inventory Alert → Signal ────────────────────────────────────────
+
+export function inventoryAlertToSignal(
+  item: any,
+  alertType: 'low_stock' | 'critical_stock' | 'reorder',
+): SignalInput {
+  return {
+    sourceId: 'src-inventory',
+    signalType: 'inventory_alert',
+    title: `[${item.partNumber}] ${item.partName} — ${alertType}`,
+    value: item.quantityAvailable || 0,
+    entities: [
+      { name: item.partNumber, type: 'inventory_item', id: item.id },
+    ],
+    dimensions: {
+      project: 'global',
+      warehouse: item.warehouse || 'unknown',
+      category: item.category || 'OTHER',
+      stock_status: item.stockStatus || alertType,
+    },
+    timestamp: new Date(),
+    ttl: 7 * 24 * 60 * 60,
+    sourceTier: 2,
+  };
+}
+
 // ── Hydration: Convert all existing data to signals at startup ───────
 
 export function hydrateFromExistingData(
@@ -161,6 +254,9 @@ export function hydrateFromExistingData(
   flights: any[],
   deliveries: any[],
   bomItems: any[],
+  orders: any[] = [],
+  productionOrders: any[] = [],
+  inventoryItems: any[] = [],
 ): SignalInput[] {
   const signals: SignalInput[] = [];
 
@@ -188,6 +284,29 @@ export function hydrateFromExistingData(
   for (const bom of bomItems) {
     if (['EOL', 'OBSOLETE', 'NRND'].includes(bom.lifecycleStatus)) {
       signals.push(bomChangeToSignal(bom, 'lifecycle_change'));
+    }
+  }
+
+  // Orders — flag overdue or high-priority
+  for (const order of orders) {
+    if (order.priority === 'URGENT' || order.paymentStatus === 'OVERDUE') {
+      signals.push(orderToSignal(order, 'created'));
+    }
+  }
+
+  // Production — flag delayed or low yield
+  for (const wo of productionOrders) {
+    if (wo.plannedEnd && new Date(wo.plannedEnd) < new Date() && !['COMPLETED', 'SHIPPED', 'CANCELLED'].includes(wo.status)) {
+      signals.push(productionToSignal(wo, 'delayed'));
+    }
+  }
+
+  // Inventory — flag critical/low stock
+  for (const item of inventoryItems) {
+    if (item.stockStatus === 'CRITICAL') {
+      signals.push(inventoryAlertToSignal(item, 'critical_stock'));
+    } else if (item.stockStatus === 'LOW') {
+      signals.push(inventoryAlertToSignal(item, 'low_stock'));
     }
   }
 

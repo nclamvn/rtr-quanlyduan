@@ -12,20 +12,35 @@ const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
 const SEV_COLORS = { CRITICAL: "#EF4444", HIGH: "#F59E0B", MEDIUM: "#3B82F6", LOW: "#22C55E" };
 const STATUS_COLORS = { DRAFT: "#94A3B8", OPEN: "#3B82F6", IN_PROGRESS: "#F59E0B", BLOCKED: "#EF4444", CLOSED: "#22C55E" };
 
-const TREND_DATA = [
-  { week: "T1", weekEn: "W1", opened: 2, closed: 0 },
-  { week: "T2", weekEn: "W2", opened: 3, closed: 1 },
-  { week: "T3", weekEn: "W3", opened: 1, closed: 2 },
-  { week: "T4", weekEn: "W4", opened: 4, closed: 1 },
-  { week: "T5", weekEn: "W5", opened: 2, closed: 3 },
-  { week: "T6", weekEn: "W6", opened: 3, closed: 2 },
-  { week: "T7", weekEn: "W7", opened: 1, closed: 4 },
-  { week: "T8", weekEn: "W8", opened: 5, closed: 2 },
-  { week: "T9", weekEn: "W9", opened: 2, closed: 3 },
-  { week: "T10", weekEn: "W10", opened: 3, closed: 1 },
-  { week: "T11", weekEn: "W11", opened: 1, closed: 2 },
-  { week: "T12", weekEn: "W12", opened: 2, closed: 3 },
-];
+function computeTrendData(issues) {
+  const NUM_WEEKS = 12;
+  const now = new Date();
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const weekStart = (idx) => new Date(now.getTime() - (NUM_WEEKS - idx) * msPerWeek);
+
+  const weeks = [];
+  for (let i = 0; i < NUM_WEEKS; i++) {
+    const start = weekStart(i);
+    const end = i < NUM_WEEKS - 1 ? weekStart(i + 1) : now;
+    let opened = 0;
+    let closed = 0;
+    issues.forEach((issue) => {
+      const created = issue.created ? new Date(issue.created) : null;
+      if (created && created >= start && created < end) opened++;
+      if (issue.status === "CLOSED") {
+        const closedDate = issue.closedAt ? new Date(issue.closedAt) : created;
+        if (closedDate && closedDate >= start && closedDate < end) closed++;
+      }
+    });
+    weeks.push({
+      week: `T${i + 1}`,
+      weekEn: `W${i + 1}`,
+      opened,
+      closed,
+    });
+  }
+  return weeks;
+}
 
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
@@ -49,7 +64,7 @@ export default function IssueCharts({ issues, lang }) {
   const tickColor = isDark ? "#64748B" : "#64748B";
 
   const trendData = useMemo(() =>
-    TREND_DATA.map(d => ({ ...d, name: isVi ? d.week : d.weekEn })), [isVi]
+    computeTrendData(issues).map(d => ({ ...d, name: isVi ? d.week : d.weekEn })), [issues, isVi]
   );
 
   const sevData = useMemo(() => {

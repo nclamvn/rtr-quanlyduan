@@ -8,7 +8,7 @@ import {
   X, Check, Loader2,
 } from "lucide-react";
 import { exportToExcel, generatePdfFromElement } from "../utils/importExport";
-import { BOM_DATA, calcBomCosts, FLIGHT_TESTS_DATA, SUPPLIERS_DATA } from "../data/v2Data";
+import { calcBomCosts } from "../data/v2Data";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
 const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
@@ -39,10 +39,9 @@ export function exportIssuesExcel(issues, project, lang) {
   );
 }
 
-export function exportBomExcel(projectId, lang) {
+export function exportBomExcel(bomParts, suppliers, lang) {
   const vi = lang === "vi";
-  const bom = BOM_DATA.filter((b) => b.projectId === projectId);
-  const costed = calcBomCosts(bom);
+  const costed = calcBomCosts(bomParts || []);
 
   const columns = [
     { key: "level", header: vi ? "Cấp" : "Level", width: 6 },
@@ -58,11 +57,12 @@ export function exportBomExcel(projectId, lang) {
     { key: "lifecycle", header: vi ? "Vòng đời" : "Lifecycle", width: 10 },
   ];
 
+  const supplierList = suppliers || [];
   const data = costed.map((b) => ({
     ...b,
     description: vi && b.descriptionVi ? b.descriptionVi : b.description,
     totalCost: (b._totalCost || b.unitCost * b.quantity).toFixed(2),
-    supplierCode: b.supplierId ? SUPPLIERS_DATA.find((s) => s.id === b.supplierId)?.code || "" : "",
+    supplierCode: b.supplierId ? supplierList.find((s) => s.id === b.supplierId)?.code || "" : "",
   }));
 
   // Cost summary sheet
@@ -87,9 +87,9 @@ export function exportBomExcel(projectId, lang) {
   );
 }
 
-export function exportFlightTestsExcel(projectId, lang) {
+export function exportFlightTestsExcel(flightTests, lang) {
   const vi = lang === "vi";
-  const tests = FLIGHT_TESTS_DATA.filter((ft) => ft.projectId === projectId);
+  const tests = flightTests || [];
 
   const columns = [
     { key: "testNumber", header: "#", width: 6 },
@@ -124,14 +124,13 @@ export function exportFlightTestsExcel(projectId, lang) {
 
 // ── PROJECT SUMMARY PDF COMPONENT ─────────────────────────────
 
-export function ProjectSummaryReport({ project, issues, lang, gateConfig, gateChecks }) {
+export function ProjectSummaryReport({ project, issues, lang, gateConfig, gateChecks, bomParts, flightTests: flightTestsProp }) {
   const vi = lang === "vi";
   const openIssues = issues.filter((i) => i.pid === project?.id && i.status !== "CLOSED");
   const criticalIssues = openIssues.filter((i) => i.sev === "CRITICAL");
-  const bom = BOM_DATA.filter((b) => b.projectId === project?.id);
-  const costed = calcBomCosts(bom);
+  const costed = calcBomCosts(bomParts || []);
   const totalCost = costed.find((b) => b.level === 0)?._totalCost || 0;
-  const flightTests = FLIGHT_TESTS_DATA.filter((ft) => ft.projectId === project?.id);
+  const flightTests = flightTestsProp || [];
   const passTests = flightTests.filter((ft) => ft.result === "PASS").length;
 
   return (
@@ -224,11 +223,11 @@ export function ProjectSummaryReport({ project, issues, lang, gateConfig, gateCh
 
 // ── EXECUTIVE SLIDES COMPONENT ────────────────────────────────
 
-export function ExecutiveSlides({ project, issues, lang }) {
+export function ExecutiveSlides({ project, issues, lang, flightTests: flightTestsProp }) {
   const vi = lang === "vi";
   const openIssues = issues.filter((i) => i.pid === project?.id && i.status !== "CLOSED");
   const criticalIssues = openIssues.filter((i) => i.sev === "CRITICAL");
-  const flightTests = FLIGHT_TESTS_DATA.filter((ft) => ft.projectId === project?.id);
+  const flightTests = flightTestsProp || [];
   const passTests = flightTests.filter((ft) => ft.result === "PASS").length;
   const cascadeIssues = openIssues.filter((i) => i.impacts?.length > 0);
 
@@ -353,7 +352,7 @@ export function ExecutiveSlides({ project, issues, lang }) {
 
 // ── EXPORT MODAL (for PDF/Slides preview + download) ──────────
 
-export default function ExportModal({ type, project, issues, lang, onClose }) {
+export default function ExportModal({ type, project, issues, lang, onClose, bomParts, flightTests }) {
   const vi = lang === "vi";
   const reportRef = useRef(null);
   const slidesRef = useRef(null);
@@ -403,12 +402,12 @@ export default function ExportModal({ type, project, issues, lang, onClose }) {
       <div style={{ flex: 1, overflowY: "auto", display: "flex", justifyContent: "center", padding: 20 }}>
         {type === "report" && (
           <div ref={reportRef}>
-            <ProjectSummaryReport project={project} issues={issues} lang={lang} />
+            <ProjectSummaryReport project={project} issues={issues} lang={lang} bomParts={bomParts} flightTests={flightTests} />
           </div>
         )}
         {type === "slides" && (
           <div ref={slidesRef}>
-            <ExecutiveSlides project={project} issues={issues} lang={lang} />
+            <ExecutiveSlides project={project} issues={issues} lang={lang} flightTests={flightTests} />
           </div>
         )}
       </div>

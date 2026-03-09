@@ -9,6 +9,9 @@ export {
   deliveryToSignal,
   bomChangeToSignal,
   importBatchToSignal,
+  orderToSignal,
+  productionToSignal,
+  inventoryAlertToSignal,
   hydrateFromExistingData,
 } from './transformers';
 

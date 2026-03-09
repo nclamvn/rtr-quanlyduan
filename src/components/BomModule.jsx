@@ -4,6 +4,7 @@ import {
   Box, Cpu, Code, Droplets, ExternalLink, Layers, DollarSign,
   CircleAlert, Check, ShieldAlert, FilterX
 } from "lucide-react";
+import EmptyState, { EMPTY_MESSAGES } from "./EmptyState";
 import {
   BOM_CATEGORY_COLORS, BOM_LIFECYCLE_COLORS,
 } from "../data/v2Data";
@@ -308,6 +309,9 @@ export default function BomModule({ lang, t, project, perm }) {
 
             {/* Tree rows */}
             <div style={{ maxHeight: 420, overflowY: "auto" }}>
+              {projectBom.length === 0 && (
+                <EmptyState icon={EMPTY_MESSAGES[lang].bom.icon} title={EMPTY_MESSAGES[lang].bom.title} description={EMPTY_MESSAGES[lang].bom.desc} />
+              )}
               {visibleRows.map(({ item, depth, hasChildren }) => (
                 <BomTreeRow key={item.id} item={item} depth={depth} expanded={expandedNodes.has(item.id)}
                   onToggle={toggleExpand} hasChildren={hasChildren} onSelect={setSelectedItem}

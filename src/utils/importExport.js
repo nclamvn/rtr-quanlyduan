@@ -101,6 +101,46 @@ export const HEADER_ALIASES = {
   milestone: ["milestone", "mốc", "cột mốc", "phase gate", "tên mốc"],
   targetDate: ["ngày mục tiêu", "target", "target date", "kế hoạch", "planned", "kh"],
   actualDate: ["ngày thực tế", "actual", "actual date", "thực tế", "tt"],
+
+  // Orders
+  orderNumber: ["mã đơn", "order number", "order #", "order no", "số đơn", "mã đơn hàng", "so don"],
+  customerName: ["khách hàng", "customer", "customer name", "tên khách", "kh"],
+  poNumber: ["po", "po number", "po#", "purchase order", "số po", "mã po"],
+  totalAmount: ["tổng tiền", "total", "total amount", "amount", "giá trị", "tổng", "value"],
+  orderDate: ["ngày đặt", "order date", "date", "ngày", "ngày tạo đơn"],
+  requiredDeliveryDate: ["hạn giao", "delivery date", "required date", "deadline", "ngày giao"],
+  shippingMethod: ["vận chuyển", "shipping", "shipping method", "phương thức giao"],
+  paymentStatus: ["thanh toán", "payment", "payment status", "tt thanh toán"],
+  orderPriority: ["ưu tiên", "priority", "mức ưu tiên", "độ ưu tiên đơn"],
+  orderStatus: ["trạng thái đơn", "order status", "tình trạng đơn"],
+
+  // Production
+  woNumber: ["mã wo", "wo number", "wo#", "work order", "lệnh sx", "mã lệnh", "wo"],
+  productName: ["sản phẩm", "product", "product name", "tên sp", "tên sản phẩm"],
+  woQuantity: ["số lượng sx", "quantity", "qty", "sl", "số lượng"],
+  currentStation: ["công đoạn", "station", "current station", "trạm", "giai đoạn sx"],
+  woStatus: ["trạng thái wo", "wo status", "tình trạng wo", "status wo"],
+  plannedStart: ["ngày bắt đầu", "planned start", "start date", "bắt đầu"],
+  plannedEnd: ["ngày kết thúc", "planned end", "end date", "kết thúc", "deadline wo"],
+  assignedTo: ["phụ trách", "assigned", "assigned to", "người phụ trách"],
+
+  // Inventory
+  partName: ["tên linh kiện", "part name", "tên", "name", "tên sp"],
+  warehouse: ["kho", "warehouse", "tên kho", "vị trí kho"],
+  inventoryLocation: ["vị trí", "location", "bin", "shelf", "kệ"],
+  quantityOnHand: ["tồn kho", "on hand", "qty on hand", "sl tồn", "số lượng tồn"],
+  minStock: ["tồn tối thiểu", "min stock", "min", "reorder point", "mức tối thiểu"],
+  maxStock: ["tồn tối đa", "max stock", "max", "mức tối đa"],
+  inventoryUnitCost: ["đơn giá tồn", "unit cost", "giá", "cost", "đơn giá"],
+  leadTimeDays: ["lead time", "thời gian giao", "lt", "ngày giao hàng"],
+
+  // Cost Entries
+  costCategory: ["loại chi phí", "cost category", "category", "nhóm chi phí", "phân loại cp"],
+  costDescription: ["mô tả chi phí", "cost description", "description", "mô tả", "nội dung"],
+  costAmount: ["số tiền", "amount", "cost amount", "chi phí", "giá trị cp"],
+  costDate: ["ngày chi phí", "cost date", "date", "ngày", "ngày phát sinh"],
+  vendorName: ["nhà cung cấp", "vendor", "vendor name", "ncc", "nhà cc"],
+  invoiceRef: ["số hóa đơn", "invoice ref", "invoice", "hóa đơn", "ref"],
 };
 
 /** Value mapping for enum fields */
@@ -150,6 +190,66 @@ export const VALUE_ALIASES = {
     RANGE: ["range", "tầm bay", "phạm vi"],
     ENVIRONMENTAL: ["environmental", "môi trường", "env"],
     INTEGRATION: ["integration", "tích hợp", "tổng hợp"],
+  },
+  orderStatus: {
+    QUOTE: ["báo giá", "quote", "quotation"],
+    PO_RECEIVED: ["đã nhận po", "po received", "po_received", "nhận po"],
+    CONFIRMED: ["xác nhận", "confirmed", "đã xác nhận"],
+    IN_PRODUCTION: ["đang sản xuất", "in production", "in_production", "sx"],
+    QC_PASSED: ["qc đạt", "qc passed", "qc_passed"],
+    PACKED: ["đóng gói", "packed", "đã đóng gói"],
+    SHIPPED: ["đã giao", "shipped", "đang giao"],
+    DELIVERED: ["đã nhận", "delivered", "giao thành công"],
+    INVOICED: ["đã xuất hđ", "invoiced", "xuất hóa đơn"],
+    PAID: ["đã thanh toán", "paid", "tt xong"],
+    CLOSED: ["đóng", "closed", "hoàn tất"],
+    CANCELLED: ["hủy", "cancelled", "đã hủy"],
+  },
+  orderPriority: {
+    URGENT: ["khẩn cấp", "urgent", "gấp"],
+    HIGH: ["cao", "high"],
+    NORMAL: ["bình thường", "normal", "bt"],
+    LOW: ["thấp", "low"],
+  },
+  paymentStatus: {
+    UNPAID: ["chưa tt", "unpaid", "chưa thanh toán"],
+    PARTIAL: ["tt 1 phần", "partial", "thanh toán 1 phần"],
+    PAID: ["đã tt", "paid", "đã thanh toán"],
+    OVERDUE: ["quá hạn", "overdue", "trễ hạn tt"],
+  },
+  woStatus: {
+    PLANNED: ["kế hoạch", "planned", "đã lên kh"],
+    MATERIAL_READY: ["sẵn vật tư", "material ready", "material_ready", "vtư sẵn"],
+    IN_PROGRESS: ["đang sx", "in progress", "in_progress", "đang chạy"],
+    QC: ["kiểm tra", "qc", "đang qc"],
+    COMPLETED: ["hoàn thành", "completed", "xong"],
+    SHIPPED: ["đã giao", "shipped"],
+    ON_HOLD: ["tạm dừng", "on hold", "on_hold"],
+    CANCELLED: ["hủy", "cancelled"],
+  },
+  currentStation: {
+    SMT: ["smt", "hàn smt"],
+    ASSEMBLY: ["lắp ráp", "assembly", "assy"],
+    FIRMWARE: ["firmware", "fw", "nạp fw"],
+    CALIBRATION: ["hiệu chuẩn", "calibration", "calib"],
+    FLIGHT_TEST: ["bay thử", "flight test", "flight_test"],
+    QC: ["qc", "kiểm tra", "quality"],
+    PACKING: ["đóng gói", "packing", "pack"],
+  },
+  inventoryCategory: {
+    MECHANICAL: ["cơ khí", "mechanical", "mech"],
+    ELECTRICAL: ["điện tử", "electrical", "elec"],
+    SOFTWARE: ["phần mềm", "software", "sw"],
+    CONSUMABLE: ["tiêu hao", "consumable", "vật tư tiêu hao"],
+  },
+  costCategory: {
+    MATERIAL: ["vật tư", "material", "nguyên vật liệu"],
+    LABOR: ["nhân công", "labor", "nc"],
+    TOOLING: ["dụng cụ", "tooling", "công cụ"],
+    SHIPPING: ["vận chuyển", "shipping", "giao hàng"],
+    CERTIFICATION: ["chứng nhận", "certification", "cert"],
+    OVERHEAD: ["chi phí chung", "overhead", "cpc"],
+    OTHER: ["khác", "other", "cp khác"],
   },
 };
 
@@ -237,6 +337,30 @@ export const IMPORT_TYPE_FIELDS = {
     optional: ["actualDate"],
     enums: { milestone: "phase" },
     defaults: {},
+  },
+  orders: {
+    required: ["orderNumber", "customerName"],
+    optional: ["poNumber", "totalAmount", "orderDate", "requiredDeliveryDate", "shippingMethod", "paymentStatus", "orderPriority", "orderStatus", "description"],
+    enums: { orderStatus: "orderStatus", orderPriority: "orderPriority", paymentStatus: "paymentStatus" },
+    defaults: { orderStatus: "QUOTE", orderPriority: "NORMAL", paymentStatus: "UNPAID", totalAmount: 0 },
+  },
+  production: {
+    required: ["woNumber", "productName", "woQuantity"],
+    optional: ["currentStation", "woStatus", "plannedStart", "plannedEnd", "assignedTo", "orderNumber", "customerName"],
+    enums: { woStatus: "woStatus", currentStation: "currentStation" },
+    defaults: { woStatus: "PLANNED", woQuantity: 1 },
+  },
+  inventory: {
+    required: ["partNumber", "partName"],
+    optional: ["category", "warehouse", "inventoryLocation", "quantityOnHand", "minStock", "maxStock", "inventoryUnitCost", "unit", "leadTimeDays", "supplier"],
+    enums: { category: "inventoryCategory" },
+    defaults: { warehouse: "HCM-MAIN", quantityOnHand: 0, unit: "pcs", inventoryUnitCost: 0 },
+  },
+  costs: {
+    required: ["costCategory", "costAmount"],
+    optional: ["costDescription", "costDate", "vendorName", "invoiceRef"],
+    enums: { costCategory: "costCategory" },
+    defaults: { costCategory: "OTHER" },
   },
 };
 

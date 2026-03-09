@@ -9,6 +9,7 @@ import {
   FLIGHT_TEST_TYPES, FLIGHT_RESULT_COLORS,
 } from "../data/v2Data";
 import { useFlightTestData } from "../hooks/useV2Data";
+import EmptyState, { EMPTY_MESSAGES } from "./EmptyState";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
 const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
@@ -270,7 +271,10 @@ export default function FlightTestModule({ lang, t, project, issues, onViewIssue
 
         {/* Rows */}
         <div style={{ maxHeight: 400, overflowY: "auto" }}>
-          {tests.length === 0 && (
+          {tests.length === 0 && flightTests.length === 0 && (
+            <EmptyState icon={EMPTY_MESSAGES[lang].flights.icon} title={EMPTY_MESSAGES[lang].flights.title} description={EMPTY_MESSAGES[lang].flights.desc} />
+          )}
+          {tests.length === 0 && flightTests.length > 0 && (
             <div style={{ padding: 40, textAlign: "center" }}>
               <SearchX size={24} color="var(--text-disabled)" style={{ marginBottom: 8 }} />
               <div style={{ fontSize: 14, color: "var(--text-faint)" }}>{lang === "vi" ? "Không có chuyến bay nào khớp bộ lọc" : "No flights match filters"}</div>

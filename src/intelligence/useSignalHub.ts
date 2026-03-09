@@ -16,6 +16,9 @@ import {
   flightTestToSignal,
   deliveryToSignal,
   bomChangeToSignal,
+  orderToSignal,
+  productionToSignal,
+  inventoryAlertToSignal,
   hydrateFromExistingData,
 } from './transformers';
 
@@ -35,6 +38,9 @@ export function useSignalHub(
   flights: any[],
   deliveries: any[],
   bomItems: any[],
+  orders: any[] = [],
+  productionOrders: any[] = [],
+  inventoryItems: any[] = [],
 ) {
   const hubRef = useRef<SignalHub | null>(null);
   const hydratedRef = useRef(false);
@@ -89,7 +95,7 @@ export function useSignalHub(
     if (hydratedRef.current || !hubRef.current) return;
     if (!issues.length && !flights.length) return; // wait for data
 
-    const signals = hydrateFromExistingData(issues, flights, deliveries, bomItems);
+    const signals = hydrateFromExistingData(issues, flights, deliveries, bomItems, orders, productionOrders, inventoryItems);
     if (signals.length > 0) {
       hubRef.current.ingestBatch(signals);
       hydratedRef.current = true;
@@ -100,7 +106,7 @@ export function useSignalHub(
 
       refreshState();
     }
-  }, [issues, flights, deliveries, bomItems]);
+  }, [issues, flights, deliveries, bomItems, orders, productionOrders, inventoryItems]);
 
   // ── Incremental ingest: detect new items after hydration ──
   const seenIssueIds = useRef(new Set<string>());
@@ -162,6 +168,56 @@ export function useSignalHub(
       bomItems.forEach(b => seenBomIds.current.add(b.id));
     }
   }, [bomItems]);
+
+  // ── Business Operations incremental ingest ──
+  const seenOrderIds = useRef(new Set<string>());
+  const seenProdIds = useRef(new Set<string>());
+  const seenInvIds = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (!hydratedRef.current || !hubRef.current) return;
+    const newItems = orders.filter(o => !seenOrderIds.current.has(o.id));
+    if (newItems.length > 0) {
+      const signals = newItems
+        .filter(o => o.priority === 'URGENT' || o.paymentStatus === 'OVERDUE')
+        .map(o => orderToSignal(o, 'created'));
+      if (signals.length > 0) hubRef.current.ingestBatch(signals);
+      newItems.forEach(o => seenOrderIds.current.add(o.id));
+      refreshState();
+    } else if (seenOrderIds.current.size === 0 && orders.length > 0) {
+      orders.forEach(o => seenOrderIds.current.add(o.id));
+    }
+  }, [orders]);
+
+  useEffect(() => {
+    if (!hydratedRef.current || !hubRef.current) return;
+    const newItems = productionOrders.filter(w => !seenProdIds.current.has(w.id));
+    if (newItems.length > 0) {
+      const signals = newItems
+        .filter(w => w.plannedEnd && new Date(w.plannedEnd) < new Date() && !['COMPLETED', 'SHIPPED', 'CANCELLED'].includes(w.status))
+        .map(w => productionToSignal(w, 'delayed'));
+      if (signals.length > 0) hubRef.current.ingestBatch(signals);
+      newItems.forEach(w => seenProdIds.current.add(w.id));
+      refreshState();
+    } else if (seenProdIds.current.size === 0 && productionOrders.length > 0) {
+      productionOrders.forEach(w => seenProdIds.current.add(w.id));
+    }
+  }, [productionOrders]);
+
+  useEffect(() => {
+    if (!hydratedRef.current || !hubRef.current) return;
+    const newItems = inventoryItems.filter(i => !seenInvIds.current.has(i.id));
+    if (newItems.length > 0) {
+      const signals = newItems
+        .filter(i => i.stockStatus === 'CRITICAL' || i.stockStatus === 'LOW')
+        .map(i => inventoryAlertToSignal(i, i.stockStatus === 'CRITICAL' ? 'critical_stock' : 'low_stock'));
+      if (signals.length > 0) hubRef.current.ingestBatch(signals);
+      newItems.forEach(i => seenInvIds.current.add(i.id));
+      refreshState();
+    } else if (seenInvIds.current.size === 0 && inventoryItems.length > 0) {
+      inventoryItems.forEach(i => seenInvIds.current.add(i.id));
+    }
+  }, [inventoryItems]);
 
   const refreshState = useCallback(() => {
     const hub = hubRef.current;

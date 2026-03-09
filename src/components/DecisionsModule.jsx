@@ -8,6 +8,7 @@ import {
   DECISION_STATUS_COLORS,
 } from "../data/v2Data";
 import { useDecisionData } from "../hooks/useV2Data";
+import EmptyState, { EMPTY_MESSAGES } from "./EmptyState";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
 const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
@@ -202,10 +203,13 @@ export default function DecisionsModule({ lang, t, project, issues, onViewIssue,
         })}
       </div>
 
-      {decisions.length === 0 && (
+      {decisions.length === 0 && allDecisions.length === 0 && (
+        <EmptyState icon={EMPTY_MESSAGES[lang].decisions.icon} title={EMPTY_MESSAGES[lang].decisions.title} description={EMPTY_MESSAGES[lang].decisions.desc} />
+      )}
+      {decisions.length === 0 && allDecisions.length > 0 && (
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, padding: 40, textAlign: "center" }}>
           <Scale size={24} color="var(--text-disabled)" style={{ marginBottom: 8 }} />
-          <div style={{ fontSize: 14, color: "var(--text-faint)" }}>{lang === "vi" ? "Chưa có quyết định nào" : "No decisions recorded"}</div>
+          <div style={{ fontSize: 14, color: "var(--text-faint)" }}>{lang === "vi" ? "Không có quyết định khớp bộ lọc" : "No decisions match filter"}</div>
         </div>
       )}
     </div>

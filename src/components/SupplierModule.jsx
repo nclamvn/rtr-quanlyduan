@@ -8,6 +8,7 @@ import {
   SUPPLIER_QUAL_COLORS, DELIVERY_STATUS_COLORS,
 } from "../data/v2Data";
 import { useSupplierData, useDeliveryData, useBomData } from "../hooks/useV2Data";
+import EmptyState, { EMPTY_MESSAGES } from "./EmptyState";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
 const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
@@ -207,6 +208,9 @@ export default function SupplierModule({ lang, t, project, perm }) {
         {readOnly && <span style={{ fontSize: 11, color: "var(--text-faint)", background: "var(--hover-bg)", padding: "2px 8px", borderRadius: 3, fontWeight: 600 }}>{lang === "vi" ? "Chỉ xem" : "Read-only"}</span>}
       </div>
 
+      {suppliers.length === 0 && (
+        <EmptyState icon={EMPTY_MESSAGES[lang].suppliers.icon} title={EMPTY_MESSAGES[lang].suppliers.title} description={EMPTY_MESSAGES[lang].suppliers.desc} />
+      )}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 10 }}>
         {suppliers.map(s => {
           const qualColor = SUPPLIER_QUAL_COLORS[s.qualificationStatus] || "var(--text-dim)";

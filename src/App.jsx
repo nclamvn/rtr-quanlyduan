@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   LayoutDashboard, AlertTriangle, DoorOpen, Zap, Users, ClipboardCheck,
   Bell, ChevronDown, Globe, Clock, User, Check, X, Plus,
@@ -12,7 +12,8 @@ import {
   LogOut, RefreshCw, ScrollText, Download, Trash2,
   Package, Truck, Scale,
   Upload, Settings, Mail, FileSpreadsheet,
-  Sun, Moon, SearchX, FilterX, Search, WifiOff, Brain
+  Sun, Moon, SearchX, FilterX, Search, WifiOff, Brain,
+  Factory, Warehouse, ShoppingCart, DollarSign
 } from "lucide-react";
 import { useAuth } from "./contexts/AuthContext";
 import { usePermission } from "./hooks/usePermission";
@@ -29,12 +30,21 @@ import IssueCharts from "./components/IssueCharts";
 import GateRadar from "./components/GateRadar";
 import AIRiskPanel from "./components/AIRiskPanel";
 import IntelligencePanel from "./components/IntelligencePanel";
-import { useFlightTestData, useDeliveryData, useBomData } from "./hooks/useV2Data";
+import OrdersModule from "./components/OrdersModule";
+import ProductionModule from "./components/ProductionModule";
+import InventoryModule from "./components/InventoryModule";
+import FinanceModule from "./components/FinanceModule";
+import { useFlightTestData, useDeliveryData, useBomData, useSupplierData } from "./hooks/useV2Data";
+import { useOrders, useCustomers } from "./hooks/useOrderData";
+import { useProductionOrders } from "./hooks/useProductionData";
+import { useInventory, useInventoryTransactions } from "./hooks/useInventoryData";
+import { useFinanceSummary, useInvoices, useCostEntries } from "./hooks/useFinanceData";
 import { useSignalHub } from "./intelligence";
-import { isSupabaseConnected } from "./lib/supabase";
+import { isSupabaseConnected, getConnectionStatus, onConnectionStatusChange, resetWarmUp, warmUpSupabase } from "./lib/supabase";
 import { useProjectsData, useIssuesData, useNotificationsData } from "./hooks/useAppData";
 import { LineChart, Line } from "recharts";
 import SafeResponsiveContainer from "./components/SafeChart";
+import EmptyState, { EMPTY_MESSAGES } from "./components/EmptyState";
 
 const normalizeVN = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 
@@ -50,7 +60,7 @@ const LANG = {
   vi: {
     appName: "RtR Control Tower",
     appSub: "Real-time Robotics • Qu\u1EA3n l\u00FD D\u1EF1 \u00E1n Drone",
-    tabs: { tower: "B\u1EA3ng \u0110i\u1EC1u Khi\u1EC3n", issues: "V\u1EA5n \u0110\u1EC1", gates: "C\u1ED5ng Phase", impact: "B\u1EA3n \u0110\u1ED3 \u1EA2nh H\u01B0\u1EDFng", team: "\u0110\u1ED9i Ng\u0169", review: "Duy\u1EC7t", audit: "Nh\u1EADt K\u00FD", bom: "BOM & NCC", testing: "Test & Q\u0110", intelligence: "Tr\u00ED Tu\u1EC7", settings: "C\u00E0i \u0110\u1EB7t" },
+    tabs: { tower: "B\u1EA3ng \u0110i\u1EC1u Khi\u1EC3n", issues: "V\u1EA5n \u0110\u1EC1", gates: "C\u1ED5ng Phase", impact: "B\u1EA3n \u0110\u1ED3 \u1EA2nh H\u01B0\u1EDFng", team: "\u0110\u1ED9i Ng\u0169", review: "Duy\u1EC7t", audit: "Nh\u1EADt K\u00FD", bom: "BOM & NCC", testing: "Test & Q\u0110", orders: "\u0110\u01A1n H\u00E0ng", production: "S\u1EA3n Xu\u1EA5t", inventory: "T\u1ED3n Kho", finance: "T\u00E0i Ch\u00EDnh", intelligence: "Tr\u00ED Tu\u1EC7", settings: "C\u00E0i \u0110\u1EB7t" },
     importExport: { import: "Nh\u1EADp", export: "Xu\u1EA5t", exportExcel: "Xu\u1EA5t Excel", exportPdf: "Xu\u1EA5t PDF", exportSlides: "Slide T\u1ED5ng Quan", importData: "Nh\u1EADp D\u1EEF Li\u1EC7u" },
     email: { preferences: "C\u00E0i \u0111\u1EB7t Email", eventType: "Lo\u1EA1i s\u1EF1 ki\u1EC7n", emailNotif: "Email", inApp: "Trong \u1EE9ng d\u1EE5ng", frequency: "T\u1EA7n su\u1EA5t", save: "L\u01B0u c\u00E0i \u0111\u1EB7t", preview: "Xem tr\u01B0\u1EDBc", realtime: "Th\u1EDDi gian th\u1EF1c", daily: "H\u00E0ng ng\u00E0y", weekly: "H\u00E0ng tu\u1EA7n" },
     metrics: { activeProjects: "D\u1EF1 \u00E1n", openIssues: "\u0110ang m\u1EDF", critical: "Nghi\u00EAm tr\u1ECDng", blocked: "B\u1ECB ch\u1EB7n", closureRate: "T\u1EF7 l\u1EC7 \u0111\u00F3ng", cascadeAlerts: "C\u1EA3nh b\u00E1o delay" },
@@ -79,7 +89,7 @@ const LANG = {
   en: {
     appName: "RtR Control Tower",
     appSub: "Real-time Robotics • Drone Program Management",
-    tabs: { tower: "Control Tower", issues: "Issues", gates: "Phase Gates", impact: "Impact Map", team: "Team", review: "Review", audit: "Audit Log", bom: "BOM & Suppliers", testing: "Testing & Decisions", intelligence: "Intelligence", settings: "Settings" },
+    tabs: { tower: "Control Tower", issues: "Issues", gates: "Phase Gates", impact: "Impact Map", team: "Team", review: "Review", audit: "Audit Log", bom: "BOM & Suppliers", testing: "Testing & Decisions", orders: "Orders", production: "Production", inventory: "Inventory", finance: "Finance", intelligence: "Intelligence", settings: "Settings" },
     importExport: { import: "Import", export: "Export", exportExcel: "Export Excel", exportPdf: "Export PDF", exportSlides: "Executive Slides", importData: "Import Data" },
     email: { preferences: "Email Preferences", eventType: "Event Type", emailNotif: "Email", inApp: "In-App", frequency: "Frequency", save: "Save Preferences", preview: "Preview", realtime: "Realtime", daily: "Daily Digest", weekly: "Weekly" },
     metrics: { activeProjects: "Projects", openIssues: "Open", critical: "Critical", blocked: "Blocked", closureRate: "Closure", cascadeAlerts: "Cascade Alerts" },
@@ -511,6 +521,21 @@ export default function App() {
   const [filters, setFilters] = useState({ status: "ALL", sev: "ALL", src: "ALL" });
   const [issueSearch, setIssueSearch] = useState("");
 
+  // ── Connection status ──
+  const [connStatus, setConnStatus] = useState(getConnectionStatus);
+  useEffect(() => {
+    return onConnectionStatusChange(setConnStatus);
+  }, []);
+  // Auto-hide "online" indicator after 3s
+  const [showOnline, setShowOnline] = useState(false);
+  useEffect(() => {
+    if (connStatus === 'online') {
+      setShowOnline(true);
+      const timer = setTimeout(() => setShowOnline(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [connStatus]);
+
   // Supabase hooks (no-op when offline)
   const {
     projects: sbProjects, gateConfig: sbGateConfig, loading: projLoading,
@@ -527,7 +552,7 @@ export default function App() {
   } = useNotificationsData(currentUser?.id);
 
   // Decide data source: Supabase when connected & has data, else static mock
-  const online = isSupabaseConnected();
+  const online = connStatus === 'online';
   const [offlineProjects, setOfflineProjects] = useState(PROJECTS);
   const [offlineIssues, setOfflineIssues] = useState(ISSUES_DATA);
   const [offlineNotifications, setOfflineNotifications] = useState(NOTIFICATIONS_DATA);
@@ -556,6 +581,8 @@ export default function App() {
   const [selProjMetric, setSelProjMetric] = useState(null); // { projId, type: "open"|"critical"|"gate"|"cascade" }
   const [issueSubTab, setIssueSubTab] = useState(() => sessionStorage.getItem('rtr-issueSubTab') || "list");
   const [theme, setTheme] = useState(() => localStorage.getItem('rtr-theme') || 'dark');
+  const [showFab, setShowFab] = useState(false);
+  const headerActionsRef = useRef(null);
 
   const t = LANG[lang];
   const project = projects.find(p => p.id === selProject);
@@ -565,14 +592,33 @@ export default function App() {
   const { data: allFlights } = useFlightTestData(null);
   const { data: allDeliveries } = useDeliveryData(null);
   const { data: allBom } = useBomData(null);
+  const { data: allSuppliers } = useSupplierData();
+
+  // --- Business Operations Data ---
+  const { data: ordersList, loading: ordersLoading } = useOrders(selProject);
+  const { data: customersList } = useCustomers();
+  const { data: productionOrdersList, loading: productionLoading } = useProductionOrders(selProject);
+  const { data: inventoryList, loading: inventoryLoading } = useInventory();
+  const { data: inventoryTxns } = useInventoryTransactions(null);
+  const { data: financeSummaryList, loading: financeLoading } = useFinanceSummary();
+  const { data: invoicesList } = useInvoices();
 
   // --- SignalHub Intelligence ---
-  const intel = useSignalHub(issues, projects, allFlights, allDeliveries, allBom);
+  const intel = useSignalHub(issues, projects, allFlights, allDeliveries, allBom, ordersList, productionOrdersList, inventoryList);
+  const { data: costEntriesList } = useCostEntries(selProject);
 
   useEffect(() => { const i = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(i); }, []);
   useEffect(() => { document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('rtr-theme', theme); }, [theme]);
   useEffect(() => { localStorage.setItem('rtr-lang', lang); }, [lang]);
   useEffect(() => { localStorage.setItem('rtr-tab', tab); }, [tab]);
+  // FAB visibility: show when header actions scroll out of view
+  useEffect(() => {
+    const el = headerActionsRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => setShowFab(!entry.isIntersecting), { threshold: 0 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [isAuthenticated]);
   // Validate persisted tab against current role
   useEffect(() => {
     if (tab === "review" && !perm.canViewReviewQueue()) setTab("tower");
@@ -742,6 +788,10 @@ export default function App() {
     { id: "team", label: t.tabs.team, Icon: Users },
     ...(perm.canViewReviewQueue() ? [{ id: "review", label: t.tabs.review, Icon: ClipboardCheck, badge: draftIssues.length }] : []),
     ...(currentUser?.role === "admin" ? [{ id: "audit", label: t.tabs.audit, Icon: ScrollText, badge: audit.logs.length > 0 ? audit.logs.length : undefined }] : []),
+    { id: "orders", label: t.tabs.orders, Icon: ShoppingCart },
+    { id: "production", label: t.tabs.production, Icon: Factory },
+    { id: "inventory", label: t.tabs.inventory, Icon: Warehouse },
+    ...(["admin", "pm"].includes(currentUser?.role) ? [{ id: "finance", label: t.tabs.finance, Icon: DollarSign }] : []),
     { id: "intelligence", label: t.tabs.intelligence, Icon: Brain, badge: intel.convergences.length > 0 ? intel.convergences.length : undefined },
     { id: "settings", label: t.tabs.settings, Icon: Settings },
   ];
@@ -790,6 +840,13 @@ export default function App() {
               <button key={l} onClick={() => setLang(l)} aria-label={l === "vi" ? "Tiếng Việt" : "English"} style={{ background: lang === l ? "var(--hover-bg)" : "transparent", border: "none", padding: "0 8px", height: 28, color: lang === l ? "var(--text-primary)" : "var(--text-faint)", fontSize: 12, fontWeight: 700, cursor: "pointer", textTransform: "uppercase" }}>{l}</button>
             ))}
           </div>
+          {/* Connection status indicator */}
+          {(connStatus === 'connecting' || showOnline) && (
+            <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 8px", height: 28, borderRadius: 4, border: "1px solid var(--border)", fontSize: 11, fontWeight: 600, color: connStatus === 'online' ? "#22C55E" : "#F59E0B", background: connStatus === 'online' ? "#22C55E10" : "#F59E0B10" }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: connStatus === 'online' ? "#22C55E" : "#F59E0B", animation: connStatus === 'connecting' ? "pulse 1.5s infinite" : "none" }} />
+              {connStatus === 'online' ? (lang === "vi" ? "Đã kết nối" : "Connected") : (lang === "vi" ? "Đang kết nối..." : "Connecting...")}
+            </div>
+          )}
           {/* Theme toggle */}
           <button onClick={() => setTheme(th => th === 'dark' ? 'light' : 'dark')} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 4, padding: "0 8px", height: 28, color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}>
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
@@ -883,8 +940,17 @@ export default function App() {
         </div>
       </div>
 
+      {/* === OFFLINE BANNER === */}
+      {connStatus === 'offline' && (
+        <div style={{ background: "#FEF3C7", borderBottom: "1px solid #F59E0B40", padding: "6px 20px", display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 600, color: "#92400E" }}>
+          <WifiOff size={14} />
+          <span style={{ flex: 1 }}>{lang === "vi" ? "Không kết nối được Supabase. Đang hiện dữ liệu demo. Dữ liệu tạo mới sẽ không được lưu." : "Cannot connect to Supabase. Showing demo data. New data will not be saved."}</span>
+          <button onClick={() => resetWarmUp()} style={{ background: "#F59E0B", color: "#fff", border: "none", borderRadius: 4, padding: "2px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{lang === "vi" ? "Thử lại" : "Retry"}</button>
+        </div>
+      )}
+
       {/* === NAV TABS === */}
-      <div className="tab-bar" style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)", padding: "0 20px", display: "flex", gap: 0 }}>
+      <div className="tab-bar" style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)", padding: "0 20px", display: "flex", gap: 0, overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none" }}>
         {tabs.map(tb => (
           <button key={tb.id} onClick={() => { setTab(tb.id); setSelMetric(null); setSelProjMetric(null); }}
             style={{ background: "none", border: "none", borderBottom: tab === tb.id ? "2px solid #3B82F6" : "2px solid transparent", padding: "9px 14px", color: tab === tb.id ? "var(--text-primary)" : "var(--text-dim)", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, fontFamily: sans, flexShrink: 0, whiteSpace: "nowrap" }}>
@@ -918,7 +984,7 @@ export default function App() {
         {tab === "tower" && project && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {/* Export Buttons */}
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
+            <div ref={headerActionsRef} style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
               {perm.canCreateIssue() && <Btn variant="primary" small onClick={() => setShowCreate(true)}><Plus size={11} /> {t.issue.create}</Btn>}
               <Btn small onClick={() => setShowExport("pdf")}><Download size={11} /> {t.importExport?.exportPdf || "Export PDF"}</Btn>
               <Btn small onClick={() => setShowExport("slides")}><FileSpreadsheet size={11} /> {t.importExport?.exportSlides || "Executive Slides"}</Btn>
@@ -947,7 +1013,7 @@ export default function App() {
             {/* Metric Detail Panel */}
             {selMetric && (() => {
               const closedIssues = issues.filter(i => i.status === "CLOSED");
-              const thStyle = { padding: "6px 10px", textAlign: "left", fontSize: 11, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700, borderBottom: "1px solid var(--border)", fontFamily: sans, whiteSpace: "nowrap" };
+              const thStyle = { padding: "6px 10px", textAlign: "left", fontSize: 11, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700, borderBottom: "1px solid var(--border)", fontFamily: sans, whiteSpace: "nowrap", background: "var(--bg-card)" };
               const tdStyle = { padding: "6px 10px", fontSize: 13, color: "var(--text-secondary)", borderBottom: "1px solid var(--border)", fontFamily: sans };
               const rowHover = { cursor: "pointer" };
               const navigateToIssue = (issue) => { setSelProject(issue.pid); setTab("issues"); setSelIssue(issue); setSelMetric(null); };
@@ -961,9 +1027,9 @@ export default function App() {
                 cascade: lang === "vi" ? "Cảnh báo cascade" : "Cascade Alerts",
               };
               const renderIssueTable = (issueList, showRootCause) => (
-                <div style={{ overflowX: "auto" }}>
+                <div style={{ overflowX: "auto", maxHeight: "60vh", overflowY: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead><tr>
+                    <thead><tr style={{ position: "sticky", top: 0, zIndex: 5 }}>
                       <th style={thStyle}>{t.issue.id}</th>
                       <th style={thStyle}>{t.issue.title}</th>
                       <th style={thStyle}>{t.issue.severity}</th>
@@ -1070,6 +1136,29 @@ export default function App() {
 
             {/* AI Risk Assessment */}
             <AIRiskPanel projects={projects} issues={issues} gateConfig={activeGateConfig} flightTests={allFlights} lang={lang} />
+
+            {/* Business Overview */}
+            {(() => {
+              const fmtV = (n) => n >= 1000000 ? `$${(n/1000000).toFixed(1)}M` : n >= 1000 ? `$${(n/1000).toFixed(0)}K` : `$${n.toFixed(0)}`;
+              const pipelineValue = ordersList.filter(o => !['CANCELLED', 'CLOSED', 'PAID'].includes(o.status)).reduce((s, o) => s + (o.totalAmount || 0), 0);
+              const overdueOrders = ordersList.filter(o => o.requiredDeliveryDate && new Date(o.requiredDeliveryDate) < new Date() && !['DELIVERED','SHIPPED','PAID','CLOSED','CANCELLED'].includes(o.status)).length;
+              const activeWOs = productionOrdersList.filter(w => ['IN_PROGRESS', 'QC', 'MATERIAL_READY'].includes(w.status)).length;
+              const critStock = inventoryList.filter(i => i.stockStatus === 'CRITICAL').length;
+              const lowStock = inventoryList.filter(i => i.stockStatus === 'LOW').length;
+              const hasBizData = ordersList.length > 0 || productionOrdersList.length > 0 || inventoryList.length > 0;
+              if (!hasBizData) return null;
+              return (
+                <Section title={<><BarChart3 size={14} color="#3B82F6" /> {lang === "vi" ? "Tổng Quan Kinh Doanh" : "Business Overview"}</>}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <Metric label={lang === "vi" ? "Đơn hàng" : "Orders"} value={ordersList.length} color="#3B82F6" icon={ShoppingCart} onClick={() => setTab("orders")} />
+                    <Metric label="Pipeline" value={fmtV(pipelineValue)} color="#10B981" icon={DollarSign} onClick={() => setTab("orders")} />
+                    <Metric label={lang === "vi" ? "Quá hạn" : "Overdue"} value={overdueOrders} color={overdueOrders > 0 ? "#EF4444" : "#64748B"} icon={AlertTriangle} onClick={() => setTab("orders")} />
+                    <Metric label={lang === "vi" ? "WO đang chạy" : "Active WOs"} value={activeWOs} color="#F59E0B" icon={Factory} onClick={() => setTab("production")} />
+                    <Metric label={lang === "vi" ? "Tồn kho cảnh báo" : "Stock Alerts"} value={critStock + lowStock} color={critStock > 0 ? "#EF4444" : lowStock > 0 ? "#F59E0B" : "#64748B"} icon={Warehouse} onClick={() => setTab("inventory")} />
+                  </div>
+                </Section>
+              );
+            })()}
 
             {/* Project Cards */}
             {projects.map(proj => {
@@ -1346,7 +1435,7 @@ export default function App() {
             )}
 
             {/* Table */}
-            <div style={{ border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden", background: "var(--bg-card)" }}>
+            <div style={{ border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden", background: "var(--bg-card)", maxHeight: "70vh", overflowY: "auto" }}>
               <div style={{ display: "grid", gridTemplateColumns: "64px 1fr 82px 72px 76px 80px 56px", gap: 6, padding: "7px 12px", background: "var(--bg-modal)", borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 10 }}>
                 {[t.issue.id, t.issue.title + " / " + t.issue.rootCause, t.issue.status, t.issue.severity, t.issue.source, t.issue.owner, t.issue.phase].map(h => (
                   <span key={h} style={{ fontSize: 11, color: "var(--text-faint)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>{h}</span>
@@ -1370,18 +1459,27 @@ export default function App() {
                   <span style={{ fontSize: 12, color: "var(--text-faint)", fontFamily: mono }}>{issue.phase}</span>
                 </div>
               ))}
-              {filteredIssues.length === 0 && (
-                <div style={{ padding: 40, textAlign: "center" }}>
-                  <SearchX size={24} color="var(--text-disabled)" style={{ marginBottom: 8 }} />
-                  <div style={{ fontSize: 14, color: "var(--text-faint)" }}>{t.issue.noIssues}</div>
-                  {(filters.status !== "ALL" || filters.sev !== "ALL" || filters.src !== "ALL") && (
-                    <button onClick={() => setFilters({ status: "ALL", sev: "ALL", src: "ALL" })}
-                      style={{ marginTop: 10, background: "var(--hover-bg)", border: "1px solid var(--border)", borderRadius: 4, padding: "5px 12px", color: "var(--text-muted)", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      <FilterX size={12} /> {lang === "vi" ? "Xoá bộ lọc" : "Clear filters"}
-                    </button>
-                  )}
-                </div>
-              )}
+              {filteredIssues.length === 0 && (() => {
+                const em = EMPTY_MESSAGES[lang]?.issues || EMPTY_MESSAGES.vi.issues;
+                const hasFilters = filters.status !== "ALL" || filters.sev !== "ALL" || filters.src !== "ALL" || issueSearch;
+                const totalProjectIssues = issues.filter(i => i.pid === selProject).length;
+                return totalProjectIssues === 0 ? (
+                  <EmptyState icon={em.icon} title={em.title} description={em.desc}
+                    actionLabel={perm.canCreateIssue() ? em.action : undefined}
+                    onAction={perm.canCreateIssue() ? () => setShowCreate(true) : undefined} />
+                ) : (
+                  <div style={{ padding: 40, textAlign: "center" }}>
+                    <SearchX size={24} color="var(--text-disabled)" style={{ marginBottom: 8 }} />
+                    <div style={{ fontSize: 14, color: "var(--text-faint)" }}>{t.issue.noIssues}</div>
+                    {hasFilters && (
+                      <button onClick={() => { setFilters({ status: "ALL", sev: "ALL", src: "ALL" }); setIssueSearch(""); }}
+                        style={{ marginTop: 10, background: "var(--hover-bg)", border: "1px solid var(--border)", borderRadius: 4, padding: "5px 12px", color: "var(--text-muted)", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <FilterX size={12} /> {lang === "vi" ? "Xoá bộ lọc" : "Clear filters"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Issue Detail */}
@@ -1648,7 +1746,7 @@ export default function App() {
         {tab === "review" && (
           <Section title={<><ClipboardCheck size={14} /> {t.review.queue} — {project?.name}</>}>
             {draftIssues.length === 0 ? (
-              <div style={{ padding: 30, textAlign: "center", color: "#10B981", fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}><CheckCircle2 size={14} /> {t.review.noPending}</div>
+              <EmptyState icon={(EMPTY_MESSAGES[lang]?.review || EMPTY_MESSAGES.vi.review).icon} title={(EMPTY_MESSAGES[lang]?.review || EMPTY_MESSAGES.vi.review).title} description={(EMPTY_MESSAGES[lang]?.review || EMPTY_MESSAGES.vi.review).desc} />
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {draftIssues.map(issue => (
@@ -1699,7 +1797,7 @@ export default function App() {
               ))}
               <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                 {perm.canImport() && <Btn small onClick={() => setShowImport("bom")}><Upload size={11} /> {t.importExport?.import || "Import"}</Btn>}
-                <Btn small onClick={() => exportBomExcel(selProject, lang)}><FileSpreadsheet size={11} /> {t.importExport?.exportExcel || "Export Excel"}</Btn>
+                <Btn small onClick={() => exportBomExcel(allBom.filter(b => b.projectId === selProject), allSuppliers, lang)}><FileSpreadsheet size={11} /> {t.importExport?.exportExcel || "Export Excel"}</Btn>
               </div>
             </div>
             {bomSubTab === "tree" && <BomModule lang={lang} t={t} project={project} perm={perm} />}
@@ -1730,7 +1828,7 @@ export default function App() {
               ))}
               <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                 {perm.canImport() && <Btn small onClick={() => setShowImport("flightTests")}><Upload size={11} /> {t.importExport?.import || "Import"}</Btn>}
-                <Btn small onClick={() => exportFlightTestsExcel(selProject, lang)}><FileSpreadsheet size={11} /> {t.importExport?.exportExcel || "Export Excel"}</Btn>
+                <Btn small onClick={() => exportFlightTestsExcel(allFlights.filter(ft => ft.projectId === selProject), lang)}><FileSpreadsheet size={11} /> {t.importExport?.exportExcel || "Export Excel"}</Btn>
               </div>
             </div>
             {testSubTab === "flights" && <FlightTestModule lang={lang} t={t} project={project} issues={issues} perm={perm}
@@ -1800,10 +1898,7 @@ export default function App() {
               </div>
               {/* Log entries */}
               {filtered.length === 0 ? (
-                <div style={{ padding: 40, textAlign: "center" }}>
-                  <ScrollText size={24} color="var(--text-disabled)" style={{ marginBottom: 8 }} />
-                  <div style={{ fontSize: 14, color: "var(--text-faint)" }}>{t.audit.noLogs}</div>
-                </div>
+                <EmptyState icon={(EMPTY_MESSAGES[lang]?.audit || EMPTY_MESSAGES.vi.audit).icon} title={(EMPTY_MESSAGES[lang]?.audit || EMPTY_MESSAGES.vi.audit).title} description={(EMPTY_MESSAGES[lang]?.audit || EMPTY_MESSAGES.vi.audit).desc} />
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                   {filtered.slice(0, 100).map(entry => {
@@ -1848,6 +1943,49 @@ export default function App() {
             </Section>
           );
         })()}
+
+        {/* === ORDERS === */}
+        {tab === "orders" && (
+          <OrdersModule
+            orders={ordersList}
+            customers={customersList}
+            loading={ordersLoading}
+            lang={lang}
+            perm={perm}
+          />
+        )}
+
+        {/* === PRODUCTION === */}
+        {tab === "production" && (
+          <ProductionModule
+            productionOrders={productionOrdersList}
+            loading={productionLoading}
+            lang={lang}
+            perm={perm}
+          />
+        )}
+
+        {/* === INVENTORY === */}
+        {tab === "inventory" && (
+          <InventoryModule
+            inventory={inventoryList}
+            transactions={inventoryTxns}
+            loading={inventoryLoading}
+            lang={lang}
+            perm={perm}
+          />
+        )}
+
+        {/* === FINANCE === */}
+        {tab === "finance" && (
+          <FinanceModule
+            financeSummary={financeSummaryList}
+            invoices={invoicesList}
+            costEntries={costEntriesList}
+            loading={financeLoading}
+            lang={lang}
+          />
+        )}
 
         {/* === INTELLIGENCE === */}
         {tab === "intelligence" && (
@@ -1907,11 +2045,23 @@ export default function App() {
           project={project}
           issues={issues.filter(i => i.pid === selProject)}
           onClose={() => setShowExport(null)}
+          bomParts={allBom.filter(b => b.projectId === selProject)}
+          flightTests={allFlights.filter(ft => ft.projectId === selProject)}
         />
       )}
 
       {/* === NOTIFICATION TOAST === */}
       {toast && <NotificationToast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      {/* === FAB: Floating Action Button === */}
+      {showFab && perm.canCreateIssue() && (
+        <button onClick={() => { setTab("tower"); setShowCreate(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} title={t.issue.create}
+          style={{ position: "fixed", bottom: 28, right: 28, width: 52, height: 52, borderRadius: "50%", background: "#3B82F6", color: "#fff", border: "none", cursor: "pointer", boxShadow: "0 4px 14px rgba(59,130,246,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, transition: "transform 0.2s, box-shadow 0.2s" }}
+          onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.1)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(59,130,246,0.5)"; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 14px rgba(59,130,246,0.4)"; }}>
+          <Plus size={22} />
+        </button>
+      )}
 
       {/* === FOOTER === */}
       <div style={{ borderTop: "1px solid var(--border)", padding: "6px 20px", display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-dim)", fontWeight: 500, background: "var(--bg-card)", marginTop: "auto" }}>

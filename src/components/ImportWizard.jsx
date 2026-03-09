@@ -8,6 +8,7 @@ import {
   Milestone, X, ChevronRight, ChevronLeft, Check,
   FileText, GripVertical, ArrowRight, CheckCircle2,
   CircleAlert, CircleDot, TriangleAlert, Download,
+  ShoppingCart, Factory, Warehouse, DollarSign,
 } from "lucide-react";
 import {
   readExcelFile, parseSheetData, validateFile, formatFileSize,
@@ -23,6 +24,10 @@ const IMPORT_TYPES = [
   { id: "bom", icon: Package, label: "BOM", labelVi: "BOM", desc: "Import Bill of Materials", descVi: "Import danh sách linh kiện" },
   { id: "flightTests", icon: Plane, label: "Flight Tests", labelVi: "Bay Thử", desc: "Import test log records", descVi: "Import nhật ký bay thử" },
   { id: "milestones", icon: Milestone, label: "Milestones", labelVi: "Mốc", desc: "Import phase timeline data", descVi: "Import mốc thời gian" },
+  { id: "orders", icon: ShoppingCart, label: "Orders", labelVi: "Đơn Hàng", desc: "Import customer orders", descVi: "Import đơn hàng khách hàng" },
+  { id: "production", icon: Factory, label: "Production", labelVi: "Sản Xuất", desc: "Import work orders", descVi: "Import lệnh sản xuất" },
+  { id: "inventory", icon: Warehouse, label: "Inventory", labelVi: "Tồn Kho", desc: "Import inventory items", descVi: "Import dữ liệu tồn kho" },
+  { id: "costs", icon: DollarSign, label: "Costs", labelVi: "Chi Phí", desc: "Import cost entries", descVi: "Import dữ liệu chi phí" },
 ];
 
 const STEPS = [

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { isSupabaseConnected, withTimeout } from '../lib/supabase';
+import { isSupabaseConnected, withTimeout, warmUpSupabase, getConnectionStatus } from '../lib/supabase';
 import { useRealtimeSubscription } from './useRealtime';
 import { fetchBomParts, fetchSuppliers, fetchDeliveryRecords } from '../services/bomService';
 import { fetchFlightTests, fetchDecisions } from '../services/flightService';
@@ -149,7 +149,7 @@ export function useBomData(projectId) {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (!isSupabaseConnected()) {
+    if (getConnectionStatus() !== 'online') {
       const items = projectId
         ? BOM_DATA.filter(b => b.projectId === projectId)
         : BOM_DATA;
@@ -179,7 +179,7 @@ export function useBomData(projectId) {
     setLoading(false);
   }, [projectId]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
 
   // Realtime: refresh on BOM changes
   useRealtimeSubscription('bom_parts', {
@@ -202,7 +202,7 @@ export function useFlightTestData(projectId) {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (!isSupabaseConnected()) {
+    if (getConnectionStatus() !== 'online') {
       const items = projectId
         ? FLIGHT_TESTS_DATA.filter(ft => ft.projectId === projectId)
         : FLIGHT_TESTS_DATA;
@@ -231,7 +231,7 @@ export function useFlightTestData(projectId) {
     setLoading(false);
   }, [projectId]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
 
   // Realtime: refresh on flight test changes
   useRealtimeSubscription('flight_tests', {
@@ -254,7 +254,7 @@ export function useSupplierData() {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (!isSupabaseConnected()) {
+    if (getConnectionStatus() !== 'online') {
       setData(SUPPLIERS_DATA);
       setLoading(false);
       return;
@@ -274,7 +274,7 @@ export function useSupplierData() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
 
   return { data, loading, refetch };
 }
@@ -289,7 +289,7 @@ export function useDeliveryData(supplierId) {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (!isSupabaseConnected()) {
+    if (getConnectionStatus() !== 'online') {
       const items = supplierId
         ? DELIVERY_RECORDS_DATA.filter(d => d.supplierId === supplierId)
         : DELIVERY_RECORDS_DATA;
@@ -318,7 +318,7 @@ export function useDeliveryData(supplierId) {
     setLoading(false);
   }, [supplierId]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
 
   // Realtime: refresh on delivery changes
   useRealtimeSubscription('delivery_records', {
@@ -340,7 +340,7 @@ export function useDecisionData(projectId) {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (!isSupabaseConnected()) {
+    if (getConnectionStatus() !== 'online') {
       const items = projectId
         ? DECISIONS_DATA.filter(d => d.projectId === projectId)
         : DECISIONS_DATA;
@@ -369,7 +369,7 @@ export function useDecisionData(projectId) {
     setLoading(false);
   }, [projectId]);
 
-  useEffect(() => { refetch(); }, [refetch]);
+  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
 
   return { data, loading, refetch };
 }

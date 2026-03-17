@@ -1,10 +1,11 @@
 import { query, insert, update } from './supabaseService';
 import { supabase, isSupabaseConnected } from '../lib/supabase';
 
-export async function fetchIssues(projectId = null) {
+export async function fetchIssues(projectId = null, limit = 500) {
   const options = {
     select: '*, issue_impacts(*), issue_updates(*)',
     order: { column: 'created_at', asc: false },
+    limit,
   };
   if (projectId) options.eq = { project_id: projectId };
   return query('issues', options);
@@ -23,18 +24,10 @@ export async function fetchIssueById(issueId) {
 export async function createIssue(issueData) {
   if (!isSupabaseConnected()) return { data: null, error: 'Offline' };
 
-  // Generate next ISS-xxx ID
-  const { data: lastIssue } = await supabase
-    .from('issues')
-    .select('id')
-    .order('id', { ascending: false })
-    .limit(1)
-    .single();
-
-  const nextNum = lastIssue
-    ? parseInt(lastIssue.id.replace('ISS-', '')) + 1
-    : 1;
-  const newId = `ISS-${String(nextNum).padStart(3, '0')}`;
+  // Generate unique ID using timestamp + random suffix to avoid race conditions
+  const ts = Date.now().toString(36);
+  const rand = Math.random().toString(36).substring(2, 6);
+  const newId = `ISS-${ts}${rand}`.toUpperCase();
 
   const record = {
     id: newId,

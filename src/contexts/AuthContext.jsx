@@ -1,12 +1,13 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { supabase, isSupabaseConnected, withTimeout } from "../lib/supabase";
 
-// ═══ FALLBACK: Mock users cho offline mode ═══
+// ═══ FALLBACK: Demo users cho offline mode ═══
+// Passwords are non-secret demo-only credentials (do NOT match any real Supabase accounts)
 const DEMO_USERS = [
-  { id: "usr-001", email: "quynhanh@rtr.vn", password: "RtR2026Admin", name: "Quỳnh Anh", role: "admin", avatar: "QA", department: "AI", projects: ["PRJ-001", "PRJ-002"] },
-  { id: "usr-002", email: "minhtuan@rtr.vn", password: "RtR2026Pm01", name: "Minh Tuấn", role: "pm", avatar: "MT", department: "R&D", projects: ["PRJ-001"] },
-  { id: "usr-003", email: "ducanh@rtr.vn", password: "RtR2026Eng01", name: "Đức Anh", role: "engineer", avatar: "ĐA", department: "R&D", projects: ["PRJ-001"] },
-  { id: "usr-004", email: "lehuong@rtr.vn", password: "RtR2026View01", name: "Lê Hương", role: "viewer", avatar: "LH", department: "QC", projects: ["PRJ-001", "PRJ-002"] },
+  { id: "usr-001", email: "admin@demo.rtr.local", password: "demo", name: "Quỳnh Anh", role: "admin", avatar: "QA", department: "AI", projects: ["PRJ-001", "PRJ-002"] },
+  { id: "usr-002", email: "pm@demo.rtr.local", password: "demo", name: "Minh Tuấn", role: "pm", avatar: "MT", department: "R&D", projects: ["PRJ-001"] },
+  { id: "usr-003", email: "engineer@demo.rtr.local", password: "demo", name: "Đức Anh", role: "engineer", avatar: "ĐA", department: "R&D", projects: ["PRJ-001"] },
+  { id: "usr-004", email: "viewer@demo.rtr.local", password: "demo", name: "Lê Hương", role: "viewer", avatar: "LH", department: "QC", projects: ["PRJ-001", "PRJ-002"] },
 ];
 
 const STORAGE_KEY = "rtr_auth_user";

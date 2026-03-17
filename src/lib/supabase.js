@@ -3,8 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+const DEBUG = import.meta.env.DEV;
+
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase credentials missing. Running in offline/mock mode.');
+  if (DEBUG) console.warn('Supabase credentials missing. Running in offline/mock mode.');
 }
 
 export const supabase = supabaseUrl && supabaseAnonKey
@@ -67,24 +69,24 @@ export function warmUpSupabase() {
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         _setStatus('connecting');
-        console.log(`[Supabase] Connection attempt ${attempt}/${MAX_RETRIES}...`);
+        if (DEBUG) console.log(`[Supabase] Connection attempt ${attempt}/${MAX_RETRIES}...`);
         const { data, error } = await withTimeout(
           supabase.from('projects').select('id').limit(1),
           PING_TIMEOUT
         );
         if (!error && data) {
           _setStatus('online');
-          console.log(`[Supabase] Connected on attempt ${attempt}`);
+          if (DEBUG) console.log(`[Supabase] Connected on attempt ${attempt}`);
           return true;
         }
-        console.warn(`[Supabase] Attempt ${attempt} returned error:`, error?.message);
+        if (DEBUG) console.warn(`[Supabase] Attempt ${attempt} returned error:`, error?.message);
       } catch (e) {
-        console.warn(`[Supabase] Attempt ${attempt} failed:`, e.message);
+        if (DEBUG) console.warn(`[Supabase] Attempt ${attempt} failed:`, e.message);
       }
     }
 
     _setStatus('offline');
-    console.warn('[Supabase] All attempts failed — running offline');
+    if (DEBUG) console.warn('[Supabase] All attempts failed — running offline');
     return false;
   })();
 

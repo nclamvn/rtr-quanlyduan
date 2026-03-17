@@ -357,11 +357,13 @@ export default function ExportModal({ type, project, issues, lang, onClose, bomP
   const reportRef = useRef(null);
   const slidesRef = useRef(null);
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
 
   const handleExportPdf = async () => {
     const el = type === "slides" ? slidesRef.current : reportRef.current;
     if (!el) return;
     setExporting(true);
+    setExportError(null);
     try {
       if (type === "slides") {
         const { generateSlidesPdf } = await import("../utils/importExport");
@@ -372,6 +374,7 @@ export default function ExportModal({ type, project, issues, lang, onClose, bomP
       }
     } catch (err) {
       console.error("PDF export error:", err);
+      setExportError(vi ? "Không thể tạo PDF. Vui lòng thử lại." : "Failed to generate PDF. Please try again.");
     }
     setExporting(false);
   };
@@ -397,6 +400,14 @@ export default function ExportModal({ type, project, issues, lang, onClose, bomP
           </button>
         </div>
       </div>
+
+      {/* Error banner */}
+      {exportError && (
+        <div style={{ margin: "0 20px", padding: "8px 14px", background: "#EF444415", border: "1px solid #EF444430", borderRadius: 6, color: "#FCA5A5", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}>
+          <X size={14} color="#EF4444" />
+          {exportError}
+        </div>
+      )}
 
       {/* Preview */}
       <div style={{ flex: 1, overflowY: "auto", display: "flex", justifyContent: "center", padding: 20 }}>

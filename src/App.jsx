@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, lazy, Suspense } from "react";
 import {
   LayoutDashboard, AlertTriangle, DoorOpen, Zap, Users, ClipboardCheck,
   Bell, ChevronDown, Globe, Clock, User, Check, X, Plus,
@@ -19,32 +19,41 @@ import { useAuth } from "./contexts/AuthContext";
 import { usePermission } from "./hooks/usePermission";
 import { useAuditLog } from "./contexts/AuditContext";
 import LoginScreen from "./components/LoginScreen";
-import BomModule from "./components/BomModule";
-import FlightTestModule from "./components/FlightTestModule";
-import SupplierModule from "./components/SupplierModule";
-import DecisionsModule from "./components/DecisionsModule";
-import ImportWizard from "./components/ImportWizard";
-import ExportModal, { exportIssuesExcel, exportBomExcel, exportFlightTestsExcel } from "./components/ExportEngine";
-import EmailPreferences, { notificationEngine, NotificationToast } from "./components/EmailNotifications";
-import IssueCharts from "./components/IssueCharts";
-import GateRadar from "./components/GateRadar";
+// Note: These are static imports for functions/singletons used synchronously.
+// The default component exports are lazy-loaded above.
+import { notificationEngine, NotificationToast } from "./components/EmailNotifications";
+import { exportIssuesExcel, exportBomExcel, exportFlightTestsExcel } from "./components/ExportEngine";
+// eslint-disable-next-line no-unused-vars
 import AIRiskPanel from "./components/AIRiskPanel";
-import IntelligencePanel from "./components/IntelligencePanel";
-import OrdersModule from "./components/OrdersModule";
-import ProductionModule from "./components/ProductionModule";
-import InventoryModule from "./components/InventoryModule";
-import FinanceModule from "./components/FinanceModule";
+
+// Lazy-loaded modules (code-split into separate chunks)
+const BomModule = lazy(() => import("./components/BomModule"));
+const FlightTestModule = lazy(() => import("./components/FlightTestModule"));
+const SupplierModule = lazy(() => import("./components/SupplierModule"));
+const DecisionsModule = lazy(() => import("./components/DecisionsModule"));
+const ImportWizard = lazy(() => import("./components/ImportWizard"));
+const ExportModal = lazy(() => import("./components/ExportEngine"));
+const EmailPreferences = lazy(() => import("./components/EmailNotifications"));
+const IssueCharts = lazy(() => import("./components/IssueCharts"));
+const GateRadar = lazy(() => import("./components/GateRadar"));
+const IntelligencePanel = lazy(() => import("./components/IntelligencePanel"));
+const OrdersModule = lazy(() => import("./components/OrdersModule"));
+const ProductionModule = lazy(() => import("./components/ProductionModule"));
+const InventoryModule = lazy(() => import("./components/InventoryModule"));
+const FinanceModule = lazy(() => import("./components/FinanceModule"));
 import { useFlightTestData, useDeliveryData, useBomData, useSupplierData } from "./hooks/useV2Data";
 import { useOrders, useCustomers } from "./hooks/useOrderData";
 import { useProductionOrders } from "./hooks/useProductionData";
 import { useInventory, useInventoryTransactions } from "./hooks/useInventoryData";
 import { useFinanceSummary, useInvoices, useCostEntries } from "./hooks/useFinanceData";
+import { useTeamData } from "./hooks/useTeamData";
 import { useSignalHub } from "./intelligence";
 import { isSupabaseConnected, getConnectionStatus, onConnectionStatusChange, resetWarmUp, warmUpSupabase } from "./lib/supabase";
 import { useProjectsData, useIssuesData, useNotificationsData } from "./hooks/useAppData";
 import { LineChart, Line } from "recharts";
 import SafeResponsiveContainer from "./components/SafeChart";
 import EmptyState, { EMPTY_MESSAGES } from "./components/EmptyState";
+import { PHASES, PHASE_COLORS, STATUS_LIST, STATUS_COLORS, SEV_LIST, SEV_COLORS, SRC_LIST, SRC_COLORS, mono, sans } from "./constants";
 
 const normalizeVN = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 
@@ -117,15 +126,7 @@ const LANG = {
   },
 };
 
-// --- CONSTANTS ---
-const PHASES = ["CONCEPT", "EVT", "DVT", "PVT", "MP"];
-const PHASE_COLORS = { CONCEPT: "#6B7280", EVT: "#F59E0B", DVT: "#3B82F6", PVT: "#8B5CF6", MP: "#10B981" };
-const STATUS_LIST = ["DRAFT", "OPEN", "IN_PROGRESS", "BLOCKED", "CLOSED"];
-const STATUS_COLORS = { DRAFT: "#94A3B8", OPEN: "#EF4444", IN_PROGRESS: "#F59E0B", BLOCKED: "#DC2626", CLOSED: "#10B981" };
-const SEV_LIST = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
-const SEV_COLORS = { CRITICAL: "#EF4444", HIGH: "#F59E0B", MEDIUM: "#3B82F6", LOW: "#64748B" };
-const SRC_LIST = ["INTERNAL", "EXTERNAL", "CROSS_TEAM"];
-const SRC_COLORS = { INTERNAL: "#8B5CF6", EXTERNAL: "#F97316", CROSS_TEAM: "#06B6D4" };
+// --- CONSTANTS (imported from ./constants/) ---
 
 // --- GATE CONDITIONS ---
 const GATE_CONFIG = {
@@ -329,8 +330,7 @@ const NOTIFICATIONS_DATA = [
 // REUSABLE COMPONENTS
 // ===================================================================
 
-const mono = "'JetBrains Mono', 'Fira Code', monospace";
-const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
+// mono, sans imported from ./constants/
 
 function Badge({ label, color, size = "sm", glow, icon: IconComp }) {
   return (
@@ -434,9 +434,9 @@ function GateItem({ cond, lang, t, checked, onClick, disabled }) {
 // ===================================================================
 // CREATE ISSUE FORM
 // ===================================================================
-function CreateIssueForm({ t, lang, selProject, onClose, onCreate, initialStatus = "DRAFT" }) {
+function CreateIssueForm({ t, lang, selProject, onClose, onCreate, initialStatus = "DRAFT", teamMembers }) {
   const [form, setForm] = useState({ title: "", titleVi: "", desc: "", rootCause: "Investigating", sev: "HIGH", src: "INTERNAL", owner: "", phase: "DVT", due: "" });
-  const owners = TEAM.filter(m => m.role === "engineer").map(m => m.name);
+  const owners = (teamMembers || TEAM).filter(m => m.role === "engineer").map(m => m.name);
   const isDirty = form.title || form.titleVi || form.desc || form.owner || form.due || form.rootCause !== "Investigating" || form.sev !== "HIGH" || form.src !== "INTERNAL" || form.phase !== "DVT";
   const handleClose = () => { if (!isDirty || window.confirm(t.unsavedChanges)) onClose(); };
 
@@ -594,6 +594,10 @@ export default function App() {
   const { data: allBom } = useBomData(null);
   const { data: allSuppliers } = useSupplierData();
 
+  // --- Team Data (live Supabase with TEAM fallback) ---
+  const { data: sbTeam } = useTeamData();
+  const teamMembers = online && sbTeam.length > 0 ? sbTeam : TEAM;
+
   // --- Business Operations Data ---
   const { data: ordersList, loading: ordersLoading } = useOrders(selProject);
   const { data: customersList } = useCustomers();
@@ -689,6 +693,37 @@ export default function App() {
     }
     return f;
   }, [issues, selProject, filters, issueSearch]);
+
+  // --- Sparkline data: 8-week history computed from real issues ---
+  // Must be before early returns to respect Rules of Hooks
+  const sparklines = useMemo(() => {
+    const now = new Date();
+    const weeks = Array.from({ length: 8 }, (_, i) => {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (7 - i) * 7);
+      return d.toISOString().split("T")[0];
+    });
+    const issuesByWeek = (filterFn) => weeks.map((weekStart, i) => {
+      const weekEnd = i < 7 ? weeks[i + 1] : now.toISOString().split("T")[0];
+      return issues.filter(iss => {
+        const created = iss.created || "";
+        return created <= weekEnd && filterFn(iss, created, weekStart);
+      }).length;
+    });
+    return {
+      open: issuesByWeek((iss) => iss.status !== "CLOSED"),
+      critical: issuesByWeek((iss) => iss.sev === "CRITICAL" && iss.status !== "CLOSED"),
+      blocked: issuesByWeek((iss) => iss.status === "BLOCKED"),
+      cascade: issuesByWeek((iss) => iss.status !== "CLOSED" && iss.impacts?.length > 0),
+      closure: weeks.map((_, i) => {
+        const weekEnd = i < 7 ? weeks[i + 1] : now.toISOString().split("T")[0];
+        const total = issues.filter(iss => (iss.created || "") <= weekEnd).length;
+        const closed = issues.filter(iss => (iss.created || "") <= weekEnd && iss.status === "CLOSED").length;
+        return total > 0 ? Math.round(closed / total * 100) : 0;
+      }),
+      projects: weeks.map(() => projects.length),
+    };
+  }, [issues, projects.length]);
 
   // Auth guard — loading spinner
   if (isLoading) {
@@ -898,10 +933,10 @@ export default function App() {
                     <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{currentUser.email}</div>
                   </div>
                 </div>
-                {/* Switch Role */}
-                <div style={{ padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
+                {/* Switch Role — only in offline demo mode or for admin users */}
+                {(!online || currentUser.role === "admin") && <div style={{ padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
                   <div style={{ padding: "4px 14px", fontSize: 11, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>
-                    {lang === "vi" ? "Chuyển vai trò" : "Switch Role"}
+                    {lang === "vi" ? "Chuyển vai trò" : "Switch Role"} {!online && <span style={{ fontSize: 9, color: "#F59E0B" }}>(DEMO)</span>}
                   </div>
                   {demoUsers.filter(u => u.id !== currentUser.id).map(u => {
                     const RIcon = { admin: Shield, pm: UserCog, engineer: Wrench, viewer: Eye }[u.role];
@@ -921,7 +956,7 @@ export default function App() {
                       </button>
                     );
                   })}
-                </div>
+                </div>}
                 {/* Logout */}
                 <button onClick={() => { audit.log("USER_LOGOUT", "user", currentUser.id, currentUser.name, currentUser.role, null); logout(); setShowUserMenu(false); }}
                   style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", width: "100%", background: "transparent", border: "none", cursor: "pointer", color: "#EF4444", fontSize: 13, fontWeight: 600 }}
@@ -970,6 +1005,7 @@ export default function App() {
       )}
 
       {/* === CONTENT === */}
+      <Suspense fallback={<div style={{ padding: 40, textAlign: "center", color: "var(--text-dim)" }}>Loading...</div>}>
       <div className="content-pad" style={{ padding: "16px 20px", maxWidth: 1400, margin: "0 auto", flex: 1, width: "100%" }} onClick={() => { if (showNotif) setShowNotif(false); if (showUserMenu) setShowUserMenu(false); }}>
 
         {/* Loading Skeleton — shown when Supabase is fetching and no data yet */}
@@ -992,7 +1028,7 @@ export default function App() {
             {/* Create Issue Form (Dashboard) */}
             {showCreate && tab === "tower" && (
               <Section title={<><Plus size={13} /> {t.issue.create}</>}>
-                <CreateIssueForm key={"create-tower-" + showCreate} t={t} lang={lang} selProject={selProject} initialStatus={perm.getNewIssueStatus()} onClose={() => setShowCreate(false)}
+                <CreateIssueForm key={"create-tower-" + showCreate} t={t} lang={lang} selProject={selProject} initialStatus={perm.getNewIssueStatus()} teamMembers={teamMembers} onClose={() => setShowCreate(false)}
                   onCreate={async (newIssue) => {
                     if (online) { await sbCreateIssue(newIssue); } else { setIssues(prev => [newIssue, ...prev]); }
                     setShowCreate(false); audit.log("ISSUE_CREATED", "issue", newIssue.id, newIssue.title, null, newIssue.status);
@@ -1002,12 +1038,12 @@ export default function App() {
             )}
             {/* Global Metrics */}
             <div className="metric-row" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Metric label={t.metrics.activeProjects} value={projects.length} color="#3B82F6" icon={Layers} onClick={() => setSelMetric(s => s === "projects" ? null : "projects")} active={selMetric === "projects"} sparkData={[3,3,3,4,4,4,5,5]} sparkTrend="neutral" />
-              <Metric label={t.metrics.openIssues} value={allOpen.length} color="#EF4444" icon={CircleAlert} onClick={() => setSelMetric(s => s === "open" ? null : "open")} active={selMetric === "open"} sparkData={[8,10,9,12,11,14,13,20]} sparkTrend="down-good" />
-              <Metric label={t.metrics.critical} value={allCrit.length} color={allCrit.length > 0 ? "#EF4444" : "#10B981"} icon={Flame} onClick={() => setSelMetric(s => s === "critical" ? null : "critical")} active={selMetric === "critical"} sparkData={[1,2,1,3,2,2,3,4]} sparkTrend="down-good" />
-              <Metric label={t.metrics.blocked} value={allBlocked.length} color={allBlocked.length > 0 ? "#DC2626" : "#10B981"} icon={Ban} onClick={() => setSelMetric(s => s === "blocked" ? null : "blocked")} active={selMetric === "blocked"} sparkData={[0,1,2,1,2,1,2,2]} sparkTrend="down-good" />
-              <Metric label={t.metrics.closureRate} value={`${Math.round(issues.filter(i => i.status === "CLOSED").length / issues.length * 100)}%`} color="#10B981" icon={CheckCircle2} onClick={() => setSelMetric(s => s === "closure" ? null : "closure")} active={selMetric === "closure"} sparkData={[20,25,30,28,35,40,38,42]} sparkTrend="up-good" />
-              <Metric label={t.metrics.cascadeAlerts} value={cascadeIssues.length} color={cascadeIssues.length > 0 ? "#F59E0B" : "#10B981"} icon={Zap} onClick={() => setSelMetric(s => s === "cascade" ? null : "cascade")} active={selMetric === "cascade"} sparkData={[0,1,1,2,1,2,3,14]} sparkTrend="down-good" />
+              <Metric label={t.metrics.activeProjects} value={projects.length} color="#3B82F6" icon={Layers} onClick={() => setSelMetric(s => s === "projects" ? null : "projects")} active={selMetric === "projects"} sparkData={sparklines.projects} sparkTrend="neutral" />
+              <Metric label={t.metrics.openIssues} value={allOpen.length} color="#EF4444" icon={CircleAlert} onClick={() => setSelMetric(s => s === "open" ? null : "open")} active={selMetric === "open"} sparkData={sparklines.open} sparkTrend="down-good" />
+              <Metric label={t.metrics.critical} value={allCrit.length} color={allCrit.length > 0 ? "#EF4444" : "#10B981"} icon={Flame} onClick={() => setSelMetric(s => s === "critical" ? null : "critical")} active={selMetric === "critical"} sparkData={sparklines.critical} sparkTrend="down-good" />
+              <Metric label={t.metrics.blocked} value={allBlocked.length} color={allBlocked.length > 0 ? "#DC2626" : "#10B981"} icon={Ban} onClick={() => setSelMetric(s => s === "blocked" ? null : "blocked")} active={selMetric === "blocked"} sparkData={sparklines.blocked} sparkTrend="down-good" />
+              <Metric label={t.metrics.closureRate} value={`${issues.length > 0 ? Math.round(issues.filter(i => i.status === "CLOSED").length / issues.length * 100) : 0}%`} color="#10B981" icon={CheckCircle2} onClick={() => setSelMetric(s => s === "closure" ? null : "closure")} active={selMetric === "closure"} sparkData={sparklines.closure} sparkTrend="up-good" />
+              <Metric label={t.metrics.cascadeAlerts} value={cascadeIssues.length} color={cascadeIssues.length > 0 ? "#F59E0B" : "#10B981"} icon={Zap} onClick={() => setSelMetric(s => s === "cascade" ? null : "cascade")} active={selMetric === "cascade"} sparkData={sparklines.cascade} sparkTrend="down-good" />
             </div>
 
             {/* Metric Detail Panel */}
@@ -1425,7 +1461,7 @@ export default function App() {
             {/* Create Form */}
             {showCreate && (
               <Section title={<><Plus size={13} /> {t.issue.create}</>}>
-                <CreateIssueForm key={"create-issues-" + showCreate} t={t} lang={lang} selProject={selProject} initialStatus={perm.getNewIssueStatus()} onClose={() => setShowCreate(false)}
+                <CreateIssueForm key={"create-issues-" + showCreate} t={t} lang={lang} selProject={selProject} initialStatus={perm.getNewIssueStatus()} teamMembers={teamMembers} onClose={() => setShowCreate(false)}
                   onCreate={async (newIssue) => {
                     if (online) { await sbCreateIssue(newIssue); } else { setIssues(prev => [newIssue, ...prev]); }
                     setShowCreate(false); audit.log("ISSUE_CREATED", "issue", newIssue.id, newIssue.title, null, newIssue.status);
@@ -1711,7 +1747,7 @@ export default function App() {
         {tab === "team" && (
           <Section title={<><Users size={14} /> {t.team.workload}</>}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
-              {TEAM.map(m => {
+              {teamMembers.map(m => {
                 const memberIssues = issues.filter(i => i.owner === m.name && i.status !== "CLOSED");
                 const crit = memberIssues.filter(i => i.sev === "CRITICAL").length;
                 const blocked = memberIssues.filter(i => i.status === "BLOCKED").length;
@@ -2005,7 +2041,7 @@ export default function App() {
               {t.tabs.settings}
             </div>
             <Section title={<><Mail size={14} /> {t.email?.preferences || "Email Preferences"}</>}>
-              <EmailPreferences lang={lang} t={t} />
+              <EmailPreferences lang={lang} currentUser={currentUser} />
             </Section>
           </div>
         )}
@@ -2062,6 +2098,8 @@ export default function App() {
           <Plus size={22} />
         </button>
       )}
+
+      </Suspense>
 
       {/* === FOOTER === */}
       <div style={{ borderTop: "1px solid var(--border)", padding: "6px 20px", display: "flex", justifyContent: "space-between", fontSize: 11, color: "var(--text-dim)", fontWeight: 500, background: "var(--bg-card)", marginTop: "auto" }}>

@@ -3,6 +3,7 @@ import { isSupabaseConnected, withTimeout, warmUpSupabase, getConnectionStatus }
 import { useRealtimeSubscription } from './useRealtime';
 import { fetchBomParts, fetchSuppliers, fetchDeliveryRecords } from '../services/bomService';
 import { fetchFlightTests, fetchDecisions } from '../services/flightService';
+import { insert as sbInsert, update as sbUpdate } from '../services/supabaseService';
 import {
   BOM_DATA, FLIGHT_TESTS_DATA, SUPPLIERS_DATA,
   DELIVERY_RECORDS_DATA, DECISIONS_DATA, calcBomCosts,
@@ -371,5 +372,61 @@ export function useDecisionData(projectId) {
 
   useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
 
-  return { data, loading, refetch };
+  const createDecision = useCallback(async (decision) => {
+    if (getConnectionStatus() === 'online') {
+      const insert = sbInsert;
+      const row = {
+        project_id: decision.projectId,
+        title: decision.title,
+        title_vi: decision.titleVi || null,
+        phase: decision.phase,
+        status: decision.status || 'PROPOSED',
+        date: decision.date || new Date().toISOString().split('T')[0],
+        decision_maker: decision.decisionMaker,
+        chosen_option: decision.chosenOption || null,
+        rationale: decision.rationale,
+        rationale_vi: decision.rationaleVi || null,
+        cost_impact: decision.costImpact || null,
+        impact_description: decision.impactDescription || null,
+        impact_description_vi: decision.impactDescriptionVi || null,
+        options: decision.options || [],
+        linked_issue_ids: decision.linkedIssueIds || [],
+        linked_flight_test_ids: decision.linkedFlightTestIds || [],
+        linked_gate_conditions: decision.linkedGateConditions || [],
+      };
+      const { data: created } = await insert('decisions', row);
+      if (created) {
+        setData(prev => [transformDecision(created), ...prev]);
+        return created;
+      }
+    }
+    // Offline: add to local state
+    const localDec = {
+      ...decision,
+      id: `DEC-${Date.now()}`,
+      date: decision.date || new Date().toISOString().split('T')[0],
+    };
+    setData(prev => [localDec, ...prev]);
+    return localDec;
+  }, []);
+
+  const updateDecision = useCallback(async (decisionId, updates) => {
+    if (getConnectionStatus() === 'online') {
+      const update = sbUpdate;
+      const row = {};
+      if (updates.status !== undefined) row.status = updates.status;
+      if (updates.chosenOption !== undefined) row.chosen_option = updates.chosenOption;
+      if (updates.rationale !== undefined) row.rationale = updates.rationale;
+      if (updates.decisionMaker !== undefined) row.decision_maker = updates.decisionMaker;
+      const { data: updated } = await update('decisions', decisionId, row);
+      if (updated) {
+        setData(prev => prev.map(d => d.id === decisionId ? transformDecision(updated) : d));
+        return updated;
+      }
+    }
+    // Offline: update local state
+    setData(prev => prev.map(d => d.id === decisionId ? { ...d, ...updates } : d));
+  }, []);
+
+  return { data, loading, refetch, createDecision, updateDecision };
 }

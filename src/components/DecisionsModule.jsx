@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import {
   Scale, Check, X, ChevronRight, ExternalLink,
   Clock, User, Layers, AlertTriangle, GitBranch,
-  ArrowRight, CircleDot
+  ArrowRight, CircleDot, Plus
 } from "lucide-react";
 import {
   DECISION_STATUS_COLORS,
@@ -26,11 +26,13 @@ function Badge({ label, color, size = "sm", icon: IconComp }) {
 
 export default function DecisionsModule({ lang, t, project, issues, onViewIssue, perm }) {
   const readOnly = perm?.isReadOnly ? perm.isReadOnly() : false;
+  const canEdit = perm?.canEditDecisions ? perm.canEditDecisions() : false;
   const [expandedId, setExpandedId] = useState(null);
   const [filterStatus, setFilterStatus] = useState("ALL");
+  const [showCreate, setShowCreate] = useState(false);
 
   // Fetch from Supabase (or static fallback)
-  const { data: allDecisions, loading: decLoading } = useDecisionData(project?.id);
+  const { data: allDecisions, loading: decLoading, createDecision, updateDecision } = useDecisionData(project?.id);
 
   const decisions = useMemo(() =>
     allDecisions
@@ -66,8 +68,27 @@ export default function DecisionsModule({ lang, t, project, issues, onViewIssue,
             <option value="ALL">{lang === "vi" ? "Tất cả trạng thái" : "All Statuses"}</option>
             {["PROPOSED", "APPROVED", "SUPERSEDED", "REJECTED"].map(s => <option key={s} value={s}>{s}</option>)}
           </select>
+          {canEdit && (
+            <button onClick={() => setShowCreate(!showCreate)}
+              style={{ background: "#1D4ED8", border: "none", borderRadius: 4, padding: "5px 12px", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontFamily: sans }}>
+              <Plus size={12} /> {lang === "vi" ? "Tạo Quyết Định" : "New Decision"}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Create Decision Form */}
+      {showCreate && (
+        <CreateDecisionForm
+          lang={lang}
+          project={project}
+          onClose={() => setShowCreate(false)}
+          onCreate={async (dec) => {
+            await createDecision(dec);
+            setShowCreate(false);
+          }}
+        />
+      )}
 
       {/* Decision cards */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -170,6 +191,28 @@ export default function DecisionsModule({ lang, t, project, issues, onViewIssue,
                     </div>
                   </div>
 
+                  {/* Status transitions */}
+                  {canEdit && dec.status === "PROPOSED" && (
+                    <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+                      <button onClick={() => updateDecision(dec.id, { status: "APPROVED" })}
+                        style={{ background: "#065F46", border: "1px solid #047857", borderRadius: 4, padding: "5px 12px", color: "#6EE7B7", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontFamily: sans }}>
+                        <Check size={11} /> {lang === "vi" ? "Phê duyệt" : "Approve"}
+                      </button>
+                      <button onClick={() => updateDecision(dec.id, { status: "REJECTED" })}
+                        style={{ background: "#7F1D1D", border: "1px solid #991B1B", borderRadius: 4, padding: "5px 12px", color: "#FCA5A5", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontFamily: sans }}>
+                        <X size={11} /> {lang === "vi" ? "Từ chối" : "Reject"}
+                      </button>
+                    </div>
+                  )}
+                  {canEdit && dec.status === "APPROVED" && (
+                    <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+                      <button onClick={() => updateDecision(dec.id, { status: "SUPERSEDED" })}
+                        style={{ background: "var(--hover-bg)", border: "1px solid var(--border)", borderRadius: 4, padding: "5px 12px", color: "var(--text-secondary)", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontFamily: sans }}>
+                        <ArrowRight size={11} /> {lang === "vi" ? "Thay thế" : "Mark Superseded"}
+                      </button>
+                    </div>
+                  )}
+
                   {/* Links */}
                   {(dec.linkedIssueIds.length > 0 || dec.linkedFlightTestIds.length > 0 || dec.linkedGateConditions.length > 0) && (
                     <div>
@@ -212,6 +255,119 @@ export default function DecisionsModule({ lang, t, project, issues, onViewIssue,
           <div style={{ fontSize: 14, color: "var(--text-faint)" }}>{lang === "vi" ? "Không có quyết định khớp bộ lọc" : "No decisions match filter"}</div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── CREATE DECISION FORM ──────────────────────────────────────
+function CreateDecisionForm({ lang, project, onClose, onCreate }) {
+  const vi = lang === "vi";
+  const [form, setForm] = useState({
+    title: "", titleVi: "", phase: project?.currentPhase || "DVT",
+    decisionMaker: "", rationale: "", rationaleVi: "",
+    costImpact: "", impactDescription: "", impactDescriptionVi: "",
+    options: [{ label: "A: ", pros: "", cons: "" }],
+  });
+
+  const inputStyle = { background: "var(--bg-input)", border: "1px solid var(--border)", borderRadius: 4, padding: "6px 10px", color: "var(--text-primary)", fontSize: 14, width: "100%", outline: "none", fontFamily: sans };
+  const labelStyle = { fontSize: 12, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 3, fontWeight: 600 };
+
+  const addOption = () => {
+    const next = String.fromCharCode(65 + form.options.length);
+    setForm(f => ({ ...f, options: [...f.options, { label: `${next}: `, pros: "", cons: "" }] }));
+  };
+
+  const updateOption = (i, field, value) => {
+    setForm(f => ({ ...f, options: f.options.map((o, j) => j === i ? { ...o, [field]: value } : o) }));
+  };
+
+  const handleCreate = () => {
+    if (!form.title || !form.decisionMaker) return;
+    onCreate({
+      projectId: project?.id,
+      title: form.title,
+      titleVi: form.titleVi || form.title,
+      phase: form.phase,
+      status: "PROPOSED",
+      decisionMaker: form.decisionMaker,
+      rationale: form.rationale,
+      rationaleVi: form.rationaleVi,
+      costImpact: form.costImpact,
+      impactDescription: form.impactDescription,
+      impactDescriptionVi: form.impactDescriptionVi,
+      options: form.options.filter(o => o.label.length > 3),
+      linkedIssueIds: [],
+      linkedFlightTestIds: [],
+      linkedGateConditions: [],
+    });
+  };
+
+  return (
+    <div style={{ background: "var(--bg-card)", border: "1px solid #3B82F640", borderRadius: 8, padding: 16 }}>
+      <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary)", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
+        <Scale size={14} color="#8B5CF6" />
+        {vi ? "Tạo Quyết Định Mới" : "New Decision Record"}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={labelStyle}>{vi ? "Tiêu đề" : "Title"} (EN) *</label>
+          <input style={inputStyle} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Decision title..." />
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={labelStyle}>{vi ? "Tiêu đề" : "Title"} (VI)</label>
+          <input style={inputStyle} value={form.titleVi} onChange={e => setForm(f => ({ ...f, titleVi: e.target.value }))} placeholder="Tiêu đề tiếng Việt..." />
+        </div>
+        <div>
+          <label style={labelStyle}>Phase</label>
+          <select style={{ ...inputStyle, cursor: "pointer" }} value={form.phase} onChange={e => setForm(f => ({ ...f, phase: e.target.value }))}>
+            {["CONCEPT", "EVT", "DVT", "PVT", "MP"].map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>{vi ? "Người quyết định" : "Decision Maker"} *</label>
+          <input style={inputStyle} value={form.decisionMaker} onChange={e => setForm(f => ({ ...f, decisionMaker: e.target.value }))} />
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={labelStyle}>{vi ? "Lý do" : "Rationale"}</label>
+          <textarea style={{ ...inputStyle, minHeight: 60, resize: "vertical" }} value={form.rationale} onChange={e => setForm(f => ({ ...f, rationale: e.target.value }))} />
+        </div>
+        <div>
+          <label style={labelStyle}>{vi ? "Chi phí ảnh hưởng" : "Cost Impact"}</label>
+          <input style={inputStyle} value={form.costImpact} onChange={e => setForm(f => ({ ...f, costImpact: e.target.value }))} placeholder="e.g. +$500/unit" />
+        </div>
+        <div>
+          <label style={labelStyle}>{vi ? "Mô tả ảnh hưởng" : "Impact Description"}</label>
+          <input style={inputStyle} value={form.impactDescription} onChange={e => setForm(f => ({ ...f, impactDescription: e.target.value }))} />
+        </div>
+
+        {/* Options */}
+        <div style={{ gridColumn: "1 / -1" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <label style={{ ...labelStyle, marginBottom: 0 }}>{vi ? "Phương án" : "Options"}</label>
+            <button onClick={addOption} style={{ background: "var(--hover-bg)", border: "1px solid var(--border)", borderRadius: 3, padding: "2px 8px", fontSize: 11, color: "var(--text-dim)", cursor: "pointer", fontFamily: sans }}>
+              <Plus size={9} /> {vi ? "Thêm" : "Add"}
+            </button>
+          </div>
+          {form.options.map((opt, i) => (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 6 }}>
+              <input style={inputStyle} value={opt.label} onChange={e => updateOption(i, "label", e.target.value)} placeholder={`Option ${String.fromCharCode(65 + i)}`} />
+              <input style={inputStyle} value={opt.pros} onChange={e => updateOption(i, "pros", e.target.value)} placeholder={vi ? "Ưu điểm" : "Pros"} />
+              <input style={inputStyle} value={opt.cons} onChange={e => updateOption(i, "cons", e.target.value)} placeholder={vi ? "Nhược điểm" : "Cons"} />
+            </div>
+          ))}
+        </div>
+
+        <div style={{ gridColumn: "1 / -1", display: "flex", gap: 6, justifyContent: "flex-end" }}>
+          <button onClick={onClose}
+            style={{ background: "var(--hover-bg)", border: "1px solid var(--border)", borderRadius: 4, padding: "6px 12px", color: "var(--text-secondary)", fontSize: 10, fontWeight: 600, cursor: "pointer", fontFamily: sans, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <X size={11} /> {vi ? "Hủy" : "Cancel"}
+          </button>
+          <button onClick={handleCreate} disabled={!form.title || !form.decisionMaker}
+            style={{ background: "#1D4ED8", border: "1px solid #2563EB", borderRadius: 4, padding: "6px 12px", color: "#fff", fontSize: 10, fontWeight: 600, cursor: !form.title || !form.decisionMaker ? "not-allowed" : "pointer", opacity: !form.title || !form.decisionMaker ? 0.4 : 1, fontFamily: sans, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <Plus size={11} /> {vi ? "Tạo Quyết Định" : "Create Decision"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

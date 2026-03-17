@@ -114,7 +114,7 @@ export class SignalHub {
     this.scoringTimer = setInterval(() => this.runScoring(), 2 * 60 * 1000);
     this.pruneTimer = setInterval(() => this.runPrune(), 10 * 60 * 1000);
 
-    console.log(`[SignalHub] Started domain "${this.config.name}" with ${this.config.sources.length} sources`);
+    if (import.meta.env.DEV) console.log(`[SignalHub] Started domain "${this.config.name}" with ${this.config.sources.length} sources`);
   }
 
   stop(): void {
@@ -122,7 +122,7 @@ export class SignalHub {
     if (this.anomalyCheckTimer) clearInterval(this.anomalyCheckTimer);
     if (this.scoringTimer) clearInterval(this.scoringTimer);
     if (this.pruneTimer) clearInterval(this.pruneTimer);
-    console.log(`[SignalHub] Stopped domain "${this.config.name}"`);
+    if (import.meta.env.DEV) console.log(`[SignalHub] Stopped domain "${this.config.name}"`);
   }
 
   // ── Signal Ingestion ───────────────────────────────────────────────
@@ -239,7 +239,7 @@ export class SignalHub {
   private runPrune(): void {
     const pruned = this.store.prune();
     if (pruned > 0) {
-      console.log(`[SignalHub] Pruned ${pruned} expired signals`);
+      if (import.meta.env.DEV) console.log(`[SignalHub] Pruned ${pruned} expired signals`);
     }
     this.convergence.resetAlerts();
   }

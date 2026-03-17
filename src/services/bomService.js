@@ -15,9 +15,10 @@ export async function fetchSuppliers() {
   });
 }
 
-export async function fetchDeliveryRecords(supplierId = null) {
+export async function fetchDeliveryRecords(supplierId = null, limit = 500) {
   const options = {
     order: { column: 'order_date', asc: false },
+    limit,
   };
   if (supplierId) options.eq = { supplier_id: supplierId };
   return query('delivery_records', options);

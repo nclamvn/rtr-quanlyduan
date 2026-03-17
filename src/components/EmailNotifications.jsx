@@ -206,7 +206,7 @@ export default function EmailPreferences({ lang, currentUser }) {
   };
 
   const handleSave = () => {
-    notificationEngine.savePreferences(prefs);
+    notificationEngine.savePreferences(prefs, currentUser?.id);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -238,9 +238,8 @@ export default function EmailPreferences({ lang, currentUser }) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 14, color: "var(--text-primary)", fontFamily: mono }}>
-            {currentUser?.name?.toLowerCase().replace(/\s+/g, ".")}@rtr.vn
+            {currentUser?.email || `${currentUser?.name?.toLowerCase().replace(/\s+/g, ".")}@rtr.vn`}
           </span>
-          <span style={{ fontSize: 11, color: "var(--text-faint)" }}>(mock)</span>
         </div>
       </div>
 

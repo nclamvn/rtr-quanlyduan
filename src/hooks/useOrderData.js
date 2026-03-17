@@ -69,8 +69,9 @@ function transformCustomer(row) {
 }
 
 // ═══ STATIC FALLBACK DATA ═══
-const STATIC_ORDERS = [];
-const STATIC_CUSTOMERS = [];
+import { DEMO_ORDERS, DEMO_CUSTOMERS } from '../data/businessDemoData';
+const STATIC_ORDERS = DEMO_ORDERS;
+const STATIC_CUSTOMERS = DEMO_CUSTOMERS;
 
 // ═══ HOOKS ═══
 

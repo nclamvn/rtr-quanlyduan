@@ -17,6 +17,7 @@ import { AnomalyDetector, type AnomalyResult } from './anomaly';
 import { ScoringEngine, type IndexScore } from './scoring';
 import { ClassificationEngine, type ClassificationResult } from './classification';
 import { FreshnessTracker, type FreshnessSummary } from './freshness';
+import { RelationshipDetector, type IssueInput, type ScanResult } from './relationship';
 
 // ─── Hub Events ──────────────────────────────────────────────────────
 
@@ -28,7 +29,8 @@ export type HubEvent =
   | { type: 'index_updated'; scores: IndexScore[] }
   | { type: 'source_error'; sourceId: string; error: string }
   | { type: 'source_recovered'; sourceId: string }
-  | { type: 'freshness_changed'; summary: FreshnessSummary };
+  | { type: 'freshness_changed'; summary: FreshnessSummary }
+  | { type: 'scan_completed'; result: ScanResult };
 
 export type HubEventHandler = (event: HubEvent) => void;
 
@@ -53,6 +55,7 @@ export class SignalHub {
   private anomaly: AnomalyDetector;
   private scoring: ScoringEngine;
   private freshness: FreshnessTracker;
+  private relationship: RelationshipDetector;
   private isRunning = false;
   private latestAnomalies: AnomalyResult[] = [];
   private eventHandlers: HubEventHandler[] = [];
@@ -74,6 +77,7 @@ export class SignalHub {
     this.anomaly = new AnomalyDetector(config.anomaly);
     this.scoring = new ScoringEngine(config.indexes);
     this.freshness = new FreshnessTracker();
+    this.relationship = new RelationshipDetector();
 
     for (const source of config.sources) {
       this.freshness.registerSource(source.id, source.name, source.signalTypes, source.enabled);
@@ -210,6 +214,13 @@ export class SignalHub {
   /** Manually trigger scoring (useful for demo) */
   triggerScoring(): void {
     this.runScoring();
+  }
+
+  /** Scan issues for relationships and clusters */
+  scanRelationships(issues: IssueInput[]): ScanResult {
+    const result = this.relationship.scan(issues);
+    this.emit({ type: 'scan_completed', result });
+    return result;
   }
 
   // ── Accessors ──────────────────────────────────────────────────────

@@ -9,7 +9,7 @@ import {
   Target, TrendingUp, BarChart3, Activity,
   Calendar, MapPin, GitBranch, Layers,
   CircleAlert, Timer, Milestone, ChevronLeft,
-  LogOut, RefreshCw, ScrollText, Download, Trash2,
+  LogIn, LogOut, RefreshCw, ScrollText, Download, Trash2,
   Package, Truck, Scale,
   Upload, Settings, Mail, FileSpreadsheet,
   Sun, Moon, SearchX, FilterX, Search, WifiOff, Brain,
@@ -41,6 +41,7 @@ const OrdersModule = lazy(() => import("./components/OrdersModule"));
 const ProductionModule = lazy(() => import("./components/ProductionModule"));
 const InventoryModule = lazy(() => import("./components/InventoryModule"));
 const FinanceModule = lazy(() => import("./components/FinanceModule"));
+const AIImportWizard = lazy(() => import("./components/AIImportWizard"));
 import { useFlightTestData, useDeliveryData, useBomData, useSupplierData } from "./hooks/useV2Data";
 import { useOrders, useCustomers } from "./hooks/useOrderData";
 import { useProductionOrders } from "./hooks/useProductionData";
@@ -176,8 +177,8 @@ const DVT_CATEGORIES = {
   mech_test: { label: "Mechanical", label_vi: "C\u01A1 Kh\u00ED", Icon: Cog, color: "#8B5CF6" },
 };
 
-// --- SAMPLE DATA ---
-const PROJECTS = [
+// --- NO MOCK DATA — Use AI Import or Supabase ---
+const _LEGACY_PROJECTS = [
   { id: "PRJ-001", name: "RTR-X7 Surveyor", desc: "Enterprise survey drone with RTK GPS", descVi: "Drone kh\u1EA3o s\u00E1t doanh nghi\u1EC7p v\u1EDBi RTK GPS", phase: "DVT", phaseOwner: "Minh Tu\u1EA5n", startDate: "2025-06-01", targetMP: "2026-06-01",
     milestones: { CONCEPT: { target: "2025-06-30", actual: "2025-06-28", adjusted: null, status: "COMPLETED" }, EVT: { target: "2025-09-30", actual: "2025-10-15", adjusted: null, status: "COMPLETED" }, DVT: { target: "2026-01-31", actual: null, adjusted: "2026-02-14", status: "IN_PROGRESS" }, PVT: { target: "2026-04-15", actual: null, adjusted: "2026-04-29", status: "PLANNED" }, MP: { target: "2026-06-01", actual: null, adjusted: "2026-06-15", status: "PLANNED" } },
     gateChecks: { CONCEPT: { c1: true, c2: true, c3: true }, EVT: { e1: true, e2: true, e3: true, e4: true, e5: true }, DVT: { d1: false, d2: false, d3: false, d4: true, d5: true, d6: false, d7: false, d8: false, d9: true, d10: true, d11: false }, PVT: {}, MP: {} },
@@ -200,7 +201,7 @@ const PROJECTS = [
   },
 ];
 
-const ISSUES_DATA = [
+const _LEGACY_ISSUES = [
   { id: "ISS-001", pid: "PRJ-001", title: "FC board brownout during high-G maneuver", titleVi: "Board FC m\u1EA5t ngu\u1ED3n khi c\u01A1 \u0111\u1ED9ng G cao", desc: "Flight controller loses power during aggressive banking at >2G", rootCause: "Voltage regulator insufficient current capacity under transient load", status: "IN_PROGRESS", sev: "CRITICAL", src: "INTERNAL", owner: "\u0110\u1EE9c Anh", phase: "DVT", created: "2026-01-15", due: "2026-02-28",
     impacts: [{ phase: "DVT", desc: "Delay design freeze by 2 weeks", descVi: "Tr\u00EC ho\u00E3n \u0111\u00F3ng b\u0103ng thi\u1EBFt k\u1EBF 2 tu\u1EA7n", days: 14 }, { phase: "PVT", desc: "Auto-shift PVT start by 2 weeks", descVi: "PVT t\u1EF1 \u0111\u1ED9ng d\u1ECBch 2 tu\u1EA7n", days: 14 }],
     updates: [{ date: "2026-01-15", author: "\u0110\u1EE9c Anh", text: "Identified brownout during flight test #47" }, { date: "2026-01-20", author: "\u0110\u1EE9c Anh", text: "Root cause: LDO max 500mA, peak draw 720mA" }, { date: "2026-02-10", author: "Minh Tu\u1EA5n", text: "New regulator TPS62A02 sampled, testing next week" }],
@@ -290,7 +291,7 @@ const ISSUES_DATA = [
   },
 ];
 
-const TEAM = [
+const _LEGACY_TEAM = [
   { name: "Minh Tu\u1EA5n", role: "pm", projects: ["PRJ-001"] },
   { name: "H\u1ED3ng Ph\u00FAc", role: "pm", projects: ["PRJ-002"] },
   { name: "\u0110\u1EE9c Anh", role: "engineer", projects: ["PRJ-001"] },
@@ -308,7 +309,7 @@ const TEAM = [
   { name: "B\u00F9i Qu\u1ED1c Vi\u1EC7t", role: "engineer", projects: ["PRJ-001", "PRJ-003"] },
 ];
 
-const NOTIFICATIONS_DATA = [
+const _LEGACY_NOTIFICATIONS = [
   { id: 1, type: "CRITICAL_ISSUE", title: "New CRITICAL: ESC CAN bus timeout", titleVi: "CRITICAL m\u1EDBi: ESC CAN bus h\u1EBFt th\u1EDDi gian", ref: "ISS-004", time: "2h ago", timeVi: "2 gi\u1EDD tr\u01B0\u1EDBc", read: false },
   { id: 2, type: "MILESTONE_IMPACT", title: "DVT milestone shifted +2 weeks (PRJ-001)", titleVi: "DVT milestone d\u1ECBch +2 tu\u1EA7n (PRJ-001)", ref: "PRJ-001", time: "5h ago", timeVi: "5 gi\u1EDD tr\u01B0\u1EDBc", read: false },
   { id: 3, type: "OVERDUE_ISSUE", title: "ISS-006 overdue by 3 days", titleVi: "ISS-006 qu\u00E1 h\u1EA1n 3 ng\u00E0y", ref: "ISS-006", time: "1d ago", timeVi: "1 ng\u00E0y tr\u01B0\u1EDBc", read: true },
@@ -334,7 +335,7 @@ const NOTIFICATIONS_DATA = [
 
 function Badge({ label, color, size = "sm", glow, icon: IconComp }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: size === "sm" ? "1px 7px" : "3px 10px", borderRadius: 3, background: color + "15", color, fontSize: size === "sm" ? 9 : 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", border: `1px solid ${color}25`, fontFamily: mono, whiteSpace: "nowrap", boxShadow: glow ? `0 0 8px ${color}30` : "none" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: size === "sm" ? "1px 7px" : "3px 10px", borderRadius: 3, background: color + "15", color, fontSize: size === "sm" ? 10 : 11, fontWeight: 700, letterSpacing: "0.04em", border: `1px solid ${color}25`, fontFamily: mono, whiteSpace: "nowrap", boxShadow: glow ? `0 0 8px ${color}30` : "none" }}>
       {IconComp ? <IconComp size={size === "sm" ? 10 : 12} /> : <span style={{ width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0 }} />}
       {label}
     </span>
@@ -420,7 +421,7 @@ function GateItem({ cond, lang, t, checked, onClick, disabled }) {
   return (
     <div onClick={disabled ? undefined : onClick}
       style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 8px", borderRadius: 4, background: checked ? "#10B98108" : "#1E2A3A08", cursor: disabled ? "default" : "pointer", border: `1px solid ${checked ? "#10B98120" : "transparent"}`, marginBottom: 3 }}>
-      <div style={{ width: 15, height: 15, borderRadius: 3, border: `2px solid ${checked ? "#10B981" : "var(--text-faint)"}`, background: checked ? "#10B981" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <div style={{ width: 20, height: 20, borderRadius: 3, border: `2px solid ${checked ? "#10B981" : "var(--text-faint)"}`, background: checked ? "#10B981" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, minWidth: 36, minHeight: 36, padding: 8, boxSizing: "content-box", cursor: disabled ? "default" : "pointer" }}>
         {checked && <Check size={9} color="#000" strokeWidth={3} />}
       </div>
       <span style={{ fontSize: 13, color: checked ? "var(--text-dim)" : "var(--text-secondary)", textDecoration: checked ? "line-through" : "none", flex: 1 }}>
@@ -436,14 +437,23 @@ function GateItem({ cond, lang, t, checked, onClick, disabled }) {
 // ===================================================================
 function CreateIssueForm({ t, lang, selProject, onClose, onCreate, initialStatus = "DRAFT", teamMembers }) {
   const [form, setForm] = useState({ title: "", titleVi: "", desc: "", rootCause: "Investigating", sev: "HIGH", src: "INTERNAL", owner: "", phase: "DVT", due: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const owners = (teamMembers || TEAM).filter(m => m.role === "engineer").map(m => m.name);
   const isDirty = form.title || form.titleVi || form.desc || form.owner || form.due || form.rootCause !== "Investigating" || form.sev !== "HIGH" || form.src !== "INTERNAL" || form.phase !== "DVT";
   const handleClose = () => { if (!isDirty || window.confirm(t.unsavedChanges)) onClose(); };
 
+  const [touched, setTouched] = useState({});
+  const errors = {
+    title: touched.title && !form.title ? (lang === "vi" ? "Tiêu đề là bắt buộc" : "Title is required") : null,
+    owner: touched.owner && !form.owner ? (lang === "vi" ? "Vui lòng chọn người phụ trách" : "Owner is required") : null,
+  };
   const handleCreate = () => {
-    if (!form.title || !form.owner) return;
+    setTouched({ title: true, owner: true });
+    if (!form.title || !form.owner || submitting) return;
+    setSubmitting(true);
     const newIssue = {
-      id: `ISS-${String(ISSUES_DATA.length + Math.floor(Math.random() * 100) + 1).padStart(3, "0")}`,
+      id: `ISS-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`,
       pid: selProject, title: form.title, titleVi: form.titleVi || form.title, desc: form.desc,
       rootCause: form.rootCause, status: initialStatus, sev: form.sev, src: form.src,
       owner: form.owner, phase: form.phase, created: new Date().toISOString().split("T")[0],
@@ -460,11 +470,8 @@ function CreateIssueForm({ t, lang, selProject, onClose, onCreate, initialStatus
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
       <div style={{ gridColumn: "1 / -1" }}>
         <label style={labelStyle}>{t.issue.title} (EN) *</label>
-        <input style={inputStyle} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Issue title in English..." />
-      </div>
-      <div style={{ gridColumn: "1 / -1" }}>
-        <label style={labelStyle}>{t.issue.title} (VI)</label>
-        <input style={inputStyle} value={form.titleVi} onChange={e => setForm(f => ({ ...f, titleVi: e.target.value }))} placeholder="Tiêu đề tiếng Việt..." />
+        <input style={{ ...inputStyle, borderColor: errors.title ? "#EF4444" : undefined }} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} onBlur={() => setTouched(p => ({ ...p, title: true }))} placeholder="Issue title in English..." />
+        {errors.title && <div style={{ fontSize: 11, color: "#EF4444", marginTop: 2 }}>{errors.title}</div>}
       </div>
       <div>
         <label style={labelStyle}>{t.issue.severity} *</label>
@@ -480,10 +487,11 @@ function CreateIssueForm({ t, lang, selProject, onClose, onCreate, initialStatus
       </div>
       <div>
         <label style={labelStyle}>{t.issue.owner} *</label>
-        <select style={selectStyle} value={form.owner} onChange={e => setForm(f => ({ ...f, owner: e.target.value }))}>
-          <option value="">Select...</option>
+        <select style={{ ...selectStyle, borderColor: errors.owner ? "#EF4444" : undefined }} value={form.owner} onChange={e => setForm(f => ({ ...f, owner: e.target.value }))} onBlur={() => setTouched(p => ({ ...p, owner: true }))}>
+          <option value="">{lang === "vi" ? "Chọn..." : "Select..."}</option>
           {owners.map(o => <option key={o} value={o}>{o}</option>)}
         </select>
+        {errors.owner && <div style={{ fontSize: 11, color: "#EF4444", marginTop: 2 }}>{errors.owner}</div>}
       </div>
       <div>
         <label style={labelStyle}>{t.issue.phase} *</label>
@@ -491,17 +499,34 @@ function CreateIssueForm({ t, lang, selProject, onClose, onCreate, initialStatus
           {PHASES.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
       </div>
+      {/* Toggle optional fields */}
       <div style={{ gridColumn: "1 / -1" }}>
-        <label style={labelStyle}>{t.issue.rootCause}</label>
-        <input style={inputStyle} value={form.rootCause} onChange={e => setForm(f => ({ ...f, rootCause: e.target.value }))} />
+        <button type="button" onClick={() => setShowMore(!showMore)}
+          style={{ background: "none", border: "none", color: "#3B82F6", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "4px 0", display: "flex", alignItems: "center", gap: 4, fontFamily: sans }}>
+          {showMore ? "▾" : "▸"} {showMore ? (lang === "vi" ? "Ẩn chi tiết" : "Hide details") : (lang === "vi" ? "Thêm chi tiết (mô tả, deadline...)" : "More details (description, deadline...)")}
+        </button>
       </div>
-      <div style={{ gridColumn: "1 / -1" }}>
-        <label style={labelStyle}>{t.issue.dueDate}</label>
-        <input type="date" style={inputStyle} value={form.due} onChange={e => setForm(f => ({ ...f, due: e.target.value }))} />
-      </div>
+      {showMore && <>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={labelStyle}>{t.issue.title} (VI)</label>
+          <input style={inputStyle} value={form.titleVi} onChange={e => setForm(f => ({ ...f, titleVi: e.target.value }))} placeholder="Tiêu đề tiếng Việt..." />
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={labelStyle}>{t.issue.description}</label>
+          <textarea style={{ ...inputStyle, minHeight: 56, resize: "vertical" }} value={form.desc} onChange={e => setForm(f => ({ ...f, desc: e.target.value }))} placeholder={lang === "vi" ? "Mô tả chi tiết vấn đề..." : "Describe the issue in detail..."} />
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={labelStyle}>{t.issue.rootCause}</label>
+          <input style={inputStyle} value={form.rootCause} onChange={e => setForm(f => ({ ...f, rootCause: e.target.value }))} />
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={labelStyle}>{t.issue.dueDate}</label>
+          <input type="date" style={inputStyle} value={form.due} onChange={e => setForm(f => ({ ...f, due: e.target.value }))} />
+        </div>
+      </>}
       <div style={{ gridColumn: "1 / -1", display: "flex", gap: 6, justifyContent: "flex-end" }}>
         <Btn onClick={handleClose}><X size={11} /> {t.cancel}</Btn>
-        <Btn variant="primary" onClick={handleCreate} disabled={!form.title || !form.owner}><Plus size={11} /> {t.issue.create} ({initialStatus})</Btn>
+        <Btn variant="primary" onClick={handleCreate} disabled={!form.title || !form.owner || submitting}><Plus size={11} /> {submitting ? "..." : `${t.issue.create} (${initialStatus})`}</Btn>
       </div>
     </div>
   );
@@ -511,15 +536,17 @@ function CreateIssueForm({ t, lang, selProject, onClose, onCreate, initialStatus
 // MAIN APP
 // ===================================================================
 export default function App() {
-  const { user: currentUser, isAuthenticated, isLoading, logout, switchUser, demoUsers } = useAuth();
+  const { user: currentUser, isAuthenticated, isGuest, isLoading, logout, login, register } = useAuth();
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const perm = usePermission();
   const audit = useAuditLog();
   const [lang, setLang] = useState(() => localStorage.getItem('rtr-lang') || "vi");
   const [tab, setTab] = useState(() => localStorage.getItem('rtr-tab') || "tower");
   const [selProject, setSelProject] = useState(() => localStorage.getItem('rtr-project') || "PRJ-001");
-  const [selIssue, setSelIssue] = useState(null);
-  const [filters, setFilters] = useState({ status: "ALL", sev: "ALL", src: "ALL" });
-  const [issueSearch, setIssueSearch] = useState("");
+  const [selIssue, setSelIssue] = useState(() => { try { const id = sessionStorage.getItem('rtr-selIssue'); return id ? { id } : null; } catch { return null; } });
+  const [filters, setFilters] = useState(() => { try { return JSON.parse(sessionStorage.getItem('rtr-filters')) || { status: "ALL", sev: "ALL", src: "ALL" }; } catch { return { status: "ALL", sev: "ALL", src: "ALL" }; } });
+  const [issueSearch, setIssueSearch] = useState(() => sessionStorage.getItem('rtr-issueSearch') || "");
+  const [issueSort, setIssueSort] = useState({ col: null, dir: "desc" });
 
   // ── Connection status ──
   const [connStatus, setConnStatus] = useState(getConnectionStatus);
@@ -553,9 +580,10 @@ export default function App() {
 
   // Decide data source: Supabase when connected & has data, else static mock
   const online = connStatus === 'online';
-  const [offlineProjects, setOfflineProjects] = useState(PROJECTS);
-  const [offlineIssues, setOfflineIssues] = useState(ISSUES_DATA);
-  const [offlineNotifications, setOfflineNotifications] = useState(NOTIFICATIONS_DATA);
+  // Start empty — no mock data. Use AI Import or Supabase for real data.
+  const [offlineProjects, setOfflineProjects] = useState([]);
+  const [offlineIssues, setOfflineIssues] = useState([]);
+  const [offlineNotifications, setOfflineNotifications] = useState([]);
 
   const projects = online && sbProjects.length > 0 ? sbProjects : offlineProjects;
   const setProjects = online && sbProjects.length > 0 ? setSbProjects : setOfflineProjects;
@@ -575,6 +603,7 @@ export default function App() {
   const [testSubTab, setTestSubTab] = useState(() => sessionStorage.getItem('rtr-testSubTab') || "flights");
   const [time, setTime] = useState(new Date());
   const [showImport, setShowImport] = useState(false);
+  const [showAIImport, setShowAIImport] = useState(false);
   const [showExport, setShowExport] = useState(null);
   const [toast, setToast] = useState(null);
   const [selMetric, setSelMetric] = useState(null);
@@ -596,7 +625,7 @@ export default function App() {
 
   // --- Team Data (live Supabase with TEAM fallback) ---
   const { data: sbTeam } = useTeamData();
-  const teamMembers = online && sbTeam.length > 0 ? sbTeam : TEAM;
+  const teamMembers = online && sbTeam.length > 0 ? sbTeam : []; // No mock team data
 
   // --- Business Operations Data ---
   const { data: ordersList, loading: ordersLoading } = useOrders(selProject);
@@ -636,6 +665,17 @@ export default function App() {
   useEffect(() => { sessionStorage.setItem('rtr-bomSubTab', bomSubTab); }, [bomSubTab]);
   useEffect(() => { sessionStorage.setItem('rtr-testSubTab', testSubTab); }, [testSubTab]);
   useEffect(() => { sessionStorage.setItem('rtr-issueSubTab', issueSubTab); }, [issueSubTab]);
+  useEffect(() => { sessionStorage.setItem('rtr-filters', JSON.stringify(filters)); }, [filters]);
+  useEffect(() => { sessionStorage.setItem('rtr-issueSearch', issueSearch); }, [issueSearch]);
+  useEffect(() => { sessionStorage.setItem('rtr-selIssue', selIssue?.id || ''); }, [selIssue]);
+  // Resolve stored issue ID to full object once data loads
+  useEffect(() => {
+    if (selIssue && selIssue.id && !selIssue.title && issues.length > 0) {
+      const found = issues.find(i => i.id === selIssue.id);
+      if (found) setSelIssue(found);
+      else setSelIssue(null);
+    }
+  }, [issues]);
 
   // --- Intelligence event → toast notifications ---
   useEffect(() => {
@@ -691,8 +731,22 @@ export default function App() {
         normalizeVN(i.rootCause || "").includes(s)
       );
     }
+    if (issueSort.col) {
+      const SEV_ORDER = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+      f.sort((a, b) => {
+        let va, vb;
+        if (issueSort.col === "sev") { va = SEV_ORDER[a.sev] || 0; vb = SEV_ORDER[b.sev] || 0; }
+        else if (issueSort.col === "due") { va = a.due || "9999"; vb = b.due || "9999"; }
+        else if (issueSort.col === "created") { va = a.created || ""; vb = b.created || ""; }
+        else if (issueSort.col === "owner") { va = (a.owner || "").toLowerCase(); vb = (b.owner || "").toLowerCase(); }
+        else if (issueSort.col === "status") { va = a.status; vb = b.status; }
+        else { va = a[issueSort.col] || ""; vb = b[issueSort.col] || ""; }
+        const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+        return issueSort.dir === "asc" ? cmp : -cmp;
+      });
+    }
     return f;
-  }, [issues, selProject, filters, issueSearch]);
+  }, [issues, selProject, filters, issueSearch, issueSort]);
 
   // --- Sparkline data: 8-week history computed from real issues ---
   // Must be before early returns to respect Rules of Hooks
@@ -735,9 +789,9 @@ export default function App() {
     );
   }
 
-  // Auth guard — show login screen
-  if (!isAuthenticated) {
-    return <LoginScreen onLogin={(user, selectedLang) => { setLang(selectedLang); audit.log("USER_LOGIN", "user", user.id, user.name, null, user.role, { _asUser: user }); }} initialLang={lang} />;
+  // Auth modal — shown when guest clicks login
+  if (showAuthModal) {
+    return <LoginScreen onLogin={(user, selectedLang) => { setLang(selectedLang); audit.log("USER_LOGIN", "user", user.id, user.name, null, user.role, { _asUser: user }); setShowAuthModal(false); }} initialLang={lang} />;
   }
 
   // --- Computed metrics ---
@@ -775,6 +829,8 @@ export default function App() {
     }));
     audit.log("GATE_CHECK_TOGGLED", "gate", `${selProject} ${phase}`, cond ? (lang === "vi" ? cond.label_vi : cond.label) : condId, oldVal, newVal);
     intel.ingestGateToggle(selProject, phase, condId, newVal === "true");
+    const condLabel = cond ? (lang === "vi" ? cond.label_vi : cond.label) : condId;
+    setToast({ type: "success", message: `${condLabel} → ${newVal === "true" ? "✓" : "✗"}` }); setTimeout(() => setToast(null), 2000);
   };
 
   // --- Issue actions ---
@@ -843,7 +899,7 @@ export default function App() {
     <div style={{ minHeight: "100vh", background: "var(--bg-main)", color: "var(--text-primary)", fontFamily: sans, fontSize: 14, display: "flex", flexDirection: "column" }}>
 
       {/* === HEADER === */}
-      <div style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)", padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 48, position: "sticky", top: 0, zIndex: 100 }}>
+      <div style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)", padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 52, position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.3 }}>{t.appName}</div>
@@ -883,7 +939,7 @@ export default function App() {
             </div>
           )}
           {/* Theme toggle */}
-          <button onClick={() => setTheme(th => th === 'dark' ? 'light' : 'dark')} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 4, padding: "0 8px", height: 28, color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}>
+          <button onClick={() => setTheme(th => th === 'dark' ? 'light' : 'dark')} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 4, padding: "0 8px", height: 36, color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}>
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
           </button>
           {/* Notifications */}
@@ -914,60 +970,44 @@ export default function App() {
               </div>
             )}
           </div>
-          {/* User Menu */}
-          <div style={{ position: "relative" }}>
-            <button onClick={() => { setShowUserMenu(!showUserMenu); setShowNotif(false); }}
-              aria-label={lang === "vi" ? "Menu người dùng" : "User menu"}
-              style={{ background: showUserMenu ? "var(--hover-bg)" : "transparent", border: "1px solid var(--border)", borderRadius: 4, padding: "0 8px", height: 28, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", flexShrink: 0 }}>{currentUser.avatar || currentUser.name[0]}</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1, whiteSpace: "nowrap" }}>{currentUser.name}</div>
-              <ChevronDown size={10} color="var(--text-faint)" />
+          {/* User Menu / Login Button */}
+          {isGuest ? (
+            <button onClick={() => setShowAuthModal(true)}
+              style={{ background: "linear-gradient(135deg, #1D4ED8, #2563EB)", border: "none", borderRadius: 4, padding: "0 12px", height: 28, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#fff", fontSize: 12, fontWeight: 700 }}>
+              <LogIn size={12} />
+              {lang === "vi" ? "Đăng nhập" : "Sign In"}
             </button>
-            {showUserMenu && (
-              <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 6, width: 240, background: "var(--bg-modal)", border: "1px solid var(--border)", borderRadius: 8, boxShadow: "0 20px 40px var(--shadow-color)", zIndex: 200, overflow: "hidden" }}>
-                {/* Current user info */}
-                <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "var(--text-muted)" }}>{currentUser.avatar || currentUser.name[0]}</div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{currentUser.name}</div>
-                    <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{currentUser.email}</div>
+          ) : (
+            <div style={{ position: "relative" }}>
+              <button onClick={() => { setShowUserMenu(!showUserMenu); setShowNotif(false); }}
+                aria-label={lang === "vi" ? "Menu người dùng" : "User menu"}
+                style={{ background: showUserMenu ? "var(--hover-bg)" : "transparent", border: "1px solid var(--border)", borderRadius: 4, padding: "0 8px", height: 28, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", flexShrink: 0 }}>{currentUser.avatar || currentUser.name[0]}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1, whiteSpace: "nowrap" }}>{currentUser.name}</div>
+                <ChevronDown size={10} color="var(--text-faint)" />
+              </button>
+              {showUserMenu && (
+                <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 6, width: 240, background: "var(--bg-modal)", border: "1px solid var(--border)", borderRadius: 8, boxShadow: "0 20px 40px var(--shadow-color)", zIndex: 200, overflow: "hidden" }}>
+                  {/* Current user info */}
+                  <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "var(--text-muted)" }}>{currentUser.avatar || currentUser.name[0]}</div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{currentUser.name}</div>
+                      <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{currentUser.email}</div>
+                    </div>
                   </div>
+                  {/* Logout */}
+                  <button onClick={() => { audit.log("USER_LOGOUT", "user", currentUser.id, currentUser.name, currentUser.role, null); logout(); setShowUserMenu(false); }}
+                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", width: "100%", background: "transparent", border: "none", cursor: "pointer", color: "#EF4444", fontSize: 13, fontWeight: 600 }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#7F1D1D20"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
+                    <LogOut size={12} />
+                    {lang === "vi" ? "Đăng xuất" : "Sign Out"}
+                  </button>
                 </div>
-                {/* Switch Role — only in offline demo mode or for admin users */}
-                {(!online || currentUser.role === "admin") && <div style={{ padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
-                  <div style={{ padding: "4px 14px", fontSize: 11, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>
-                    {lang === "vi" ? "Chuyển vai trò" : "Switch Role"} {!online && <span style={{ fontSize: 9, color: "#F59E0B" }}>(DEMO)</span>}
-                  </div>
-                  {demoUsers.filter(u => u.id !== currentUser.id).map(u => {
-                    const RIcon = { admin: Shield, pm: UserCog, engineer: Wrench, viewer: Eye }[u.role];
-                    const rColor = { admin: "#EF4444", pm: "#3B82F6", engineer: "#F59E0B", viewer: "#6B7280" }[u.role];
-                    return (
-                      <button key={u.id} onClick={() => { audit.log("USER_ROLE_SWITCHED", "user", u.id, u.name, currentUser.role, u.role); switchUser(u.id); setShowUserMenu(false); }}
-                        style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 14px", width: "100%", background: "transparent", border: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: 13 }}
-                        onMouseEnter={e => { e.currentTarget.style.background = "var(--hover-bg)"; }}
-                        onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
-                        <div style={{ width: 22, height: 22, borderRadius: "50%", background: `${rColor}15`, border: `1px solid ${rColor}30`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <RIcon size={10} color={rColor} />
-                        </div>
-                        <div style={{ textAlign: "left" }}>
-                          <div style={{ fontWeight: 600 }}>{u.name}</div>
-                          <div style={{ fontSize: 11, color: rColor, fontWeight: 700, textTransform: "uppercase" }}>{t.role[u.role]}</div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>}
-                {/* Logout */}
-                <button onClick={() => { audit.log("USER_LOGOUT", "user", currentUser.id, currentUser.name, currentUser.role, null); logout(); setShowUserMenu(false); }}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", width: "100%", background: "transparent", border: "none", cursor: "pointer", color: "#EF4444", fontSize: 13, fontWeight: 600 }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "#7F1D1D20"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
-                  <LogOut size={12} />
-                  {lang === "vi" ? "Đăng xuất" : "Sign Out"}
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
           <div style={{ fontFamily: mono, fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 3, fontWeight: 600 }}>
             <Clock size={11} />
             {time.toLocaleTimeString("vi-VN")}
@@ -985,7 +1025,7 @@ export default function App() {
       )}
 
       {/* === NAV TABS === */}
-      <div className="tab-bar" style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)", padding: "0 20px", display: "flex", gap: 0, overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none" }}>
+      <div className="tab-bar" style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)", padding: "0 20px", display: "flex", gap: 0, overflowX: "auto", scrollbarWidth: "none", msOverflowStyle: "none", position: "relative", maskImage: "linear-gradient(90deg, transparent 0, #000 20px, #000 calc(100% - 30px), transparent)", WebkitMaskImage: "linear-gradient(90deg, transparent 0, #000 20px, #000 calc(100% - 30px), transparent)" }}>
         {tabs.map(tb => (
           <button key={tb.id} onClick={() => { setTab(tb.id); setSelMetric(null); setSelProjMetric(null); }}
             style={{ background: "none", border: "none", borderBottom: tab === tb.id ? "2px solid #3B82F6" : "2px solid transparent", padding: "9px 14px", color: tab === tb.id ? "var(--text-primary)" : "var(--text-dim)", fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, fontFamily: sans, flexShrink: 0, whiteSpace: "nowrap" }}>
@@ -994,6 +1034,13 @@ export default function App() {
             {tb.badge > 0 && <span style={{ background: "#EF4444", color: "#fff", borderRadius: 8, padding: "0 5px", fontSize: 11, fontWeight: 800, minWidth: 14, textAlign: "center" }}>{tb.badge}</span>}
           </button>
         ))}
+      </div>
+
+      {/* Breadcrumb */}
+      <div style={{ padding: "4px 20px", fontSize: 11, color: "var(--text-faint)", fontFamily: mono, display: "flex", alignItems: "center", gap: 4, borderBottom: "1px solid var(--border-a10)" }}>
+        <span>{project?.name || selProject}</span>
+        <ChevronRight size={9} />
+        <span style={{ color: "var(--text-dim)" }}>{tabs.find(tb => tb.id === tab)?.label || tab}</span>
       </div>
 
       {/* Read-only banner for Viewer */}
@@ -1016,12 +1063,39 @@ export default function App() {
           </div>
         )}
 
+        {/* === EMPTY STATE: No data yet === */}
+        {tab === "tower" && !project && projects.length === 0 && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 20px", textAlign: "center" }}>
+            <Brain size={48} color="#8B5CF6" style={{ marginBottom: 16, opacity: 0.6 }} />
+            <div style={{ fontSize: 22, fontWeight: 800, color: "var(--text-primary)", marginBottom: 8 }}>
+              {lang === "vi" ? "Chào mừng đến RtR Control Tower" : "Welcome to RtR Control Tower"}
+            </div>
+            <div style={{ fontSize: 14, color: "var(--text-dim)", marginBottom: 24, maxWidth: 500 }}>
+              {lang === "vi"
+                ? "Chưa có dữ liệu. Tải file Excel master lên để AI tự động phân bổ dữ liệu vào hệ thống."
+                : "No data yet. Upload a master Excel file and AI will auto-distribute data across the system."}
+            </div>
+            {perm.canImport() && (
+              <button onClick={() => setShowAIImport(true)}
+                style={{ background: "linear-gradient(135deg, #8B5CF6, #3B82F6)", border: "none", borderRadius: 8, padding: "12px 32px", color: "#fff", fontSize: 16, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontFamily: sans, boxShadow: "0 4px 20px rgba(139,92,246,0.3)" }}>
+                <Brain size={20} /> {lang === "vi" ? "AI Import — Tải dữ liệu" : "AI Import — Load Data"}
+              </button>
+            )}
+          </div>
+        )}
+
         {/* === CONTROL TOWER === */}
         {tab === "tower" && project && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {/* Export Buttons */}
             <div ref={headerActionsRef} style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
               {perm.canCreateIssue() && <Btn variant="primary" small onClick={() => setShowCreate(true)}><Plus size={11} /> {t.issue.create}</Btn>}
+              {perm.canImport() && (
+                <button onClick={() => setShowAIImport(true)}
+                  style={{ background: "linear-gradient(135deg, #8B5CF6, #3B82F6)", border: "none", borderRadius: 4, padding: "3px 10px", color: "#fff", fontSize: 10, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, fontFamily: sans, letterSpacing: "0.03em" }}>
+                  <Brain size={12} /> AI Import
+                </button>
+              )}
               <Btn small onClick={() => setShowExport("pdf")}><Download size={11} /> {t.importExport?.exportPdf || "Export PDF"}</Btn>
               <Btn small onClick={() => setShowExport("slides")}><FileSpreadsheet size={11} /> {t.importExport?.exportSlides || "Executive Slides"}</Btn>
             </div>
@@ -1033,6 +1107,7 @@ export default function App() {
                     if (online) { await sbCreateIssue(newIssue); } else { setIssues(prev => [newIssue, ...prev]); }
                     setShowCreate(false); audit.log("ISSUE_CREATED", "issue", newIssue.id, newIssue.title, null, newIssue.status);
                     intel.ingestIssue(newIssue, 'created');
+                    setToast({ type: "success", message: lang === "vi" ? `Đã tạo vấn đề ${newIssue.id}` : `Issue ${newIssue.id} created` }); setTimeout(() => setToast(null), 3000);
                   }} />
               </Section>
             )}
@@ -1122,9 +1197,9 @@ export default function App() {
                       </table>
                     </div>
                   )}
-                  {selMetric === "open" && renderIssueTable(allOpen, false)}
-                  {selMetric === "critical" && renderIssueTable(allCrit, false)}
-                  {selMetric === "blocked" && renderIssueTable(allBlocked, true)}
+                  {selMetric === "open" && <>{renderIssueTable(allOpen, false)}<button onClick={() => { setTab("issues"); setFilters({ status: "ALL", sev: "ALL", src: "ALL" }); setSelMetric(null); }} style={{ marginTop: 8, background: "none", border: "1px solid var(--border)", borderRadius: 4, padding: "4px 12px", fontSize: 12, color: "#3B82F6", cursor: "pointer", fontWeight: 600 }}>{lang === "vi" ? "Xem tất cả trong Issues →" : "View all in Issues →"}</button></>}
+                  {selMetric === "critical" && <>{renderIssueTable(allCrit, false)}<button onClick={() => { setTab("issues"); setFilters({ status: "ALL", sev: "CRITICAL", src: "ALL" }); setSelMetric(null); }} style={{ marginTop: 8, background: "none", border: "1px solid var(--border)", borderRadius: 4, padding: "4px 12px", fontSize: 12, color: "#3B82F6", cursor: "pointer", fontWeight: 600 }}>{lang === "vi" ? "Lọc CRITICAL trong Issues →" : "Filter CRITICAL in Issues →"}</button></>}
+                  {selMetric === "blocked" && <>{renderIssueTable(allBlocked, true)}<button onClick={() => { setTab("issues"); setFilters({ status: "BLOCKED", sev: "ALL", src: "ALL" }); setSelMetric(null); }} style={{ marginTop: 8, background: "none", border: "1px solid var(--border)", borderRadius: 4, padding: "4px 12px", fontSize: 12, color: "#3B82F6", cursor: "pointer", fontWeight: 600 }}>{lang === "vi" ? "Lọc BLOCKED trong Issues →" : "Filter BLOCKED in Issues →"}</button></>}
                   {selMetric === "closure" && (
                     <div>
                       <div style={{ display: "flex", gap: 16, marginBottom: 14, padding: "8px 0" }}>
@@ -1452,7 +1527,7 @@ export default function App() {
               )}
               <div style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
                 <span style={{ fontSize: 12, color: "var(--text-faint)" }}>{filteredIssues.length} issues</span>
-                {perm.canImport() && <Btn small onClick={() => setShowImport("issues")}><Upload size={11} /> {t.importExport?.import || "Import"}</Btn>}
+                {perm.canImport() && <Btn small onClick={() => setShowAIImport(true)}><Brain size={11} /> AI Import</Btn>}
                 <Btn small onClick={() => exportIssuesExcel(issues.filter(i => i.pid === selProject), project, lang)}><FileSpreadsheet size={11} /> {t.importExport?.exportExcel || "Export Excel"}</Btn>
                 {perm.canCreateIssue() && <Btn variant="primary" small onClick={() => setShowCreate(!showCreate)}><Plus size={11} /> {t.issue.create}</Btn>}
               </div>
@@ -1466,35 +1541,117 @@ export default function App() {
                     if (online) { await sbCreateIssue(newIssue); } else { setIssues(prev => [newIssue, ...prev]); }
                     setShowCreate(false); audit.log("ISSUE_CREATED", "issue", newIssue.id, newIssue.title, null, newIssue.status);
                     intel.ingestIssue(newIssue, 'created');
+                    setToast({ type: "success", message: lang === "vi" ? `Đã tạo vấn đề ${newIssue.id}` : `Issue ${newIssue.id} created` }); setTimeout(() => setToast(null), 3000);
                   }} />
               </Section>
             )}
 
-            {/* Table */}
-            <div style={{ border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden", background: "var(--bg-card)", maxHeight: "70vh", overflowY: "auto" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "64px 1fr 82px 72px 76px 80px 56px", gap: 6, padding: "7px 12px", background: "var(--bg-modal)", borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 10 }}>
-                {[t.issue.id, t.issue.title + " / " + t.issue.rootCause, t.issue.status, t.issue.severity, t.issue.source, t.issue.owner, t.issue.phase].map(h => (
-                  <span key={h} style={{ fontSize: 11, color: "var(--text-faint)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>{h}</span>
+            {/* Issue Table with inline expand */}
+            <div style={{ border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden", background: "var(--bg-card)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "20px 64px 1fr 82px 72px 76px 80px 56px", gap: 6, padding: "7px 12px", background: "var(--bg-modal)", borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 10 }}>
+                {[["", null], [t.issue.id, null], [t.issue.title, null], [t.issue.status, "status"], [t.issue.severity, "sev"], [t.issue.source, null], [t.issue.owner, "owner"], [t.issue.phase, null]].map(([h, sortKey]) => (
+                  <span key={h} onClick={sortKey ? () => setIssueSort(prev => ({ col: sortKey, dir: prev.col === sortKey && prev.dir === "desc" ? "asc" : "desc" })) : undefined}
+                    style={{ fontSize: 11, color: issueSort.col === sortKey ? "#3B82F6" : "var(--text-faint)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", cursor: sortKey ? "pointer" : "default", userSelect: "none" }}>
+                    {h}{issueSort.col === sortKey ? (issueSort.dir === "asc" ? " ↑" : " ↓") : ""}
+                  </span>
                 ))}
               </div>
-              {filteredIssues.map(issue => (
-                <div key={issue.id} tabIndex={0} role="button" onClick={() => setSelIssue(selIssue?.id === issue.id ? null : issue)}
-                  onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelIssue(selIssue?.id === issue.id ? null : issue); } }}
-                  style={{ display: "grid", gridTemplateColumns: "64px 1fr 82px 72px 76px 80px 56px", gap: 6, padding: "8px 12px", borderBottom: "1px solid var(--border-a10)", cursor: "pointer", background: selIssue?.id === issue.id ? "var(--hover-bg)" : "transparent", alignItems: "center", transition: "background 0.1s" }}
-                  onMouseEnter={e => { if (selIssue?.id !== issue.id) e.currentTarget.style.background = "var(--bg-input)"; }}
-                  onMouseLeave={e => { if (selIssue?.id !== issue.id) e.currentTarget.style.background = "transparent"; }}>
-                  <span style={{ fontSize: 12, color: "#3B82F6", fontFamily: mono, fontWeight: 600 }}>{issue.id}</span>
-                  <div>
-                    <div style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 600, lineHeight: 1.4 }}>{lang === "vi" ? issue.titleVi : issue.title}</div>
-                    <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 1 }}>{issue.rootCause}</div>
+              {filteredIssues.map(issue => {
+                const isOpen = selIssue?.id === issue.id;
+                return (
+                <div key={issue.id}>
+                  <div tabIndex={0} role="button" onClick={() => setSelIssue(isOpen ? null : issue)}
+                    onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelIssue(isOpen ? null : issue); } }}
+                    style={{ display: "grid", gridTemplateColumns: "20px 64px 1fr 82px 72px 76px 80px 56px", gap: 6, padding: "8px 12px", borderBottom: `1px solid ${isOpen ? "var(--border)" : "var(--border-a10)"}`, borderLeft: `3px solid ${SEV_COLORS[issue.sev] || "transparent"}`, cursor: "pointer", background: isOpen ? "var(--hover-bg)" : "transparent", alignItems: "center", transition: "background 0.1s" }}
+                    onMouseEnter={e => { if (!isOpen) e.currentTarget.style.background = "var(--bg-input)"; }}
+                    onMouseLeave={e => { if (!isOpen) e.currentTarget.style.background = "transparent"; }}>
+                    <ChevronRight size={12} color="var(--text-faint)" style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform 0.15s" }} />
+                    <span style={{ fontSize: 12, color: "#3B82F6", fontFamily: mono, fontWeight: 600 }}>{issue.id}</span>
+                    <div>
+                      <div style={{ fontSize: 14, color: "var(--text-primary)", fontWeight: 600, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: isOpen ? "normal" : "nowrap" }}>{lang === "vi" ? (issue.titleVi || issue.title) : issue.title}</div>
+                      {!isOpen && <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{(issue.rootCause || "").substring(0, 80)}</div>}
+                    </div>
+                    <Badge label={t.status[issue.status]} color={STATUS_COLORS[issue.status]} />
+                    <Badge label={t.severity[issue.sev]} color={SEV_COLORS[issue.sev]} />
+                    <Badge label={t.source[issue.src]} color={SRC_COLORS[issue.src]} />
+                    <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{issue.owner}</span>
+                    <span style={{ fontSize: 12, color: "var(--text-faint)", fontFamily: mono }}>{issue.phase}</span>
                   </div>
-                  <Badge label={t.status[issue.status]} color={STATUS_COLORS[issue.status]} />
-                  <Badge label={t.severity[issue.sev]} color={SEV_COLORS[issue.sev]} />
-                  <Badge label={t.source[issue.src]} color={SRC_COLORS[issue.src]} />
-                  <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{issue.owner}</span>
-                  <span style={{ fontSize: 12, color: "var(--text-faint)", fontFamily: mono }}>{issue.phase}</span>
+                  {/* Inline expand — detail right below this row */}
+                  {isOpen && (
+                    <div style={{ padding: "12px 16px 16px 36px", borderBottom: "2px solid var(--border)", background: "var(--bg-input)" }}>
+                      {/* Actions */}
+                      <div style={{ display: "flex", justifyContent: "flex-end", gap: 4, marginBottom: 10, flexWrap: "wrap" }}>
+                        {/* Report Progress — available to everyone including guests */}
+                        {issue.status !== "CLOSED" && issue.status !== "DRAFT" && perm.canReportProgress() && <>
+                          <Btn variant="success" small onClick={(e) => { e.stopPropagation(); updateIssueStatus(issue.id, "CLOSED"); setToast({ type: "success", message: lang === "vi" ? `${issue.id} → Hoàn thành` : `${issue.id} → Done` }); setTimeout(() => setToast(null), 3000); }}><CheckCircle2 size={11} /> {lang === "vi" ? "Báo Done" : "Report Done"}</Btn>
+                        </>}
+                        {/* Admin/PM/Engineer actions */}
+                        {!perm.isReadOnly() && <>
+                          {issue.status === "DRAFT" && perm.canReviewIssue() && <Btn variant="success" small onClick={(e) => { e.stopPropagation(); updateIssueStatus(issue.id, "OPEN"); }}><Check size={11} /> {t.review.approve}</Btn>}
+                          {issue.status === "OPEN" && perm.canEditIssue(issue) && <Btn variant="primary" small onClick={(e) => { e.stopPropagation(); updateIssueStatus(issue.id, "IN_PROGRESS"); }}><Activity size={11} /> Start</Btn>}
+                          {issue.status !== "CLOSED" && perm.canCloseIssue(issue) && <Btn variant="success" small onClick={(e) => { e.stopPropagation(); updateIssueStatus(issue.id, "CLOSED"); }}><CheckCircle2 size={11} /> {t.close}</Btn>}
+                          {perm.canDeleteIssue(issue) && <Btn variant="danger" small onClick={(e) => { e.stopPropagation(); if (confirm(t.deleteConfirm)) { setIssues(prev => prev.filter(i => i.id !== issue.id)); setSelIssue(null); audit.log("ISSUE_DELETED", "issue", issue.id, issue.title, issue.status, null); setToast({ type: "success", message: `${issue.id} ${t.deleted}` }); setTimeout(() => setToast(null), 3000); } }}><Trash2 size={11} /></Btn>}
+                        </>}
+                      </div>
+                      {/* Meta */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+                        {[[t.issue.owner, issue.owner, User], [t.issue.phase, issue.phase, Layers], [t.issue.dueDate, issue.due, Calendar], ["Created", issue.created, Clock]].map(([k, v, Icon]) => {
+                          const fmtDate = (d) => { if (!d) return "—"; const parts = d.split("-"); return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d; };
+                          const display = (k === t.issue.dueDate || k === "Created") ? fmtDate(v) : (v || "—");
+                          return (
+                          <div key={k} style={{ background: "var(--bg-card)", borderRadius: 4, padding: "5px 8px" }}>
+                            <div style={{ fontSize: 10, color: "var(--text-faint)", textTransform: "uppercase", display: "flex", alignItems: "center", gap: 3 }}><Icon size={9} /> {k}</div>
+                            <div style={{ fontSize: 13, color: "var(--text-secondary)", fontWeight: 600 }}>{display}</div>
+                          </div>
+                          );
+                        })}
+                      </div>
+                      {/* Root cause */}
+                      <div style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 11, color: "var(--text-faint)", textTransform: "uppercase", marginBottom: 3, fontWeight: 700 }}>{t.issue.rootCause}</div>
+                        <div style={{ fontSize: 13, color: "var(--text-secondary)", background: "var(--bg-card)", borderRadius: 4, padding: "6px 10px", borderLeft: "3px solid #F59E0B", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{issue.rootCause || issue.desc || "—"}</div>
+                      </div>
+                      {/* Description (if different from rootCause) */}
+                      {issue.desc && issue.desc !== issue.rootCause && (
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11, color: "var(--text-faint)", textTransform: "uppercase", marginBottom: 3, fontWeight: 700 }}>{t.issue.description}</div>
+                          <div style={{ fontSize: 13, color: "var(--text-secondary)", background: "var(--bg-card)", borderRadius: 4, padding: "6px 10px", borderLeft: "3px solid #3B82F6", whiteSpace: "pre-wrap", lineHeight: 1.6, maxHeight: 200, overflowY: "auto" }}>{issue.desc}</div>
+                        </div>
+                      )}
+                      {/* Impacts */}
+                      {issue.impacts?.length > 0 && (
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11, color: "#EF4444", textTransform: "uppercase", marginBottom: 3, fontWeight: 700 }}>{t.issue.impactMap}</div>
+                          {issue.impacts.map((imp, idx) => (
+                            <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", marginBottom: 2, background: "#EF444408", borderRadius: 4, borderLeft: "3px solid #EF4444" }}>
+                              <Badge label={imp.phase} color={PHASE_COLORS[imp.phase]} />
+                              <span style={{ fontSize: 12, color: "#FCA5A5" }}>{lang === "vi" ? imp.descVi : imp.desc}</span>
+                              <span style={{ fontSize: 11, color: "#F59E0B", fontFamily: mono, marginLeft: "auto" }}>+{Math.ceil(imp.days / 7)}w</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* Activity log */}
+                      {issue.updates?.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: 11, color: "var(--text-faint)", textTransform: "uppercase", marginBottom: 4, fontWeight: 700 }}>{t.issue.activityLog}</div>
+                          <div style={{ borderLeft: "2px solid var(--border)", paddingLeft: 12, display: "flex", flexDirection: "column", gap: 4 }}>
+                            {issue.updates.slice(0, 5).map((u, idx) => (
+                              <div key={idx} style={{ position: "relative" }}>
+                                <div style={{ position: "absolute", left: -17, top: 3, width: 6, height: 6, borderRadius: "50%", background: "#3B82F6", border: "2px solid var(--bg-input)" }} />
+                                <div style={{ fontSize: 11, color: "var(--text-faint)" }}><span style={{ fontFamily: mono }}>{u.date}</span> — {u.author}</div>
+                                <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.4 }}>{u.text}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
               {filteredIssues.length === 0 && (() => {
                 const em = EMPTY_MESSAGES[lang]?.issues || EMPTY_MESSAGES.vi.issues;
                 const hasFilters = filters.status !== "ALL" || filters.sev !== "ALL" || filters.src !== "ALL" || issueSearch;
@@ -1518,8 +1675,9 @@ export default function App() {
               })()}
             </div>
 
-            {/* Issue Detail */}
-            {selIssue && (
+            {/* Legacy detail panel removed — now inline expand above */}
+            {false && selIssue && (
+              <div>
               <Section title={null}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
                   <div>
@@ -1601,6 +1759,7 @@ export default function App() {
                   })()}
                 </div>
               </Section>
+              </div>
             )}
             </>}
           </div>
@@ -1832,7 +1991,7 @@ export default function App() {
                 </button>
               ))}
               <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                {perm.canImport() && <Btn small onClick={() => setShowImport("bom")}><Upload size={11} /> {t.importExport?.import || "Import"}</Btn>}
+                {perm.canImport() && <Btn small onClick={() => setShowAIImport(true)}><Brain size={11} /> AI Import</Btn>}
                 <Btn small onClick={() => exportBomExcel(allBom.filter(b => b.projectId === selProject), allSuppliers, lang)}><FileSpreadsheet size={11} /> {t.importExport?.exportExcel || "Export Excel"}</Btn>
               </div>
             </div>
@@ -1863,7 +2022,7 @@ export default function App() {
                 </button>
               ))}
               <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                {perm.canImport() && <Btn small onClick={() => setShowImport("flightTests")}><Upload size={11} /> {t.importExport?.import || "Import"}</Btn>}
+                {perm.canImport() && <Btn small onClick={() => setShowAIImport(true)}><Brain size={11} /> AI Import</Btn>}
                 <Btn small onClick={() => exportFlightTestsExcel(allFlights.filter(ft => ft.projectId === selProject), lang)}><FileSpreadsheet size={11} /> {t.importExport?.exportExcel || "Export Excel"}</Btn>
               </div>
             </div>
@@ -2030,6 +2189,7 @@ export default function App() {
             projects={projects}
             lang={lang}
             t={t}
+            issues={issues}
           />
         )}
 
@@ -2073,6 +2233,51 @@ export default function App() {
         />
       )}
 
+      {/* === AI IMPORT WIZARD === */}
+      {showAIImport && (
+        <AIImportWizard
+          lang={lang}
+          project={project}
+          onImport={async (rows, importType, sheetName) => {
+            // Auto-create project from sheet name if no projects exist
+            let targetPid = selProject;
+            if (projects.length === 0 || !project) {
+              const projId = `PRJ-${Date.now().toString(36).toUpperCase()}`;
+              const projName = sheetName.replace(/sheet\d*/gi, "").trim() || "Imported Project";
+              const newProj = {
+                id: projId, name: projName, desc: `Imported from ${sheetName}`, descVi: `Import từ ${sheetName}`,
+                phase: "DVT", phaseOwner: currentUser?.name || "", startDate: new Date().toISOString().split("T")[0], targetMP: "",
+                milestones: { CONCEPT: { target: "", actual: "", adjusted: null, status: "PLANNED" }, EVT: { target: "", actual: "", adjusted: null, status: "PLANNED" }, DVT: { target: "", actual: "", adjusted: null, status: "IN_PROGRESS" }, PVT: { target: "", actual: "", adjusted: null, status: "PLANNED" }, MP: { target: "", actual: "", adjusted: null, status: "PLANNED" } },
+                gateChecks: { CONCEPT: {}, EVT: {}, DVT: {}, PVT: {}, MP: {} },
+              };
+              setOfflineProjects(prev => [...prev, newProj]);
+              targetPid = projId;
+              setSelProject(projId);
+            }
+
+            // Convert all imported rows to issues
+            const newIssues = rows.map((r, i) => ({
+              id: `ISS-${Date.now().toString(36).toUpperCase()}-${i}`,
+              pid: targetPid,
+              title: r.title || r.partNumber || r.orderNumber || r.woNumber || Object.values(r).find(v => typeof v === "string" && v.length > 3) || `Item ${i + 1}`,
+              titleVi: r.titleVi || "",
+              desc: r.description || "",
+              rootCause: r.rootCause || "Imported from Excel",
+              status: r.status || "OPEN", sev: r.severity || "MEDIUM",
+              src: r.source || "INTERNAL", owner: r.owner || r.pilot || r.assignedTo || "",
+              phase: r.phase || "DVT",
+              created: r.createdDate || r.orderDate || r.testDate || new Date().toISOString().split("T")[0],
+              due: r.dueDate || "", impacts: [], updates: [{ date: new Date().toISOString().split("T")[0], author: "AI Import", text: `Imported from "${sheetName}" (${importType})` }],
+            }));
+            setIssues(prev => [...newIssues, ...prev]);
+            newIssues.forEach(iss => audit.log("ISSUE_CREATED", "issue", iss.id, iss.title, null, iss.status, { source: "ai_import", sheet: sheetName, type: importType }));
+            setToast({ type: "success", message: `${lang === "vi" ? "Đã import" : "Imported"} ${newIssues.length} ${lang === "vi" ? "mục vào dự án" : "items into project"}` });
+            setTimeout(() => setToast(null), 5000);
+          }}
+          onClose={() => setShowAIImport(false)}
+        />
+      )}
+
       {/* === EXPORT MODAL === */}
       {showExport && (
         <ExportModal
@@ -2089,14 +2294,46 @@ export default function App() {
       {/* === NOTIFICATION TOAST === */}
       {toast && <NotificationToast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      {/* === FAB: Floating Action Button === */}
-      {showFab && perm.canCreateIssue() && (
-        <button onClick={() => { setTab("tower"); setShowCreate(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} title={t.issue.create}
-          style={{ position: "fixed", bottom: 28, right: 28, width: 52, height: 52, borderRadius: "50%", background: "#3B82F6", color: "#fff", border: "none", cursor: "pointer", boxShadow: "0 4px 14px rgba(59,130,246,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, transition: "transform 0.2s, box-shadow 0.2s" }}
-          onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.1)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(59,130,246,0.5)"; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "0 4px 14px rgba(59,130,246,0.4)"; }}>
-          <Plus size={22} />
-        </button>
+      {/* === FAB: Speed Dial === */}
+      {showFab && (
+        <div style={{ position: "fixed", bottom: 28, right: 28, zIndex: 1000, display: "flex", flexDirection: "column-reverse", alignItems: "flex-end", gap: 10 }}>
+          {/* Scroll to top */}
+          <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            aria-label={lang === "vi" ? "Lên đầu trang" : "Scroll to top"}
+            style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--bg-card)", color: "var(--text-faint)", border: "1px solid var(--border)", cursor: "pointer", boxShadow: "0 2px 8px var(--shadow-color)", display: "flex", alignItems: "center", justifyContent: "center", transition: "transform 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.1)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}>
+            <ArrowUp size={14} />
+          </button>
+          {/* Main FAB */}
+          {perm.canCreateIssue() && (
+            <button onClick={() => { setTab("tower"); setShowCreate(true); window.scrollTo({ top: 0, behavior: "smooth" }); }} title={t.issue.create}
+              aria-label={t.issue.create}
+              style={{ width: 52, height: 52, borderRadius: "50%", background: "#3B82F6", color: "#fff", border: "none", cursor: "pointer", boxShadow: "0 4px 14px rgba(59,130,246,0.4)", display: "flex", alignItems: "center", justifyContent: "center", transition: "transform 0.2s, box-shadow 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.1)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}>
+              <Plus size={22} />
+            </button>
+          )}
+          {/* Export mini FAB */}
+          <button onClick={() => setShowExport("pdf")} title={lang === "vi" ? "Export PDF" : "Export PDF"}
+            aria-label="Export PDF"
+            style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--bg-card)", color: "var(--text-muted)", border: "1px solid var(--border)", cursor: "pointer", boxShadow: "0 2px 8px var(--shadow-color)", display: "flex", alignItems: "center", justifyContent: "center", transition: "transform 0.2s" }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.1)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}>
+            <Download size={16} />
+          </button>
+          {/* AI Import mini FAB */}
+          {perm.canImport() && (
+            <button onClick={() => setShowAIImport(true)} title="AI Import"
+              aria-label="AI Import"
+              style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--bg-card)", color: "#7C3AED", border: "1px solid var(--border)", cursor: "pointer", boxShadow: "0 2px 8px var(--shadow-color)", display: "flex", alignItems: "center", justifyContent: "center", transition: "transform 0.2s" }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.1)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}>
+              <Upload size={16} />
+            </button>
+          )}
+        </div>
       )}
 
       </Suspense>

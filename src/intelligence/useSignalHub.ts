@@ -9,6 +9,7 @@ import type { ConvergenceAlert } from './kernel/convergence';
 import type { AnomalyResult } from './kernel/anomaly';
 import type { IndexScore } from './kernel/scoring';
 import type { FreshnessSummary } from './kernel/freshness';
+import type { ScanResult, IssueInput } from './kernel/relationship';
 import { RTR_CONFIG } from './rtr-config';
 import {
   issueToSignal,
@@ -274,6 +275,27 @@ export function useSignalHub(
     );
   }, [state.convergences]);
 
+  // ── AI Scan ────────────────────────────────────────────────────────
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+
+  const runScan = useCallback((issueList: any[]) => {
+    if (!hubRef.current) return null;
+    const inputs: IssueInput[] = issueList.map(i => ({
+      id: i.id,
+      title: i.title || '',
+      description: i.description || '',
+      owner: i.assignee || i.owner || '',
+      phase: i.phase || '',
+      severity: i.severity?.toLowerCase() || 'info',
+      project: i.project || i.projectId || '',
+      status: i.status || '',
+      component: i.component || '',
+    }));
+    const result = hubRef.current.scanRelationships(inputs);
+    setScanResult(result);
+    return result;
+  }, []);
+
   return {
     hub: hubRef.current,
     state,
@@ -289,5 +311,7 @@ export function useSignalHub(
     getProjectScore,
     getProjectConvergences,
     refreshState,
+    scanResult,
+    runScan,
   };
 }

@@ -55,8 +55,7 @@ function transformTransaction(row) {
 }
 
 // ═══ STATIC FALLBACK ═══
-import { DEMO_INVENTORY } from '../data/businessDemoData';
-const STATIC_INVENTORY = DEMO_INVENTORY;
+const STATIC_INVENTORY = [];
 const STATIC_TRANSACTIONS = [];
 
 // ═══ HOOKS ═══

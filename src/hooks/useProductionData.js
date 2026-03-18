@@ -45,8 +45,7 @@ function transformProductionOrder(row) {
 }
 
 // ═══ STATIC FALLBACK ═══
-import { DEMO_PRODUCTION_ORDERS } from '../data/businessDemoData';
-const STATIC_PRODUCTION = DEMO_PRODUCTION_ORDERS;
+const STATIC_PRODUCTION = [];
 
 // ═══ HOOK ═══
 

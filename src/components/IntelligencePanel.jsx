@@ -6,8 +6,9 @@ import { useState } from "react";
 import {
   Activity, AlertTriangle, TrendingUp, TrendingDown, Minus,
   Shield, Zap, BarChart3, Clock, ChevronDown, ChevronRight,
-  CheckCircle2, XCircle, CircleAlert, Eye, Radio, RefreshCw,
+  CheckCircle2, XCircle, CircleAlert, Eye, Radio, RefreshCw, Scan,
 } from "lucide-react";
+import AIScanPanel from "./AIScanPanel";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
 const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
@@ -251,7 +252,7 @@ function AnomalyCard({ anomaly, t }) {
 
 // ── Main Panel ───────────────────────────────────────────────────────
 
-export default function IntelligencePanel({ intel, projects, lang, t, onNavigateIssue }) {
+export default function IntelligencePanel({ intel, projects, lang, t, onNavigateIssue, issues }) {
   const [subTab, setSubTab] = useState("overview");
 
   const { state, convergences, anomalies, projectScores, freshness } = intel;
@@ -262,6 +263,7 @@ export default function IntelligencePanel({ intel, projects, lang, t, onNavigate
     { id: "convergence", label: t.intel?.convergence || (lang === "vi" ? "H\u1ED9i t\u1EE5" : "Convergence"), Icon: Zap, badge: convergences.length },
     { id: "anomaly", label: t.intel?.anomaly || (lang === "vi" ? "B\u1EA5t th\u01B0\u1EDDng" : "Anomaly"), Icon: BarChart3, badge: anomalies.length },
     { id: "freshness", label: t.intel?.freshness || (lang === "vi" ? "\u0110\u1ED9 t\u01B0\u01A1i" : "Freshness"), Icon: RefreshCw },
+    { id: "aiscan", label: lang === "vi" ? "AI Qu\u00E9t" : "AI Scan", Icon: Scan },
   ];
 
   return (
@@ -401,6 +403,17 @@ export default function IntelligencePanel({ intel, projects, lang, t, onNavigate
               anomalies.map((a, i) => <AnomalyCard key={i} anomaly={a} t={t} />)
             )}
           </div>
+        )}
+
+        {/* AI Scan tab */}
+        {subTab === "aiscan" && (
+          <AIScanPanel
+            scanResult={intel.scanResult}
+            issues={issues || []}
+            onRunScan={intel.runScan}
+            lang={lang}
+            onNavigateIssue={onNavigateIssue}
+          />
         )}
 
         {/* Freshness tab */}

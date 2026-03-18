@@ -10,7 +10,11 @@ export function usePermission() {
   };
 
   return {
-    canCreateIssue: () => ["admin", "pm", "engineer"].includes(role),
+    // Anyone (including guest) can create issues
+    canCreateIssue: () => ["admin", "pm", "engineer", "guest", "viewer"].includes(role),
+    // Anyone can report progress (update status to DONE / extend deadline)
+    canReportProgress: () => ["admin", "pm", "engineer", "guest", "viewer"].includes(role),
+
     canReviewIssue: () => ["admin", "pm"].includes(role),
     canEditIssue: (issue) => {
       if (["admin", "pm"].includes(role)) return true;
@@ -36,7 +40,9 @@ export function usePermission() {
     canTransitionPhase: () => ["admin", "pm"].includes(role),
     canToggleGate: () => ["admin", "pm", "engineer"].includes(role),
     canViewReviewQueue: () => ["admin", "pm"].includes(role),
-    isReadOnly: () => role === "viewer",
+    isAdmin: () => role === "admin",
+    isReadOnly: () => role === "viewer" || role === "guest",
+    isGuest: () => role === "guest",
     getNewIssueStatus: () => ["admin", "pm"].includes(role) ? "OPEN" : "DRAFT",
   };
 }

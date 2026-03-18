@@ -4,10 +4,14 @@ import { useRealtimeSubscription } from './useRealtime';
 import { fetchBomParts, fetchSuppliers, fetchDeliveryRecords } from '../services/bomService';
 import { fetchFlightTests, fetchDecisions } from '../services/flightService';
 import { insert as sbInsert, update as sbUpdate } from '../services/supabaseService';
-import {
-  BOM_DATA, FLIGHT_TESTS_DATA, SUPPLIERS_DATA,
-  DELIVERY_RECORDS_DATA, DECISIONS_DATA, calcBomCosts,
-} from '../data/v2Data';
+import { calcBomCosts } from '../data/v2Data';
+
+// No mock data — start empty, populate via Supabase or AI Import
+const BOM_DATA = [];
+const FLIGHT_TESTS_DATA = [];
+const SUPPLIERS_DATA = [];
+const DELIVERY_RECORDS_DATA = [];
+const DECISIONS_DATA = [];
 
 // ═══ Transform Supabase snake_case → App camelCase ═══
 

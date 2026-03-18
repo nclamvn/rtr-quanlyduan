@@ -22,3 +22,5 @@ export type { IndexScore } from './kernel/scoring';
 export type { FreshnessSummary } from './kernel/freshness';
 export type { HubEvent, HubState } from './kernel/hub';
 export type { Signal, Severity } from './kernel/signal';
+export type { ScanResult, InsightCluster, IssueInput, RelationshipEdge } from './kernel/relationship';
+export type { KeywordResult } from './kernel/keywords';

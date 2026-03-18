@@ -74,10 +74,9 @@ function transformCostEntry(row) {
 }
 
 // ═══ STATIC FALLBACK ═══
-import { DEMO_FINANCE_SUMMARY, DEMO_INVOICES, DEMO_COST_ENTRIES } from '../data/businessDemoData';
-const STATIC_SUMMARY = DEMO_FINANCE_SUMMARY;
-const STATIC_INVOICES = DEMO_INVOICES;
-const STATIC_COSTS = DEMO_COST_ENTRIES;
+const STATIC_SUMMARY = [];
+const STATIC_INVOICES = [];
+const STATIC_COSTS = [];
 
 // ═══ HOOKS ═══
 

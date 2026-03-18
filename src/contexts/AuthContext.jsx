@@ -89,6 +89,22 @@ export function AuthProvider({ children }) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(userObj));
           }
         } catch { /* use stored user from localStorage */ }
+      } else {
+        // No active session but have cached user — try to refresh profile from DB
+        try {
+          const stored = localStorage.getItem(STORAGE_KEY);
+          if (stored) {
+            const cached = JSON.parse(stored);
+            if (cached.id && cached.id !== "guest") {
+              const prof = await fetchProfile(cached.id);
+              if (prof) {
+                const userObj = buildUserFromProfile(prof);
+                setUser(userObj);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(userObj));
+              }
+            }
+          }
+        } catch { /* keep cached user */ }
       }
       settle();
     }).catch(() => {

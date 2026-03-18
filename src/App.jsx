@@ -1303,7 +1303,7 @@ export default function App() {
                       const active = i === phaseIdx;
                       const done = i < phaseIdx;
                       const c = PHASE_COLORS[ph];
-                      const ms = proj.milestones[ph];
+                      const ms = proj.milestones?.[ph] || {};
                       const shifted = ms.adjusted && ms.adjusted !== ms.target;
                       return (
                         <div key={ph} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", position: "relative" }}>
@@ -1314,7 +1314,7 @@ export default function App() {
                           </div>
                           <div style={{ marginTop: 4, fontSize: 12, fontWeight: active ? 800 : 600, color: active ? c : done ? "var(--text-muted)" : "var(--text-faint)" }}>{ph}</div>
                           <div style={{ fontSize: 11, color: shifted ? "#F59E0B" : "var(--text-faint)", marginTop: 1, fontFamily: mono, display: "flex", alignItems: "center", gap: 2 }}>
-                            {ms.status === "COMPLETED" ? <><Check size={8} color="#10B981" /> {ms.actual}</> : shifted ? <><AlertTriangle size={8} /> {ms.adjusted}</> : ms.target}
+                            {ms.status === "COMPLETED" ? <><Check size={8} color="#10B981" /> {ms.actual}</> : shifted ? <><AlertTriangle size={8} /> {ms.adjusted}</> : ms.target || "—"}
                           </div>
                         </div>
                       );

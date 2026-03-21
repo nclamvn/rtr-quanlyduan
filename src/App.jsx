@@ -900,53 +900,75 @@ export default function App() {
 
       {/* === HEADER === */}
       <div style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)", padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 52, position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.3 }}>{t.appName}</div>
-            <div style={{ fontSize: 11, color: "var(--text-faint)", letterSpacing: "0.1em", textTransform: "uppercase" }}>{t.appSub}</div>
+        {/* Left: App branding + Project selector */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ marginRight: 4, flexShrink: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.3, whiteSpace: "nowrap" }}>{t.appName}</div>
+            <div style={{ fontSize: 10, color: "var(--text-faint)", letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{t.appSub}</div>
           </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {/* Offline indicator */}
           {!online && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 8px", height: 28, background: "#F59E0B15", border: "1px solid #F59E0B30", borderRadius: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 10px", height: 32, background: "#F59E0B15", border: "1px solid #F59E0B30", borderRadius: 6, whiteSpace: "nowrap", flexShrink: 0 }}>
               <WifiOff size={12} color="#F59E0B" />
               <span style={{ fontSize: 11, color: "#F59E0B", fontWeight: 700 }}>{t.offline}</span>
             </div>
           )}
-          {/* Project selector */}
-          <div style={{ display: "flex", gap: 3 }}>
-            {projects.map(p => (
+          {/* Divider */}
+          <div style={{ width: 1, height: 24, background: "var(--border)", flexShrink: 0 }} />
+          {/* Project selector — separated into General + specific projects */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {/* General / Portfolio button — visually distinct */}
+            {projects.filter(p => p.name.split(" ")[0].toLowerCase() === "general").map(p => (
               <button key={p.id} onClick={() => { setSelProject(p.id); setSelIssue(null); setIssueSearch(""); }}
                 aria-label={p.name} aria-pressed={selProject === p.id}
-                style={{ background: selProject === p.id ? "var(--hover-bg)" : "transparent", border: `1px solid ${selProject === p.id ? "#3B82F6" : "var(--border)"}`, borderRadius: 4, padding: "0 8px", height: 28, color: selProject === p.id ? "var(--text-primary)" : "var(--text-dim)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center" }}>
-                {p.name.split(" ")[0]}
+                style={{ background: selProject === p.id ? "var(--hover-bg)" : "transparent", border: `1px solid ${selProject === p.id ? "#3B82F6" : "var(--border)"}`, borderRadius: 6, padding: "0 12px", height: 32, color: selProject === p.id ? "var(--text-primary)" : "var(--text-dim)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+                <Globe size={12} style={{ opacity: 0.7 }} />
+                {lang === "vi" ? "Tổng quát" : "General"}
               </button>
             ))}
+            {/* Separator dot between General and project tabs */}
+            {projects.some(p => p.name.split(" ")[0].toLowerCase() === "general") && (
+              <div style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--text-faint)", opacity: 0.4, margin: "0 2px" }} />
+            )}
+            {/* Specific project tabs */}
+            <div style={{ display: "flex", gap: 2, background: "var(--bg-main)", borderRadius: 8, padding: 2 }}>
+              {projects.filter(p => p.name.split(" ")[0].toLowerCase() !== "general").map(p => (
+                <button key={p.id} onClick={() => { setSelProject(p.id); setSelIssue(null); setIssueSearch(""); }}
+                  aria-label={p.name} aria-pressed={selProject === p.id}
+                  style={{ background: selProject === p.id ? "var(--bg-card)" : "transparent", border: "none", borderRadius: 6, padding: "0 12px", height: 28, color: selProject === p.id ? "var(--text-primary)" : "var(--text-dim)", fontSize: 12, fontWeight: selProject === p.id ? 700 : 500, cursor: "pointer", display: "flex", alignItems: "center", transition: "all 0.15s ease", boxShadow: selProject === p.id ? "0 1px 3px var(--shadow-color)" : "none" }}>
+                  {p.name.split(" ")[0]}
+                </button>
+              ))}
+            </div>
           </div>
-          {/* Lang toggle */}
-          <div style={{ display: "flex", border: "1px solid var(--border)", borderRadius: 4, overflow: "hidden", alignItems: "center", height: 28 }}>
-            <Globe size={11} style={{ margin: "0 4px", color: "var(--text-faint)" }} />
-            {["vi", "en"].map(l => (
-              <button key={l} onClick={() => setLang(l)} aria-label={l === "vi" ? "Tiếng Việt" : "English"} style={{ background: lang === l ? "var(--hover-bg)" : "transparent", border: "none", padding: "0 8px", height: 28, color: lang === l ? "var(--text-primary)" : "var(--text-faint)", fontSize: 12, fontWeight: 700, cursor: "pointer", textTransform: "uppercase" }}>{l}</button>
-            ))}
-          </div>
+        </div>
+        {/* Right: Controls */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {/* Connection status indicator */}
           {(connStatus === 'connecting' || showOnline) && (
-            <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 8px", height: 28, borderRadius: 4, border: "1px solid var(--border)", fontSize: 11, fontWeight: 600, color: connStatus === 'online' ? "#22C55E" : "#F59E0B", background: connStatus === 'online' ? "#22C55E10" : "#F59E0B10" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "0 10px", height: 32, borderRadius: 6, border: "1px solid var(--border)", fontSize: 11, fontWeight: 600, color: connStatus === 'online' ? "#22C55E" : "#F59E0B", background: connStatus === 'online' ? "#22C55E10" : "#F59E0B10" }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: connStatus === 'online' ? "#22C55E" : "#F59E0B", animation: connStatus === 'connecting' ? "pulse 1.5s infinite" : "none" }} />
               {connStatus === 'online' ? (lang === "vi" ? "Đã kết nối" : "Connected") : (lang === "vi" ? "Đang kết nối..." : "Connecting...")}
             </div>
           )}
+          {/* Lang toggle */}
+          <div style={{ display: "flex", background: "var(--bg-main)", borderRadius: 6, padding: 2, alignItems: "center", height: 32 }}>
+            <Globe size={11} style={{ margin: "0 6px 0 4px", color: "var(--text-faint)" }} />
+            {["vi", "en"].map(l => (
+              <button key={l} onClick={() => setLang(l)} aria-label={l === "vi" ? "Tiếng Việt" : "English"} style={{ background: lang === l ? "var(--bg-card)" : "transparent", border: "none", padding: "0 10px", height: 28, color: lang === l ? "var(--text-primary)" : "var(--text-faint)", fontSize: 12, fontWeight: 700, cursor: "pointer", textTransform: "uppercase", borderRadius: 5, transition: "all 0.15s ease", boxShadow: lang === l ? "0 1px 3px var(--shadow-color)" : "none" }}>{l}</button>
+            ))}
+          </div>
+          {/* Divider */}
+          <div style={{ width: 1, height: 20, background: "var(--border)", margin: "0 2px" }} />
           {/* Theme toggle */}
-          <button onClick={() => setTheme(th => th === 'dark' ? 'light' : 'dark')} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 4, padding: "0 8px", height: 36, color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}>
+          <button onClick={() => setTheme(th => th === 'dark' ? 'light' : 'dark')} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 6, width: 32, height: 32, color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
             {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
           </button>
           {/* Notifications */}
           <div style={{ position: "relative" }}>
-            <button onClick={() => setShowNotif(!showNotif)} aria-label={t.notifications} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 4, padding: "0 8px", height: 28, color: "var(--text-muted)", cursor: "pointer", fontSize: 14, position: "relative", display: "flex", alignItems: "center" }}>
+            <button onClick={() => setShowNotif(!showNotif)} aria-label={t.notifications} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 6, width: 32, height: 32, color: "var(--text-muted)", cursor: "pointer", fontSize: 14, position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Bell size={14} />
-              {unreadCount > 0 && <span style={{ position: "absolute", top: -4, right: -4, background: "#EF4444", color: "#fff", borderRadius: "50%", width: 14, height: 14, fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{unreadCount}</span>}
+              {unreadCount > 0 && <span style={{ position: "absolute", top: -4, right: -4, background: "#EF4444", color: "#fff", borderRadius: "50%", width: 16, height: 16, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{unreadCount}</span>}
             </button>
             {showNotif && (
               <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 6, width: 320, background: "var(--bg-modal)", border: "1px solid var(--border)", borderRadius: 8, boxShadow: "0 20px 40px var(--shadow-color)", zIndex: 200, overflow: "hidden" }}>
@@ -970,10 +992,12 @@ export default function App() {
               </div>
             )}
           </div>
+          {/* Divider */}
+          <div style={{ width: 1, height: 20, background: "var(--border)", margin: "0 2px" }} />
           {/* User Menu / Login Button */}
           {isGuest ? (
             <button onClick={() => setShowAuthModal(true)}
-              style={{ background: "linear-gradient(135deg, #1D4ED8, #2563EB)", border: "none", borderRadius: 4, padding: "0 12px", height: 28, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#fff", fontSize: 12, fontWeight: 700 }}>
+              style={{ background: "linear-gradient(135deg, #1D4ED8, #2563EB)", border: "none", borderRadius: 6, padding: "0 14px", height: 32, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "#fff", fontSize: 12, fontWeight: 700 }}>
               <LogIn size={12} />
               {lang === "vi" ? "Đăng nhập" : "Sign In"}
             </button>
@@ -981,16 +1005,16 @@ export default function App() {
             <div style={{ position: "relative" }}>
               <button onClick={() => { setShowUserMenu(!showUserMenu); setShowNotif(false); }}
                 aria-label={lang === "vi" ? "Menu người dùng" : "User menu"}
-                style={{ background: showUserMenu ? "var(--hover-bg)" : "transparent", border: "1px solid var(--border)", borderRadius: 4, padding: "0 8px", height: 28, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "var(--text-muted)", flexShrink: 0 }}>{currentUser.avatar || currentUser.name[0]}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", lineHeight: 1, whiteSpace: "nowrap" }}>{currentUser.name}</div>
+                style={{ background: showUserMenu ? "var(--hover-bg)" : "transparent", border: "1px solid var(--border)", borderRadius: 6, padding: "0 10px", height: 32, cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 22, height: 22, borderRadius: "50%", background: "linear-gradient(135deg, #3B82F6, #6366F1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff", flexShrink: 0 }}>{currentUser.avatar || currentUser.name[0]}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", lineHeight: 1, whiteSpace: "nowrap" }}>{currentUser.name}</div>
                 <ChevronDown size={10} color="var(--text-faint)" />
               </button>
               {showUserMenu && (
                 <div style={{ position: "absolute", top: "100%", right: 0, marginTop: 6, width: 240, background: "var(--bg-modal)", border: "1px solid var(--border)", borderRadius: 8, boxShadow: "0 20px 40px var(--shadow-color)", zIndex: 200, overflow: "hidden" }}>
                   {/* Current user info */}
                   <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 30, height: 30, borderRadius: "50%", background: "var(--hover-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "var(--text-muted)" }}>{currentUser.avatar || currentUser.name[0]}</div>
+                    <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg, #3B82F6, #6366F1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff" }}>{currentUser.avatar || currentUser.name[0]}</div>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{currentUser.name}</div>
                       <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{currentUser.email}</div>
@@ -1008,7 +1032,7 @@ export default function App() {
               )}
             </div>
           )}
-          <div style={{ fontFamily: mono, fontSize: 13, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 3, fontWeight: 600 }}>
+          <div style={{ fontFamily: mono, fontSize: 12, color: "var(--text-faint)", display: "flex", alignItems: "center", gap: 4, fontWeight: 500, padding: "0 4px" }}>
             <Clock size={11} />
             {time.toLocaleTimeString("vi-VN")}
           </div>

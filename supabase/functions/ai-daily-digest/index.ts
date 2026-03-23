@@ -7,10 +7,43 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") || "";
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const MODEL = "claude-sonnet-4-20250514";
+
+// ── AI Provider: OpenAI primary, Anthropic fallback ──
+async function callAI(systemPrompt: string, userPrompt: string) {
+  if (OPENAI_API_KEY) {
+    try {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "gpt-4o-mini", max_tokens: 1200, temperature: 0.3,
+          response_format: { type: "json_object" },
+          messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return { text: data.choices?.[0]?.message?.content || "{}", tokens: (data.usage?.prompt_tokens || 0) + (data.usage?.completion_tokens || 0), model: data.model || "gpt-4o-mini" };
+      }
+      console.warn("[ai-digest] OpenAI failed:", res.status);
+    } catch (e) { console.warn("[ai-digest] OpenAI error:", (e as Error).message); }
+  }
+  if (ANTHROPIC_API_KEY) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1200, system: systemPrompt, messages: [{ role: "user", content: userPrompt }] }),
+    });
+    if (!res.ok) throw new Error(`Anthropic ${res.status}`);
+    const data = await res.json();
+    return { text: data.content?.[0]?.text || "{}", tokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0), model: "claude-sonnet" };
+  }
+  throw new Error("No AI provider configured");
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -155,49 +188,23 @@ Quy tắc:
 - Ngắn gọn: mỗi field tối đa 2 câu
 - Chỉ nêu items thực sự quan trọng (tối đa 5 critical items, 3 patterns, 3 team insights)`;
 
-    // ── Call Claude ──
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 1200,
-        system: systemPrompt,
-        messages: [{ role: "user", content: dataText }],
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("[ai-digest] Claude error:", errText);
-      return new Response(
-        JSON.stringify({ error: "AI service unavailable" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const result = await response.json();
-    const text = result.content?.[0]?.text || "{}";
-    const tokensUsed = (result.usage?.input_tokens || 0) + (result.usage?.output_tokens || 0);
+    // ── Call AI (OpenAI primary, Anthropic fallback) ──
+    const result = await callAI(systemPrompt, dataText);
 
     let digest;
     try {
-      const cleaned = text.replace(/```json?\n?/g, "").replace(/```\n?/g, "").trim();
+      const cleaned = result.text.replace(/```json?\n?/g, "").replace(/```\n?/g, "").trim();
       digest = JSON.parse(cleaned);
     } catch {
-      digest = { executiveSummary: text.slice(0, 300), criticalItems: [], patterns: [], teamInsights: [], todayPriorities: [] };
+      digest = { executiveSummary: result.text.slice(0, 300), criticalItems: [], patterns: [], teamInsights: [], todayPriorities: [] };
     }
 
     // ── Store digest ──
     await supabase.from("ai_digests").upsert({
       digest_date: today,
       content: digest,
-      model: MODEL,
-      tokens_used: tokensUsed,
+      model: result.model,
+      tokens_used: result.tokens,
     }, { onConflict: "digest_date" });
 
     // ── Store daily snapshot for trend comparison ──

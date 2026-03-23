@@ -14,6 +14,8 @@ import {
 import { PHASES, PHASE_COLORS, STATUS_COLORS, SEV_COLORS, mono, sans } from "../constants";
 import { useAIAdvisor } from "../hooks/useAIAdvisor";
 import AIAdvisoryCard from "./AIAdvisoryCard";
+import { useCrossAppData } from "../hooks/useCrossAppData";
+import CrossAppWidget from "./CrossAppWidget";
 
 // ── Status logic ──────────────────────────────────────────
 function getTaskStatus(issue) {
@@ -71,9 +73,13 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
       totalOpenIssues: issues.filter(i => i.status !== "CLOSED").length,
       totalBlockedIssues: issues.filter(i => i.status === "BLOCKED").length,
       ownerWorkload: issues.filter(i => i.owner === selectedIssue.owner && i.status !== "CLOSED").length,
+      // Cross-app MRP context
+      mrpWorkOrders: crossAppData.filter(d => d.entity_type === "work_order" && d.project_link === selectedIssue.pid).map(d => `${d.data?.woNumber}: ${d.data?.productName} ×${d.data?.quantity} (${d.status})`).slice(0, 3),
+      mrpInventoryAlerts: crossAppData.filter(d => d.entity_type === "inventory_alert" && d.priority === "urgent").map(d => `${d.data?.partName}: ${d.data?.availableQty} left (reorder: ${d.data?.reorderPoint})`).slice(0, 3),
     } : null,
     lang
   );
+  const { data: crossAppData, summary: crossAppSummary, loading: crossAppLoading } = useCrossAppData("MRP");
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -487,6 +493,9 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
           active={statusFilter === "DONE"} onClick={() => setStatusFilter(statusFilter === "DONE" ? "ALL" : "DONE")} />
         <KpiCard label={vi ? "Thành viên" : "Team"} value={kpi.owners} color="#8B5CF6" icon={Users} />
       </div>
+
+      {/* Cross-App MRP Widget */}
+      <CrossAppWidget data={crossAppData} summary={crossAppSummary} loading={crossAppLoading} lang={lang} />
 
       {/* Search + Filter Bar */}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>

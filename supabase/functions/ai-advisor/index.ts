@@ -96,6 +96,8 @@ Respond in exact JSON format (NO markdown, NO extra text):
       context.totalBlockedIssues ? `Blocked Issues: ${context.totalBlockedIssues}` : null,
       context.ownerWorkload ? `Owner Workload: ${context.ownerWorkload} open tasks` : null,
       context.convergences?.length ? `Active Alerts: ${context.convergences.join("; ")}` : null,
+      context.mrpWorkOrders?.length ? `Related Production Orders (MRP): ${context.mrpWorkOrders.join("; ")}` : null,
+      context.mrpInventoryAlerts?.length ? `Inventory Alerts (MRP): ${context.mrpInventoryAlerts.join("; ")}` : null,
     ].filter(Boolean).join("\n") : "";
 
     const userPrompt = `${isVi ? "Phân tích vấn đề sau" : "Analyze this issue"}:\n\n${issueText}${contextText ? `\n\n${isVi ? "Bối cảnh dự án" : "Project Context"}:\n${contextText}` : ""}`;

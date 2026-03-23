@@ -507,7 +507,7 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
       </div>
 
       {/* Main Content: Table + Detail Panel */}
-      <div style={{ display: "flex", gap: 0, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", minHeight: 500 }}>
+      <div style={{ display: "flex", gap: 0, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", height: "calc(100vh - 280px)", minHeight: 400 }}>
         {/* Table */}
         <div style={{ flex: 1, overflowY: "auto", overflowX: "auto", minWidth: 0 }}>
           {/* Column Headers */}

@@ -12,6 +12,8 @@ import {
   TrendingUp, Zap, Eye, FileText,
 } from "lucide-react";
 import { PHASES, PHASE_COLORS, STATUS_COLORS, SEV_COLORS, mono, sans } from "../constants";
+import { useAIAdvisor } from "../hooks/useAIAdvisor";
+import AIAdvisoryCard from "./AIAdvisoryCard";
 
 // ── Status logic ──────────────────────────────────────────
 function getTaskStatus(issue) {
@@ -61,6 +63,17 @@ function getLastUpdateDate(issue) {
 export default function WorkplanDashboard({ issues, projects, lang, onNavigateIssue, teamMembers }) {
   const vi = lang === "vi";
   const [selectedIssue, setSelectedIssue] = useState(null);
+  const { advisory: aiAdvisory, isLoading: aiLoading, error: aiError, refresh: aiRefresh } = useAIAdvisor(
+    selectedIssue,
+    selectedIssue ? {
+      projectName: projects.find(p => p.id === selectedIssue.pid)?.name || selectedIssue.pid,
+      projectPhase: projects.find(p => p.id === selectedIssue.pid)?.phase || "—",
+      totalOpenIssues: issues.filter(i => i.status !== "CLOSED").length,
+      totalBlockedIssues: issues.filter(i => i.status === "BLOCKED").length,
+      ownerWorkload: issues.filter(i => i.owner === selectedIssue.owner && i.status !== "CLOSED").length,
+    } : null,
+    lang
+  );
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -363,6 +376,9 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
           <MetaRow icon={AlertTriangle} label={vi ? "Mức độ" : "Severity"} value={<span style={{ color: SEV_COLORS[issue.sev], fontWeight: 700 }}>{issue.sev}</span>} />
           <MetaRow icon={LayoutDashboard} label={vi ? "Dự án" : "Project"} value={issue._projectName} />
         </div>
+
+        {/* AI Advisory */}
+        <AIAdvisoryCard advisory={aiAdvisory} isLoading={aiLoading} error={aiError} onRefresh={aiRefresh} lang={lang} />
 
         {/* Root Cause */}
         {issue.rootCause && (

@@ -42,6 +42,7 @@ const ProductionModule = lazy(() => import("./components/ProductionModule"));
 const InventoryModule = lazy(() => import("./components/InventoryModule"));
 const FinanceModule = lazy(() => import("./components/FinanceModule"));
 const AIImportWizard = lazy(() => import("./components/AIImportWizard"));
+const WorkplanDashboard = lazy(() => import("./components/WorkplanDashboard"));
 import { useFlightTestData, useDeliveryData, useBomData, useSupplierData } from "./hooks/useV2Data";
 import { useOrders, useCustomers } from "./hooks/useOrderData";
 import { useProductionOrders } from "./hooks/useProductionData";
@@ -908,10 +909,10 @@ export default function App() {
           </div>
         )}
 
-        {/* === CONTROL TOWER === */}
-        {tab === "tower" && project && (
+        {/* === CONTROL TOWER (v2 — Workplan Dashboard) === */}
+        {tab === "tower" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Export Buttons */}
+            {/* Action Buttons */}
             <div ref={headerActionsRef} style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
               {perm.canCreateIssue() && <Btn variant="primary" small onClick={() => setShowCreate(true)}><Plus size={11} /> {t.issue.create}</Btn>}
               {perm.canImport() && (
@@ -935,18 +936,19 @@ export default function App() {
                   }} />
               </Section>
             )}
-            {/* Global Metrics */}
-            <div className="metric-row" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Metric label={t.metrics.activeProjects} value={projects.length} color="#3B82F6" icon={Layers} onClick={() => setSelMetric(s => s === "projects" ? null : "projects")} active={selMetric === "projects"} sparkData={sparklines.projects} sparkTrend="neutral" />
-              <Metric label={t.metrics.openIssues} value={allOpen.length} color="#EF4444" icon={CircleAlert} onClick={() => setSelMetric(s => s === "open" ? null : "open")} active={selMetric === "open"} sparkData={sparklines.open} sparkTrend="down-good" />
-              <Metric label={t.metrics.critical} value={allCrit.length} color={allCrit.length > 0 ? "#EF4444" : "#10B981"} icon={Flame} onClick={() => setSelMetric(s => s === "critical" ? null : "critical")} active={selMetric === "critical"} sparkData={sparklines.critical} sparkTrend="down-good" />
-              <Metric label={t.metrics.blocked} value={allBlocked.length} color={allBlocked.length > 0 ? "#DC2626" : "#10B981"} icon={Ban} onClick={() => setSelMetric(s => s === "blocked" ? null : "blocked")} active={selMetric === "blocked"} sparkData={sparklines.blocked} sparkTrend="down-good" />
-              <Metric label={t.metrics.closureRate} value={`${issues.length > 0 ? Math.round(issues.filter(i => i.status === "CLOSED").length / issues.length * 100) : 0}%`} color="#10B981" icon={CheckCircle2} onClick={() => setSelMetric(s => s === "closure" ? null : "closure")} active={selMetric === "closure"} sparkData={sparklines.closure} sparkTrend="up-good" />
-              <Metric label={t.metrics.cascadeAlerts} value={cascadeIssues.length} color={cascadeIssues.length > 0 ? "#F59E0B" : "#10B981"} icon={Zap} onClick={() => setSelMetric(s => s === "cascade" ? null : "cascade")} active={selMetric === "cascade"} sparkData={sparklines.cascade} sparkTrend="down-good" />
-            </div>
+            {/* Workplan Dashboard v2 */}
+            <TabErrorBoundary name="Dashboard" lang={lang}>
+              <WorkplanDashboard
+                issues={issues}
+                projects={projects}
+                lang={lang}
+                teamMembers={teamMembers}
+                onNavigateIssue={(issue) => { setTab("issues"); setSelIssue && setSelIssue(issue); }}
+              />
+            </TabErrorBoundary>
 
-            {/* Metric Detail Panel */}
-            {selMetric && (() => {
+            {/* OLD METRIC DETAIL PANEL — kept but hidden for reference */}
+            {false && selMetric && (() => {
               const closedIssues = issues.filter(i => i.status === "CLOSED");
               const thStyle = { padding: "6px 10px", textAlign: "left", fontSize: 11, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700, borderBottom: "1px solid var(--border)", fontFamily: sans, whiteSpace: "nowrap", background: "var(--bg-card)" };
               const tdStyle = { padding: "6px 10px", fontSize: 13, color: "var(--text-secondary)", borderBottom: "1px solid var(--border)", fontFamily: sans };
@@ -1069,11 +1071,11 @@ export default function App() {
               );
             })()}
 
-            {/* AI Risk Assessment */}
-            <AIRiskPanel projects={projects} issues={issues} gateConfig={activeGateConfig} flightTests={allFlights} lang={lang} />
+            {/* AI Risk Assessment — disabled in v2 dashboard */}
+            {false && <AIRiskPanel projects={projects} issues={issues} gateConfig={activeGateConfig} flightTests={allFlights} lang={lang} />}
 
-            {/* Business Overview */}
-            {(() => {
+            {/* Business Overview — disabled in v2 dashboard */}
+            {false && (() => {
               const fmtV = (n) => n >= 1000000 ? `$${(n/1000000).toFixed(1)}M` : n >= 1000 ? `$${(n/1000).toFixed(0)}K` : `$${n.toFixed(0)}`;
               const pipelineValue = ordersList.filter(o => !['CANCELLED', 'CLOSED', 'PAID'].includes(o.status)).reduce((s, o) => s + (o.totalAmount || 0), 0);
               const overdueOrders = ordersList.filter(o => o.requiredDeliveryDate && new Date(o.requiredDeliveryDate) < new Date() && !['DELIVERED','SHIPPED','PAID','CLOSED','CANCELLED'].includes(o.status)).length;
@@ -1095,8 +1097,8 @@ export default function App() {
               );
             })()}
 
-            {/* Project Cards */}
-            {projects.map(proj => {
+            {/* Project Cards — disabled in v2 dashboard */}
+            {false && projects.map(proj => {
               const pIssues = issues.filter(i => i.pid === proj.id);
               const pOpen = pIssues.filter(i => i.status !== "CLOSED");
               const pCrit = pOpen.filter(i => i.sev === "CRITICAL");
@@ -1278,8 +1280,8 @@ export default function App() {
               );
             })}
 
-            {/* Cascade Alerts Panel */}
-            {getCascade(projects.find(p => p.id === selProject)).length > 0 && (
+            {/* Cascade Alerts Panel — disabled in v2 dashboard */}
+            {false && getCascade(projects.find(p => p.id === selProject)).length > 0 && (
               <Section title={<><Zap size={14} color="#F59E0B" /> {t.cascade.title}</>}>
                 {getCascade(projects.find(p => p.id === selProject)).map((c, idx) => (
                   <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 0", borderBottom: idx < getCascade(projects.find(p => p.id === selProject)).length - 1 ? "1px solid var(--border)" : "none", flexWrap: "wrap" }}>

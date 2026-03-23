@@ -54,7 +54,10 @@ import { useProjectsData, useIssuesData, useNotificationsData } from "./hooks/us
 import { LineChart, Line } from "recharts";
 import SafeResponsiveContainer from "./components/SafeChart";
 import EmptyState, { EMPTY_MESSAGES } from "./components/EmptyState";
-import { PHASES, PHASE_COLORS, STATUS_LIST, STATUS_COLORS, SEV_LIST, SEV_COLORS, SRC_LIST, SRC_COLORS, mono, sans } from "./constants";
+import { TabErrorBoundary } from "./components/ErrorBoundary";
+import { Badge, Metric, Btn, Section, NotifIcon, RoleIcon } from "./components/ui";
+import CreateIssueForm from "./components/CreateIssueForm";
+import { PHASES, PHASE_COLORS, STATUS_LIST, STATUS_COLORS, SEV_LIST, SEV_COLORS, SRC_LIST, SRC_COLORS, LANG, mono, sans } from "./constants";
 
 const normalizeVN = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 
@@ -65,8 +68,9 @@ const normalizeVN = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').re
 // All icons: Lucide React
 // ===================================================================
 
-// --- i18n ---
-const LANG = {
+// --- i18n: LANG imported from constants/i18n.js (see import at top) ---
+const _LANG_LEGACY = {
+  _note: "Kept as reference — active LANG is from constants/i18n.js",
   vi: {
     appName: "RtR Control Tower",
     appSub: "Real-time Robotics • Qu\u1EA3n l\u00FD D\u1EF1 \u00E1n Drone",
@@ -291,24 +295,6 @@ const _LEGACY_ISSUES = [
   },
 ];
 
-const _LEGACY_TEAM = [
-  { name: "Minh Tu\u1EA5n", role: "pm", projects: ["PRJ-001"] },
-  { name: "H\u1ED3ng Ph\u00FAc", role: "pm", projects: ["PRJ-002"] },
-  { name: "\u0110\u1EE9c Anh", role: "engineer", projects: ["PRJ-001"] },
-  { name: "Thanh H\u00E0", role: "engineer", projects: ["PRJ-001"] },
-  { name: "V\u0103n H\u00F9ng", role: "engineer", projects: ["PRJ-001", "PRJ-002"] },
-  { name: "B\u1EA3o Tr\u00E2m", role: "engineer", projects: ["PRJ-002"] },
-  { name: "Qu\u1EF3nh Anh", role: "admin", projects: ["PRJ-001", "PRJ-002", "PRJ-003"] },
-  { name: "Tr\u1EA7n Minh Khoa", role: "engineer", projects: ["PRJ-003", "PRJ-005"] },
-  { name: "L\u00EA Th\u1ECB Ph\u01B0\u01A1ng", role: "engineer", projects: ["PRJ-004"] },
-  { name: "Nguy\u1EC5n H\u1EA3i Nam", role: "engineer", projects: ["PRJ-003"] },
-  { name: "Ph\u1EA1m Thu Trang", role: "pm", projects: ["PRJ-004", "PRJ-005"] },
-  { name: "V\u0169 \u0110\u00ECnh To\u00E0n", role: "engineer", projects: ["PRJ-001", "PRJ-004"] },
-  { name: "\u0110\u1ED7 Ho\u00E0ng S\u01A1n", role: "engineer", projects: ["PRJ-002", "PRJ-005"] },
-  { name: "L\u00FD Thanh Mai", role: "viewer", projects: ["PRJ-001", "PRJ-002", "PRJ-003", "PRJ-004", "PRJ-005"] },
-  { name: "B\u00F9i Qu\u1ED1c Vi\u1EC7t", role: "engineer", projects: ["PRJ-001", "PRJ-003"] },
-];
-
 const _LEGACY_NOTIFICATIONS = [
   { id: 1, type: "CRITICAL_ISSUE", title: "New CRITICAL: ESC CAN bus timeout", titleVi: "CRITICAL m\u1EDBi: ESC CAN bus h\u1EBFt th\u1EDDi gian", ref: "ISS-004", time: "2h ago", timeVi: "2 gi\u1EDD tr\u01B0\u1EDBc", read: false },
   { id: 2, type: "MILESTONE_IMPACT", title: "DVT milestone shifted +2 weeks (PRJ-001)", titleVi: "DVT milestone d\u1ECBch +2 tu\u1EA7n (PRJ-001)", ref: "PRJ-001", time: "5h ago", timeVi: "5 gi\u1EDD tr\u01B0\u1EDBc", read: false },
@@ -328,91 +314,9 @@ const _LEGACY_NOTIFICATIONS = [
 ];
 
 // ===================================================================
-// REUSABLE COMPONENTS
+// REUSABLE COMPONENTS — Extracted to components/ui.jsx
+// Badge, Metric, Btn, Section, NotifIcon, RoleIcon imported at top
 // ===================================================================
-
-// mono, sans imported from ./constants/
-
-function Badge({ label, color, size = "sm", glow, icon: IconComp }) {
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: size === "sm" ? "1px 7px" : "3px 10px", borderRadius: 3, background: color + "15", color, fontSize: size === "sm" ? 10 : 11, fontWeight: 700, letterSpacing: "0.04em", border: `1px solid ${color}25`, fontFamily: mono, whiteSpace: "nowrap", boxShadow: glow ? `0 0 8px ${color}30` : "none" }}>
-      {IconComp ? <IconComp size={size === "sm" ? 10 : 12} /> : <span style={{ width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0 }} />}
-      {label}
-    </span>
-  );
-}
-
-function Metric({ label, value, color = "var(--text-primary)", sub, icon: IconComp, onClick, active, sparkData, sparkTrend }) {
-  return (
-    <div onClick={onClick} style={{ background: "var(--bg-input)", border: `1px solid ${active ? color : "var(--border)"}`, borderRadius: 6, padding: "12px 14px", position: "relative", overflow: "hidden", flex: 1, minWidth: 0, cursor: onClick ? "pointer" : "default", transition: "border-color 0.2s, box-shadow 0.2s", boxShadow: active ? `0 0 0 1px ${color}40` : "none" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: active ? 3 : 2, background: `linear-gradient(90deg, ${color}, transparent)` }} />
-      <div style={{ fontSize: 12, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4, fontWeight: 600, fontFamily: sans, display: "flex", alignItems: "center", gap: 4 }}>
-        {IconComp && <IconComp size={11} />}
-        {label}
-      </div>
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 6 }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color, fontFamily: mono, lineHeight: 1 }}>{value}</div>
-        {sparkData && sparkTrend && (() => {
-          const delta = sparkData[sparkData.length - 1] - sparkData[sparkData.length - 2];
-          const isGood = sparkTrend === "neutral" ? null : (sparkTrend === "up-good" ? delta >= 0 : delta <= 0);
-          const arrowColor = isGood === null ? "var(--text-faint)" : isGood ? "#22C55E" : "#EF4444";
-          return (
-            <div style={{ display: "flex", alignItems: "center", gap: 2, fontSize: 10, fontFamily: mono, color: arrowColor, fontWeight: 700 }}>
-              {delta > 0 ? "▲" : delta < 0 ? "▼" : "─"}{Math.abs(delta)}
-            </div>
-          );
-        })()}
-      </div>
-      {sparkData && (
-        <div style={{ marginTop: 4, height: 28, minWidth: 50, minHeight: 28 }}>
-          <SafeResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-            <LineChart data={sparkData.map(v => ({ v }))}>
-              <Line type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
-            </LineChart>
-          </SafeResponsiveContainer>
-        </div>
-      )}
-      {sub && <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 3, fontFamily: sans }}>{sub}</div>}
-    </div>
-  );
-}
-
-function Btn({ children, onClick, variant = "default", small, disabled }) {
-  const styles = {
-    default: { bg: "var(--hover-bg)", border: "var(--border)", color: "var(--text-secondary)" },
-    primary: { bg: "#1D4ED8", border: "#2563EB", color: "#fff" },
-    danger: { bg: "#7F1D1D", border: "#991B1B", color: "#FCA5A5" },
-    success: { bg: "#065F46", border: "#047857", color: "#6EE7B7" },
-    ghost: { bg: "transparent", border: "transparent", color: "var(--text-dim)" },
-  };
-  const s = styles[variant];
-  return (
-    <button onClick={onClick} disabled={disabled} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 4, padding: small ? "3px 8px" : "6px 12px", color: s.color, fontSize: small ? 9 : 10, fontWeight: 600, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.4 : 1, fontFamily: sans, transition: "all 0.15s", letterSpacing: "0.03em", display: "inline-flex", alignItems: "center", gap: 4 }}>
-      {children}
-    </button>
-  );
-}
-
-function Section({ title, children, actions, noPad }) {
-  return (
-    <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
-      {title && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 16px", borderBottom: "1px solid var(--border)" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", fontFamily: sans, display: "flex", alignItems: "center", gap: 6, flex: 1 }}>{title}</div>
-          {actions && <div style={{ display: "flex", gap: 6 }}>{actions}</div>}
-        </div>
-      )}
-      <div style={{ padding: noPad ? 0 : 16 }}>{children}</div>
-    </div>
-  );
-}
-
-function NotifIcon({ type }) {
-  if (type === "CRITICAL_ISSUE") return <CircleAlert size={13} color="#EF4444" />;
-  if (type === "MILESTONE_IMPACT") return <Zap size={13} color="#F59E0B" />;
-  if (type === "OVERDUE_ISSUE") return <Timer size={13} color="#F97316" />;
-  return <DoorOpen size={13} color="#8B5CF6" />;
-}
 
 // ===================================================================
 // GATE ITEM
@@ -432,105 +336,7 @@ function GateItem({ cond, lang, t, checked, onClick, disabled }) {
   );
 }
 
-// ===================================================================
-// CREATE ISSUE FORM
-// ===================================================================
-function CreateIssueForm({ t, lang, selProject, onClose, onCreate, initialStatus = "DRAFT", teamMembers }) {
-  const [form, setForm] = useState({ title: "", titleVi: "", desc: "", rootCause: "Investigating", sev: "HIGH", src: "INTERNAL", owner: "", phase: "DVT", due: "" });
-  const [submitting, setSubmitting] = useState(false);
-  const [showMore, setShowMore] = useState(false);
-  const owners = (teamMembers || TEAM).filter(m => m.role === "engineer").map(m => m.name);
-  const isDirty = form.title || form.titleVi || form.desc || form.owner || form.due || form.rootCause !== "Investigating" || form.sev !== "HIGH" || form.src !== "INTERNAL" || form.phase !== "DVT";
-  const handleClose = () => { if (!isDirty || window.confirm(t.unsavedChanges)) onClose(); };
-
-  const [touched, setTouched] = useState({});
-  const errors = {
-    title: touched.title && !form.title ? (lang === "vi" ? "Tiêu đề là bắt buộc" : "Title is required") : null,
-    owner: touched.owner && !form.owner ? (lang === "vi" ? "Vui lòng chọn người phụ trách" : "Owner is required") : null,
-  };
-  const handleCreate = () => {
-    setTouched({ title: true, owner: true });
-    if (!form.title || !form.owner || submitting) return;
-    setSubmitting(true);
-    const newIssue = {
-      id: `ISS-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`,
-      pid: selProject, title: form.title, titleVi: form.titleVi || form.title, desc: form.desc,
-      rootCause: form.rootCause, status: initialStatus, sev: form.sev, src: form.src,
-      owner: form.owner, phase: form.phase, created: new Date().toISOString().split("T")[0],
-      due: form.due || "", impacts: [], updates: [{ date: new Date().toISOString().split("T")[0], author: form.owner, text: "Issue created" }],
-    };
-    onCreate(newIssue);
-  };
-
-  const inputStyle = { background: "var(--bg-input)", border: "1px solid var(--border)", borderRadius: 4, padding: "6px 10px", color: "var(--text-primary)", fontSize: 14, width: "100%", outline: "none", fontFamily: sans };
-  const selectStyle = { ...inputStyle, cursor: "pointer" };
-  const labelStyle = { fontSize: 12, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 3, fontWeight: 600 };
-
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-      <div style={{ gridColumn: "1 / -1" }}>
-        <label style={labelStyle}>{t.issue.title} (EN) *</label>
-        <input style={{ ...inputStyle, borderColor: errors.title ? "#EF4444" : undefined }} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} onBlur={() => setTouched(p => ({ ...p, title: true }))} placeholder="Issue title in English..." />
-        {errors.title && <div style={{ fontSize: 11, color: "#EF4444", marginTop: 2 }}>{errors.title}</div>}
-      </div>
-      <div>
-        <label style={labelStyle}>{t.issue.severity} *</label>
-        <select style={selectStyle} value={form.sev} onChange={e => setForm(f => ({ ...f, sev: e.target.value }))}>
-          {SEV_LIST.map(s => <option key={s} value={s}>{t.severity[s]}</option>)}
-        </select>
-      </div>
-      <div>
-        <label style={labelStyle}>{t.issue.source} *</label>
-        <select style={selectStyle} value={form.src} onChange={e => setForm(f => ({ ...f, src: e.target.value }))}>
-          {SRC_LIST.map(s => <option key={s} value={s}>{t.source[s]}</option>)}
-        </select>
-      </div>
-      <div>
-        <label style={labelStyle}>{t.issue.owner} *</label>
-        <select style={{ ...selectStyle, borderColor: errors.owner ? "#EF4444" : undefined }} value={form.owner} onChange={e => setForm(f => ({ ...f, owner: e.target.value }))} onBlur={() => setTouched(p => ({ ...p, owner: true }))}>
-          <option value="">{lang === "vi" ? "Chọn..." : "Select..."}</option>
-          {owners.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-        {errors.owner && <div style={{ fontSize: 11, color: "#EF4444", marginTop: 2 }}>{errors.owner}</div>}
-      </div>
-      <div>
-        <label style={labelStyle}>{t.issue.phase} *</label>
-        <select style={selectStyle} value={form.phase} onChange={e => setForm(f => ({ ...f, phase: e.target.value }))}>
-          {PHASES.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
-      </div>
-      {/* Toggle optional fields */}
-      <div style={{ gridColumn: "1 / -1" }}>
-        <button type="button" onClick={() => setShowMore(!showMore)}
-          style={{ background: "none", border: "none", color: "#3B82F6", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "4px 0", display: "flex", alignItems: "center", gap: 4, fontFamily: sans }}>
-          {showMore ? "▾" : "▸"} {showMore ? (lang === "vi" ? "Ẩn chi tiết" : "Hide details") : (lang === "vi" ? "Thêm chi tiết (mô tả, deadline...)" : "More details (description, deadline...)")}
-        </button>
-      </div>
-      {showMore && <>
-        <div style={{ gridColumn: "1 / -1" }}>
-          <label style={labelStyle}>{t.issue.title} (VI)</label>
-          <input style={inputStyle} value={form.titleVi} onChange={e => setForm(f => ({ ...f, titleVi: e.target.value }))} placeholder="Tiêu đề tiếng Việt..." />
-        </div>
-        <div style={{ gridColumn: "1 / -1" }}>
-          <label style={labelStyle}>{t.issue.description}</label>
-          <textarea style={{ ...inputStyle, minHeight: 56, resize: "vertical" }} value={form.desc} onChange={e => setForm(f => ({ ...f, desc: e.target.value }))} placeholder={lang === "vi" ? "Mô tả chi tiết vấn đề..." : "Describe the issue in detail..."} />
-        </div>
-        <div style={{ gridColumn: "1 / -1" }}>
-          <label style={labelStyle}>{t.issue.rootCause}</label>
-          <input style={inputStyle} value={form.rootCause} onChange={e => setForm(f => ({ ...f, rootCause: e.target.value }))} />
-        </div>
-        <div style={{ gridColumn: "1 / -1" }}>
-          <label style={labelStyle}>{t.issue.dueDate}</label>
-          <input type="date" style={inputStyle} value={form.due} onChange={e => setForm(f => ({ ...f, due: e.target.value }))} />
-        </div>
-      </>}
-      <div style={{ gridColumn: "1 / -1", display: "flex", gap: 6, justifyContent: "flex-end" }}>
-        <Btn onClick={handleClose}><X size={11} /> {t.cancel}</Btn>
-        <Btn variant="primary" onClick={handleCreate} disabled={!form.title || !form.owner || submitting}><Plus size={11} /> {submitting ? "..." : `${t.issue.create} (${initialStatus})`}</Btn>
-      </div>
-    </div>
-  );
-}
+// CREATE ISSUE FORM — Extracted to components/CreateIssueForm.jsx (imported at top)
 
 // ===================================================================
 // MAIN APP
@@ -887,13 +693,7 @@ export default function App() {
     { id: "settings", label: t.tabs.settings, Icon: Settings },
   ];
 
-  // --- Role icon ---
-  const RoleIcon = ({ role }) => {
-    if (role === "admin") return <Shield size={10} />;
-    if (role === "pm") return <UserCog size={10} />;
-    if (role === "engineer") return <Wrench size={10} />;
-    return <Eye size={10} />;
-  };
+  // --- Role icon: imported from components/ui.jsx ---
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg-main)", color: "var(--text-primary)", fontFamily: sans, fontSize: 14, display: "flex", flexDirection: "column" }}>
@@ -1929,11 +1729,15 @@ export default function App() {
         {/* === TEAM === */}
         {tab === "team" && (
           <Section title={<><Users size={14} /> {t.team.workload}</>}>
+            {teamMembers.length === 0 ? (
+              <EmptyState icon={(EMPTY_MESSAGES[lang]?.team || { icon: Users, title: lang === "vi" ? "Chưa có dữ liệu đội ngũ" : "No team data", desc: lang === "vi" ? "Kết nối Supabase để xem thành viên dự án" : "Connect to Supabase to view project members" }).icon} title={lang === "vi" ? "Chưa có dữ liệu đội ngũ" : "No team data"} description={lang === "vi" ? "Kết nối Supabase để xem thành viên dự án" : "Connect to Supabase to view project members"} />
+            ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10 }}>
               {teamMembers.map(m => {
                 const memberIssues = issues.filter(i => i.owner === m.name && i.status !== "CLOSED");
                 const crit = memberIssues.filter(i => i.sev === "CRITICAL").length;
                 const blocked = memberIssues.filter(i => i.status === "BLOCKED").length;
+                const projectNames = m.projects.map(pid => projects.find(p => p.id === pid)?.name || pid).join(", ");
                 return (
                   <div key={m.name} style={{ background: "var(--bg-modal)", borderRadius: 6, padding: "12px 14px", border: `1px solid ${crit > 0 ? "#EF444430" : "var(--border)"}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -1942,7 +1746,7 @@ export default function App() {
                         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{m.name}</div>
                         <div style={{ fontSize: 12, color: "var(--text-dim)", display: "flex", alignItems: "center", gap: 3 }}>
                           <RoleIcon role={m.role} />
-                          {t.role[m.role]} • {m.projects.join(", ")}
+                          {t.role[m.role]} {projectNames && <>• {projectNames}</>}
                         </div>
                       </div>
                     </div>
@@ -1958,6 +1762,7 @@ export default function App() {
                 );
               })}
             </div>
+            )}
           </Section>
         )}
 
@@ -2019,8 +1824,8 @@ export default function App() {
                 <Btn small onClick={() => exportBomExcel(allBom.filter(b => b.projectId === selProject), allSuppliers, lang)}><FileSpreadsheet size={11} /> {t.importExport?.exportExcel || "Export Excel"}</Btn>
               </div>
             </div>
-            {bomSubTab === "tree" && <BomModule lang={lang} t={t} project={project} perm={perm} />}
-            {bomSubTab === "suppliers" && <SupplierModule lang={lang} t={t} project={project} perm={perm} />}
+            {bomSubTab === "tree" && <TabErrorBoundary name="BOM" lang={lang}><BomModule lang={lang} t={t} project={project} perm={perm} /></TabErrorBoundary>}
+            {bomSubTab === "suppliers" && <TabErrorBoundary name="Suppliers" lang={lang}><SupplierModule lang={lang} t={t} project={project} perm={perm} /></TabErrorBoundary>}
           </div>
         )}
 
@@ -2050,7 +1855,7 @@ export default function App() {
                 <Btn small onClick={() => exportFlightTestsExcel(allFlights.filter(ft => ft.projectId === selProject), lang)}><FileSpreadsheet size={11} /> {t.importExport?.exportExcel || "Export Excel"}</Btn>
               </div>
             </div>
-            {testSubTab === "flights" && <FlightTestModule lang={lang} t={t} project={project} issues={issues} perm={perm}
+            {testSubTab === "flights" && <TabErrorBoundary name="Flight Tests" lang={lang}><FlightTestModule lang={lang} t={t} project={project} issues={issues} perm={perm}
               onViewIssue={(id) => { setTab("issues"); setSelIssue(issues.find(i => i.id === id) || null); }}
               onCreateAutoIssue={(ft) => {
                 const sevMap = { FAIL: "CRITICAL", PARTIAL: "HIGH" };
@@ -2071,8 +1876,8 @@ export default function App() {
                 if (online) { sbCreateIssue(newIssue); } else { setIssues(prev => [newIssue, ...prev]); }
                 audit.log("ISSUE_CREATED", "issue", issueId, newIssue.title, null, "DRAFT", { source: "flight_test", flightId: ft.id });
               }}
-            />}
-            {testSubTab === "decisions" && <DecisionsModule lang={lang} t={t} project={project} issues={issues} perm={perm} onViewIssue={(id) => { setTab("issues"); setSelIssue(issues.find(i => i.id === id) || null); }} />}
+            /></TabErrorBoundary>}
+            {testSubTab === "decisions" && <TabErrorBoundary name="Decisions" lang={lang}><DecisionsModule lang={lang} t={t} project={project} issues={issues} perm={perm} onViewIssue={(id) => { setTab("issues"); setSelIssue(issues.find(i => i.id === id) || null); }} /></TabErrorBoundary>}
           </div>
         )}
 
@@ -2165,6 +1970,7 @@ export default function App() {
 
         {/* === ORDERS === */}
         {tab === "orders" && (
+          <TabErrorBoundary name="Orders" lang={lang}>
           <OrdersModule
             orders={ordersList}
             customers={customersList}
@@ -2172,20 +1978,24 @@ export default function App() {
             lang={lang}
             perm={perm}
           />
+          </TabErrorBoundary>
         )}
 
         {/* === PRODUCTION === */}
         {tab === "production" && (
+          <TabErrorBoundary name="Production" lang={lang}>
           <ProductionModule
             productionOrders={productionOrdersList}
             loading={productionLoading}
             lang={lang}
             perm={perm}
           />
+          </TabErrorBoundary>
         )}
 
         {/* === INVENTORY === */}
         {tab === "inventory" && (
+          <TabErrorBoundary name="Inventory" lang={lang}>
           <InventoryModule
             inventory={inventoryList}
             transactions={inventoryTxns}
@@ -2193,10 +2003,12 @@ export default function App() {
             lang={lang}
             perm={perm}
           />
+          </TabErrorBoundary>
         )}
 
         {/* === FINANCE === */}
         {tab === "finance" && (
+          <TabErrorBoundary name="Finance" lang={lang}>
           <FinanceModule
             financeSummary={financeSummaryList}
             invoices={invoicesList}
@@ -2204,10 +2016,12 @@ export default function App() {
             loading={financeLoading}
             lang={lang}
           />
+          </TabErrorBoundary>
         )}
 
         {/* === INTELLIGENCE === */}
         {tab === "intelligence" && (
+          <TabErrorBoundary name="Intelligence" lang={lang}>
           <IntelligencePanel
             intel={intel}
             projects={projects}
@@ -2215,6 +2029,7 @@ export default function App() {
             t={t}
             issues={issues}
           />
+          </TabErrorBoundary>
         )}
 
         {/* === SETTINGS === */}

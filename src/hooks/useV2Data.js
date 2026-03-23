@@ -421,7 +421,11 @@ export function useDecisionData(projectId) {
       if (updates.status !== undefined) row.status = updates.status;
       if (updates.chosenOption !== undefined) row.chosen_option = updates.chosenOption;
       if (updates.rationale !== undefined) row.rationale = updates.rationale;
+      if (updates.rationaleVi !== undefined) row.rationale_vi = updates.rationaleVi;
       if (updates.decisionMaker !== undefined) row.decision_maker = updates.decisionMaker;
+      if (updates.costImpact !== undefined) row.cost_impact = updates.costImpact;
+      if (updates.impactDescription !== undefined) row.impact_description = updates.impactDescription;
+      if (updates.impactDescriptionVi !== undefined) row.impact_description_vi = updates.impactDescriptionVi;
       const { data: updated } = await update('decisions', decisionId, row);
       if (updated) {
         setData(prev => prev.map(d => d.id === decisionId ? transformDecision(updated) : d));

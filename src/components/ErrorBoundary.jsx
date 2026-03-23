@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { AlertTriangle, RefreshCw } from 'lucide-react'
 
 export class ErrorBoundary extends Component {
   constructor(props) {
@@ -61,6 +62,53 @@ export class ErrorBoundary extends Component {
       )
     }
 
+    return this.props.children
+  }
+}
+
+// Per-tab error boundary — shows inline error, doesn't kill the whole app
+export class TabErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error(`[${this.props.name || 'Tab'}] Render error:`, error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      const isVi = this.props.lang === 'vi'
+      return (
+        <div style={{ background: 'var(--bg-card)', border: '1px solid #EF444430', borderRadius: 8, padding: 32, textAlign: 'center' }}>
+          <AlertTriangle size={28} color="#EF4444" style={{ marginBottom: 10 }} />
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+            {isVi ? 'Module gặp lỗi' : 'Module Error'}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 14 }}>
+            {isVi
+              ? `"${this.props.name || ''}" gặp lỗi. Các module khác vẫn hoạt động.`
+              : `"${this.props.name || ''}" encountered an error. Other modules are unaffected.`}
+          </div>
+          {this.state.error && (
+            <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: '#EF4444', background: '#EF444410', padding: '6px 10px', borderRadius: 4, marginBottom: 14, textAlign: 'left', maxHeight: 60, overflow: 'auto' }}>
+              {this.state.error.message}
+            </div>
+          )}
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            style={{ background: '#1D4ED8', border: 'none', borderRadius: 4, padding: '7px 14px', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <RefreshCw size={12} />
+            {isVi ? 'Thử lại' : 'Try Again'}
+          </button>
+        </div>
+      )
+    }
     return this.props.children
   }
 }

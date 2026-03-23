@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import {
   Scale, Check, X, ChevronRight, ExternalLink,
   Clock, User, Layers, AlertTriangle, GitBranch,
-  ArrowRight, CircleDot, Plus
+  ArrowRight, CircleDot, Plus, Pencil
 } from "lucide-react";
 import {
   DECISION_STATUS_COLORS,
@@ -30,6 +30,7 @@ export default function DecisionsModule({ lang, t, project, issues, onViewIssue,
   const [expandedId, setExpandedId] = useState(null);
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [showCreate, setShowCreate] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   // Fetch from Supabase (or static fallback)
   const { data: allDecisions, loading: decLoading, createDecision, updateDecision } = useDecisionData(project?.id);
@@ -213,6 +214,20 @@ export default function DecisionsModule({ lang, t, project, issues, onViewIssue,
                     </div>
                   )}
 
+                  {/* Edit button */}
+                  {canEdit && dec.status !== "SUPERSEDED" && dec.status !== "REJECTED" && (
+                    <div style={{ marginBottom: 14 }}>
+                      {editingId === dec.id ? (
+                        <EditDecisionForm lang={lang} decision={dec} onClose={() => setEditingId(null)} onSave={async (updates) => { await updateDecision(dec.id, updates); setEditingId(null); }} />
+                      ) : (
+                        <button onClick={() => setEditingId(dec.id)}
+                          style={{ background: "var(--hover-bg)", border: "1px solid var(--border)", borderRadius: 4, padding: "5px 12px", color: "var(--text-muted)", fontSize: 11, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontFamily: sans }}>
+                          <Pencil size={11} /> {lang === "vi" ? "Chỉnh sửa" : "Edit"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {/* Links */}
                   {(dec.linkedIssueIds.length > 0 || dec.linkedFlightTestIds.length > 0 || dec.linkedGateConditions.length > 0) && (
                     <div>
@@ -365,6 +380,75 @@ function CreateDecisionForm({ lang, project, onClose, onCreate }) {
           <button onClick={handleCreate} disabled={!form.title || !form.decisionMaker}
             style={{ background: "#1D4ED8", border: "1px solid #2563EB", borderRadius: 4, padding: "6px 12px", color: "#fff", fontSize: 10, fontWeight: 600, cursor: !form.title || !form.decisionMaker ? "not-allowed" : "pointer", opacity: !form.title || !form.decisionMaker ? 0.4 : 1, fontFamily: sans, display: "inline-flex", alignItems: "center", gap: 4 }}>
             <Plus size={11} /> {vi ? "Tạo Quyết Định" : "Create Decision"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── EDIT DECISION FORM ──────────────────────────────────────
+function EditDecisionForm({ lang, decision, onClose, onSave }) {
+  const vi = lang === "vi";
+  const [form, setForm] = useState({
+    rationale: decision.rationale || "",
+    rationaleVi: decision.rationaleVi || "",
+    costImpact: decision.costImpact || "",
+    impactDescription: decision.impactDescription || "",
+    impactDescriptionVi: decision.impactDescriptionVi || "",
+    decisionMaker: decision.decisionMaker || "",
+    chosenOption: decision.chosenOption || "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  const inputStyle = { background: "var(--bg-input)", border: "1px solid var(--border)", borderRadius: 4, padding: "6px 10px", color: "var(--text-primary)", fontSize: 13, width: "100%", outline: "none", fontFamily: sans };
+  const labelStyle = { fontSize: 11, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 3, fontWeight: 600 };
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(form);
+    setSaving(false);
+  };
+
+  return (
+    <div style={{ background: "var(--bg-input)", border: "1px solid #8B5CF640", borderRadius: 6, padding: 12 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#A78BFA", marginBottom: 10, display: "flex", alignItems: "center", gap: 4 }}>
+        <Pencil size={11} /> {vi ? "Chỉnh sửa Quyết Định" : "Edit Decision"}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div>
+          <label style={labelStyle}>{vi ? "Người quyết định" : "Decision Maker"}</label>
+          <input style={inputStyle} value={form.decisionMaker} onChange={e => setForm(f => ({ ...f, decisionMaker: e.target.value }))} />
+        </div>
+        <div>
+          <label style={labelStyle}>{vi ? "Phương án chọn" : "Chosen Option"}</label>
+          <select style={{ ...inputStyle, cursor: "pointer" }} value={form.chosenOption} onChange={e => setForm(f => ({ ...f, chosenOption: e.target.value }))}>
+            <option value="">{vi ? "— Chưa chọn —" : "— Not selected —"}</option>
+            {decision.options.map((opt, i) => (
+              <option key={i} value={opt.label.split(":")[0]}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={labelStyle}>{vi ? "Lý do" : "Rationale"}</label>
+          <textarea style={{ ...inputStyle, minHeight: 50, resize: "vertical" }} value={form.rationale} onChange={e => setForm(f => ({ ...f, rationale: e.target.value }))} />
+        </div>
+        <div>
+          <label style={labelStyle}>{vi ? "Chi phí ảnh hưởng" : "Cost Impact"}</label>
+          <input style={inputStyle} value={form.costImpact} onChange={e => setForm(f => ({ ...f, costImpact: e.target.value }))} />
+        </div>
+        <div>
+          <label style={labelStyle}>{vi ? "Mô tả ảnh hưởng" : "Impact Description"}</label>
+          <input style={inputStyle} value={form.impactDescription} onChange={e => setForm(f => ({ ...f, impactDescription: e.target.value }))} />
+        </div>
+        <div style={{ gridColumn: "1 / -1", display: "flex", gap: 6, justifyContent: "flex-end" }}>
+          <button onClick={onClose}
+            style={{ background: "var(--hover-bg)", border: "1px solid var(--border)", borderRadius: 4, padding: "5px 10px", color: "var(--text-secondary)", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: sans, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <X size={10} /> {vi ? "Hủy" : "Cancel"}
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            style={{ background: "#7C3AED", border: "1px solid #8B5CF6", borderRadius: 4, padding: "5px 10px", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer", opacity: saving ? 0.6 : 1, fontFamily: sans, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <Check size={10} /> {vi ? "Lưu" : "Save"}
           </button>
         </div>
       </div>

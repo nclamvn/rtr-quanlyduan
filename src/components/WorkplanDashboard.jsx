@@ -16,6 +16,7 @@ import { useAIAdvisor } from "../hooks/useAIAdvisor";
 import AIAdvisoryCard from "./AIAdvisoryCard";
 import { useCrossAppData } from "../hooks/useCrossAppData";
 import CrossAppWidget from "./CrossAppWidget";
+import AIDigestCard from "./AIDigestCard";
 
 // ── Status logic ──────────────────────────────────────────
 function getTaskStatus(issue) {
@@ -481,6 +482,9 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
   // ── Render ──
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* AI Daily Digest */}
+      <AIDigestCard lang={lang} />
+
       {/* KPI Bar */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <KpiCard label={vi ? "Đang hoạt động" : "Active"} value={kpi.active} color="#3B82F6" icon={Activity}

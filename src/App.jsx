@@ -410,8 +410,8 @@ export default function App() {
     );
   }
 
-  // Auth modal — shown when guest clicks login
-  if (showAuthModal) {
+  // Auth guard — guests must login, no dashboard access
+  if (isGuest || showAuthModal) {
     return <LoginScreen onLogin={(user, selectedLang) => { setLang(selectedLang); audit.log("USER_LOGIN", "user", user.id, user.name, null, user.role, { _asUser: user }); setShowAuthModal(false); }} initialLang={lang} />;
   }
 

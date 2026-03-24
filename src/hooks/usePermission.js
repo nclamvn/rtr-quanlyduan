@@ -10,10 +10,10 @@ export function usePermission() {
   };
 
   return {
-    // Anyone (including guest) can create issues
-    canCreateIssue: () => ["admin", "pm", "engineer", "guest", "viewer"].includes(role),
-    // Anyone can report progress (update status to DONE / extend deadline)
-    canReportProgress: () => ["admin", "pm", "engineer", "guest", "viewer"].includes(role),
+    // Authenticated users can create issues (guest blocked)
+    canCreateIssue: () => ["admin", "pm", "engineer", "viewer"].includes(role),
+    // Authenticated users can report progress (guest blocked)
+    canReportProgress: () => ["admin", "pm", "engineer", "viewer"].includes(role),
 
     canReviewIssue: () => ["admin", "pm"].includes(role),
     canEditIssue: (issue) => {

@@ -43,6 +43,7 @@ const InventoryModule = lazy(() => import("./components/InventoryModule"));
 const FinanceModule = lazy(() => import("./components/FinanceModule"));
 const AIImportWizard = lazy(() => import("./components/AIImportWizard"));
 const WorkplanDashboard = lazy(() => import("./components/WorkplanDashboard"));
+const MyWorkspace = lazy(() => import("./components/MyWorkspace"));
 import { useFlightTestData, useDeliveryData, useBomData, useSupplierData } from "./hooks/useV2Data";
 import { useOrders, useCustomers } from "./hooks/useOrderData";
 import { useProductionOrders } from "./hooks/useProductionData";
@@ -349,6 +350,7 @@ export default function App() {
   const audit = useAuditLog();
   const [lang, setLang] = useState(() => localStorage.getItem('rtr-lang') || "vi");
   const [tab, setTab] = useState(() => localStorage.getItem('rtr-tab') || "tower");
+  const [towerView, setTowerView] = useState("workspace"); // workspace | dashboard
   const [selProject, setSelProject] = useState(() => localStorage.getItem('rtr-project') || "PRJ-001");
   const [selIssue, setSelIssue] = useState(() => { try { const id = sessionStorage.getItem('rtr-selIssue'); return id ? { id } : null; } catch { return null; } });
   const [filters, setFilters] = useState(() => { try { return JSON.parse(sessionStorage.getItem('rtr-filters')) || { status: "ALL", sev: "ALL", src: "ALL" }; } catch { return { status: "ALL", sev: "ALL", src: "ALL" }; } });
@@ -936,7 +938,42 @@ export default function App() {
                   }} />
               </Section>
             )}
-            {/* Workplan Dashboard v2 */}
+            {/* Tower sub-view toggle */}
+            <div style={{ display: "flex", gap: 2, background: "var(--bg-input)", borderRadius: 6, padding: 2, border: "1px solid var(--border)", width: "fit-content" }}>
+              {[
+                { id: "workspace", label: lang === "vi" ? "Không gian của tôi" : "My Workspace" },
+                { id: "dashboard", label: lang === "vi" ? "Tổng quan dự án" : "All Projects" },
+              ].map(v => (
+                <button key={v.id} onClick={() => setTowerView(v.id)} style={{
+                  background: towerView === v.id ? "var(--bg-card)" : "transparent",
+                  border: towerView === v.id ? "1px solid var(--border)" : "1px solid transparent",
+                  borderRadius: 4, padding: "5px 14px", fontSize: 12, fontWeight: 600,
+                  color: towerView === v.id ? "var(--text-primary)" : "var(--text-faint)",
+                  cursor: "pointer", fontFamily: sans,
+                  boxShadow: towerView === v.id ? "0 1px 2px var(--shadow-color)" : "none",
+                }}>
+                  {v.label}
+                </button>
+              ))}
+            </div>
+
+            {/* My Workspace (Personal Dashboard) */}
+            {towerView === "workspace" && (
+              <TabErrorBoundary name="MyWorkspace" lang={lang}>
+                <MyWorkspace
+                  currentUser={currentUser}
+                  issues={issues}
+                  projects={projects}
+                  teamMembers={teamMembers}
+                  lang={lang}
+                  onNavigateToProject={(projId) => { setSelProject(projId); setTowerView("dashboard"); }}
+                  onNavigateToIssue={(issue) => { setTab("issues"); setSelIssue && setSelIssue(issue); }}
+                />
+              </TabErrorBoundary>
+            )}
+
+            {/* All Projects Dashboard */}
+            {towerView === "dashboard" && (
             <TabErrorBoundary name="Dashboard" lang={lang}>
               <WorkplanDashboard
                 issues={issues}
@@ -950,6 +987,7 @@ export default function App() {
                 online={online}
               />
             </TabErrorBoundary>
+            )}
 
             {/* OLD METRIC DETAIL PANEL — kept but hidden for reference */}
             {false && selMetric && (() => {

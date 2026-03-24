@@ -3,7 +3,7 @@
 // Linear-style task table + detail panel
 // Replaces the old project-cards dashboard
 // ═══════════════════════════════════════════════════════════
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   LayoutDashboard, CheckCircle2, AlertTriangle, Clock, Users,
   ChevronRight, ChevronDown, X, Circle, CircleDot,
@@ -63,7 +63,7 @@ function getLastUpdateDate(issue) {
 }
 
 // ── Main Component ────────────────────────────────────────
-export default function WorkplanDashboard({ issues, projects, lang, onNavigateIssue, teamMembers }) {
+export default function WorkplanDashboard({ issues, projects, lang, onNavigateIssue, teamMembers, onUpdateStatus, onRefreshIssues, perm, online }) {
   const vi = lang === "vi";
   const [selectedIssue, setSelectedIssue] = useState(null);
   const { data: crossAppData, summary: crossAppSummary, loading: crossAppLoading } = useCrossAppData("MRP");
@@ -172,6 +172,36 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
     };
   }, [enrichedIssues]);
 
+  // ── Weekly trend (from ai_snapshots) ──
+  const [prevSnapshot, setPrevSnapshot] = useState(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { supabase } = await import("../lib/supabase");
+        if (!supabase) return;
+        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+        const { data } = await supabase
+          .from("ai_snapshots")
+          .select("data")
+          .eq("snapshot_type", "daily_counts")
+          .lte("snapshot_date", yesterday)
+          .order("snapshot_date", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (data?.data) setPrevSnapshot(data.data);
+      } catch { /* ignore — snapshots are optional */ }
+    })();
+  }, []);
+
+  const trend = useMemo(() => {
+    if (!prevSnapshot) return {};
+    return {
+      active: kpi.active - (kpi.total - (prevSnapshot.closed || 0) - (prevSnapshot.totalOpen || prevSnapshot.totalOpen || kpi.active)),
+      atRisk: prevSnapshot.critical !== undefined ? kpi.atRisk - ((prevSnapshot.critical || 0) + (prevSnapshot.blocked || 0)) : null,
+      done: prevSnapshot.closed !== undefined ? kpi.done - (prevSnapshot.closed || 0) : null,
+    };
+  }, [kpi, prevSnapshot]);
+
   // ── Handlers ──
   const toggleGroup = (id) => setCollapsedGroups(prev => ({ ...prev, [id]: !prev[id] }));
   const toggleSort = (col) => {
@@ -179,8 +209,8 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
     else { setSortCol(col); setSortDir("asc"); }
   };
 
-  // ── KPI Card ──
-  const KpiCard = ({ label, value, color, icon: Icon, active, onClick }) => (
+  // ── KPI Card with trend ──
+  const KpiCard = ({ label, value, color, icon: Icon, active, onClick, delta, deltaGoodDir }) => (
     <div onClick={onClick} style={{
       background: active ? `${color}10` : "var(--bg-card)",
       border: `1px solid ${active ? color + "40" : "var(--border)"}`,
@@ -191,7 +221,18 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
         <Icon size={12} color={color} />
         <span style={{ fontSize: 11, color: "var(--text-dim)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: sans }}>{label}</span>
       </div>
-      <div style={{ fontSize: 24, fontWeight: 800, color, fontFamily: mono, lineHeight: 1 }}>{value}</div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 6 }}>
+        <div style={{ fontSize: 24, fontWeight: 800, color, fontFamily: mono, lineHeight: 1 }}>{value}</div>
+        {delta != null && delta !== 0 && (() => {
+          const isGood = deltaGoodDir === "down" ? delta < 0 : deltaGoodDir === "up" ? delta > 0 : null;
+          const trendColor = isGood === null ? "var(--text-faint)" : isGood ? "#10B981" : "#EF4444";
+          return (
+            <span style={{ fontSize: 11, fontWeight: 700, color: trendColor, fontFamily: mono, lineHeight: 1, display: "flex", alignItems: "center", gap: 1 }}>
+              {delta > 0 ? "▲" : "▼"}{Math.abs(delta)}
+            </span>
+          );
+        })()}
+      </div>
     </div>
   );
 
@@ -438,6 +479,37 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
           </div>
         </div>
 
+        {/* Quick Actions */}
+        {onUpdateStatus && issue.status !== "CLOSED" && (
+          <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: sans }}>
+              {vi ? "Hành động nhanh" : "Quick Actions"}
+            </div>
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+              {issue.status === "DRAFT" && (
+                <ActionBtn label={vi ? "Duyệt" : "Approve"} color="#065F46" borderColor="#047857" textColor="#6EE7B7" icon={CheckCircle2}
+                  onClick={() => { onUpdateStatus(issue.id, "OPEN"); setSelectedIssue({ ...issue, status: "OPEN", _status: "ON_TRACK" }); }} />
+              )}
+              {issue.status === "OPEN" && (
+                <ActionBtn label={vi ? "Bắt đầu" : "Start"} color="#1D4ED8" borderColor="#2563EB" textColor="#93C5FD" icon={Activity}
+                  onClick={() => { onUpdateStatus(issue.id, "IN_PROGRESS"); setSelectedIssue({ ...issue, status: "IN_PROGRESS", _status: "ON_TRACK" }); }} />
+              )}
+              {issue.status === "IN_PROGRESS" && (
+                <ActionBtn label={vi ? "Chặn" : "Block"} color="#7F1D1D" borderColor="#991B1B" textColor="#FCA5A5" icon={Ban}
+                  onClick={() => { onUpdateStatus(issue.id, "BLOCKED"); setSelectedIssue({ ...issue, status: "BLOCKED", _status: "BLOCKED" }); }} />
+              )}
+              {issue.status !== "CLOSED" && (
+                <ActionBtn label={vi ? "Hoàn thành" : "Done"} color="#065F46" borderColor="#047857" textColor="#6EE7B7" icon={CheckCircle2}
+                  onClick={() => { onUpdateStatus(issue.id, "CLOSED"); setSelectedIssue({ ...issue, status: "CLOSED", _status: "DONE" }); }} />
+              )}
+              {issue.sev !== "CRITICAL" && (
+                <ActionBtn label={vi ? "Nâng cấp" : "Escalate"} color="#7F1D1D" borderColor="#991B1B" textColor="#FCA5A5" icon={Flame}
+                  onClick={() => { /* Escalate = change severity to CRITICAL — needs issueService update */ }} />
+              )}
+            </div>
+          </div>
+        )}
+
         {/* View full detail */}
         {onNavigateIssue && (
           <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)" }}>
@@ -456,6 +528,16 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
   };
 
   // ── Meta Row (for detail panel) ──
+  const ActionBtn = ({ label, color, borderColor, textColor, icon: Icon, onClick }) => (
+    <button onClick={onClick} style={{
+      background: color, border: `1px solid ${borderColor}`, borderRadius: 4,
+      padding: "5px 10px", color: textColor, fontSize: 11, fontWeight: 700,
+      cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontFamily: sans,
+    }}>
+      <Icon size={11} /> {label}
+    </button>
+  );
+
   const MetaRow = ({ icon: Icon, iconColor, label, value, valueColor }) => (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <Icon size={12} color={iconColor || "var(--text-faint)"} style={{ flexShrink: 0 }} />
@@ -488,13 +570,13 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
       {/* KPI Bar */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <KpiCard label={vi ? "Đang hoạt động" : "Active"} value={kpi.active} color="#3B82F6" icon={Activity}
-          active={statusFilter === "ALL"} onClick={() => setStatusFilter("ALL")} />
+          active={statusFilter === "ALL"} onClick={() => setStatusFilter("ALL")} delta={trend.active} deltaGoodDir="down" />
         <KpiCard label={vi ? "Có rủi ro" : "At Risk"} value={kpi.atRisk} color="#EF4444" icon={AlertTriangle}
-          active={statusFilter === "AT_RISK"} onClick={() => setStatusFilter(statusFilter === "AT_RISK" ? "ALL" : "AT_RISK")} />
+          active={statusFilter === "AT_RISK"} onClick={() => setStatusFilter(statusFilter === "AT_RISK" ? "ALL" : "AT_RISK")} delta={trend.atRisk} deltaGoodDir="down" />
         <KpiCard label={vi ? "Không cập nhật" : "Stale"} value={kpi.stale} color="#6B7280" icon={Clock}
           active={statusFilter === "STALE"} onClick={() => setStatusFilter(statusFilter === "STALE" ? "ALL" : "STALE")} />
         <KpiCard label={vi ? "Hoàn thành" : "Done"} value={kpi.done} color="#10B981" icon={CheckCircle2}
-          active={statusFilter === "DONE"} onClick={() => setStatusFilter(statusFilter === "DONE" ? "ALL" : "DONE")} />
+          active={statusFilter === "DONE"} onClick={() => setStatusFilter(statusFilter === "DONE" ? "ALL" : "DONE")} delta={trend.done} deltaGoodDir="up" />
         <KpiCard label={vi ? "Thành viên" : "Team"} value={kpi.owners} color="#8B5CF6" icon={Users} />
       </div>
 

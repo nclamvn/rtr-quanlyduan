@@ -944,6 +944,10 @@ export default function App() {
                 lang={lang}
                 teamMembers={teamMembers}
                 onNavigateIssue={(issue) => { setTab("issues"); setSelIssue && setSelIssue(issue); }}
+                onUpdateStatus={(issueId, newStatus) => { updateIssueStatus(issueId, newStatus); }}
+                onRefreshIssues={() => { refetchIssues && refetchIssues(); }}
+                perm={perm}
+                online={online}
               />
             </TabErrorBoundary>
 

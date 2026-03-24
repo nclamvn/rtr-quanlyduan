@@ -66,6 +66,7 @@ function getLastUpdateDate(issue) {
 export default function WorkplanDashboard({ issues, projects, lang, onNavigateIssue, teamMembers }) {
   const vi = lang === "vi";
   const [selectedIssue, setSelectedIssue] = useState(null);
+  const { data: crossAppData, summary: crossAppSummary, loading: crossAppLoading } = useCrossAppData("MRP");
   const { advisory: aiAdvisory, isLoading: aiLoading, error: aiError, refresh: aiRefresh } = useAIAdvisor(
     selectedIssue,
     selectedIssue ? {
@@ -80,7 +81,6 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
     } : null,
     lang
   );
-  const { data: crossAppData, summary: crossAppSummary, loading: crossAppLoading } = useCrossAppData("MRP");
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");

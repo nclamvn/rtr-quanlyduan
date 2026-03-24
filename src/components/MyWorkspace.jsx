@@ -273,7 +273,7 @@ export default function MyWorkspace({ currentUser, issues, projects, teamMembers
         {(overloaded.length > 0 || underloaded.length > 0) && (
           <div style={{ background: "#F59E0B08", border: "1px solid #F59E0B20", borderRadius: 6, padding: "8px 12px", marginBottom: 10, display: "flex", gap: 6, alignItems: "flex-start" }}>
             <Zap size={12} color="#F59E0B" style={{ marginTop: 2, flexShrink: 0 }} />
-            <div style={{ fontSize: 11, color: "#FDE68A", fontFamily: sans, lineHeight: 1.4 }}>
+            <div style={{ fontSize: 11, color: "#D97706", fontFamily: sans, lineHeight: 1.4 }}>
               {overloaded.length > 0 && (vi
                 ? `${overloaded.map(t => `${t.name} (${t.total} tasks)`).join(", ")} đang quá tải — cân nhắc phân bổ lại. `
                 : `${overloaded.map(t => `${t.name} (${t.total} tasks)`).join(", ")} overloaded — consider rebalancing. `

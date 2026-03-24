@@ -400,7 +400,7 @@ export default function ImportWizard({ lang, project, issues = [], onImport, onC
                 const missing = config.required.filter((f) => !mappedFields.includes(f));
                 if (missing.length === 0) return null;
                 return (
-                  <div style={{ marginTop: 8, padding: "6px 10px", background: "#F59E0B10", border: "1px solid #F59E0B30", borderRadius: 4, color: "#FDE68A", fontSize: 12 }}>
+                  <div style={{ marginTop: 8, padding: "6px 10px", background: "#F59E0B10", border: "1px solid #F59E0B30", borderRadius: 4, color: "#D97706", fontSize: 12 }}>
                     <TriangleAlert size={10} style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />
                     {t ? "Trường bắt buộc thiếu" : "Required fields missing"}: {missing.join(", ")}
                   </div>

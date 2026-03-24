@@ -453,7 +453,7 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
               <Zap size={10} /> {vi ? "Ảnh hưởng Cascade" : "Cascade Impact"}
             </div>
             {issue.impacts.map((imp, i) => (
-              <div key={i} style={{ fontSize: 12, color: "#FDE68A", fontFamily: mono, marginBottom: 2 }}>
+              <div key={i} style={{ fontSize: 12, color: "#D97706", fontFamily: mono, marginBottom: 2 }}>
                 {imp.phase} +{Math.ceil(imp.days / 7)}w
               </div>
             ))}
@@ -872,7 +872,7 @@ function StandupView({ issues, enrichedIssues, teamMembers, vi, lang, onSelect }
             {(currentOwner.blocked > 0 || currentOwner.active > 8 || currentOwner.newThisWeek > 3) && (
               <div style={{ background: "#8B5CF608", border: "1px solid #8B5CF625", borderRadius: 6, padding: "8px 12px", marginBottom: 12, display: "flex", gap: 6, alignItems: "flex-start" }}>
                 <Zap size={12} color="#8B5CF6" style={{ marginTop: 2, flexShrink: 0 }} />
-                <span style={{ fontSize: 11, color: "#A78BFA", fontFamily: sans, lineHeight: 1.4 }}>
+                <span style={{ fontSize: 11, color: "#7C3AED", fontFamily: sans, lineHeight: 1.4 }}>
                   {currentOwner.blocked > 0 && (vi ? `${currentOwner.blocked} task bị chặn — hỏi cần hỗ trợ gì để unblock. ` : `${currentOwner.blocked} blocked tasks — ask what's needed to unblock. `)}
                   {currentOwner.active > 8 && (vi ? `Đang giữ ${currentOwner.active} tasks — xem xét phân bổ lại. ` : `Holding ${currentOwner.active} tasks — consider rebalancing. `)}
                   {currentOwner.newThisWeek > 3 && (vi ? `${currentOwner.newThisWeek} task mới tuần này — check ưu tiên. ` : `${currentOwner.newThisWeek} new this week — check prioritization. `)}

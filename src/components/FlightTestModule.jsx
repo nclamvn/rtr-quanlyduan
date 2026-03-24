@@ -177,7 +177,7 @@ export default function FlightTestModule({ lang, t, project, issues, onViewIssue
               <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "6px 8px", marginBottom: 4, background: a.severity === "HIGH" ? "#EF444408" : "#F59E0B08", borderLeft: `3px solid ${a.severity === "HIGH" ? "#EF4444" : "#F59E0B"}`, borderRadius: "0 4px 4px 0" }}>
                 <span style={{ fontSize: 11, fontFamily: mono, color: "var(--text-dim)", flexShrink: 0, marginTop: 1 }}>{formatDuration(a.timestamp)}</span>
                 <div>
-                  <div style={{ fontSize: 13, color: a.severity === "HIGH" ? "#FCA5A5" : "#FDE68A" }}>
+                  <div style={{ fontSize: 13, color: a.severity === "HIGH" ? "#FCA5A5" : "#D97706" }}>
                     {lang === "vi" && a.descriptionVi ? a.descriptionVi : a.description}
                   </div>
                   <Badge label={a.severity} color={a.severity === "HIGH" ? "#EF4444" : "#F59E0B"} />

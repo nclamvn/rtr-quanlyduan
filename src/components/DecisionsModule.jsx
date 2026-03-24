@@ -182,7 +182,7 @@ export default function DecisionsModule({ lang, t, project, issues, onViewIssue,
                   <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
                     <div style={{ flex: 1, background: "var(--bg-input)", borderRadius: 4, padding: "8px 10px" }}>
                       <div style={{ fontSize: 11, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>{lang === "vi" ? "Ảnh hưởng" : "Impact"}</div>
-                      <div style={{ fontSize: 13, color: "#FDE68A" }}>
+                      <div style={{ fontSize: 13, color: "#D97706" }}>
                         {lang === "vi" && dec.impactDescriptionVi ? dec.impactDescriptionVi : dec.impactDescription}
                       </div>
                     </div>

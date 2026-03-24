@@ -316,7 +316,7 @@ export function ExecutiveSlides({ project, issues, lang, flightTests: flightTest
           })}
         </div>
         {cascadeIssues.length > 0 && (
-          <div style={{ background: "#F59E0B10", border: "1px solid #F59E0B30", borderRadius: 6, padding: 12, fontSize: 10, color: "#FDE68A" }}>
+          <div style={{ background: "#F59E0B10", border: "1px solid #F59E0B30", borderRadius: 6, padding: 12, fontSize: 10, color: "#D97706" }}>
             {vi ? "Cảnh báo: Cascade delays có thể ảnh hưởng mốc MP" : "Warning: Cascade delays may impact MP milestone"}
           </div>
         )}

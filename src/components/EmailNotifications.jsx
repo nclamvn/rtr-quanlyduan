@@ -414,7 +414,7 @@ export function NotificationToast({ message, type, onClose }) {
   const colors = {
     info: { bg: "#3B82F615", border: "#3B82F640", text: "#60A5FA", icon: Bell },
     email: { bg: "#8B5CF615", border: "#8B5CF640", text: "#A78BFA", icon: Send },
-    warning: { bg: "#F59E0B15", border: "#F59E0B40", text: "#FDE68A", icon: AlertTriangle },
+    warning: { bg: "#F59E0B15", border: "#F59E0B40", text: "#D97706", icon: AlertTriangle },
     success: { bg: "#10B98115", border: "#10B98140", text: "#6EE7B7", icon: Check },
   };
   const c = colors[type] || colors.info;

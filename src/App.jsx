@@ -393,6 +393,13 @@ export default function App() {
     };
   }, [issues, projects.length]);
 
+  // --- Computed metrics (must be before early returns to respect Rules of Hooks) ---
+  const allOpen = useMemo(() => issues.filter(i => i.status !== "CLOSED"), [issues]);
+  const allCrit = useMemo(() => issues.filter(i => i.sev === "CRITICAL" && i.status !== "CLOSED"), [issues]);
+  const allBlocked = useMemo(() => issues.filter(i => i.status === "BLOCKED"), [issues]);
+  const cascadeIssues = useMemo(() => issues.filter(i => i.status !== "CLOSED" && i.impacts?.length > 0), [issues]);
+  const draftIssues = useMemo(() => issues.filter(i => i.pid === selProject && i.status === "DRAFT"), [issues, selProject]);
+
   // Auth guard — loading spinner
   if (isLoading) {
     return (
@@ -407,13 +414,6 @@ export default function App() {
   if (showAuthModal) {
     return <LoginScreen onLogin={(user, selectedLang) => { setLang(selectedLang); audit.log("USER_LOGIN", "user", user.id, user.name, null, user.role, { _asUser: user }); setShowAuthModal(false); }} initialLang={lang} />;
   }
-
-  // --- Computed metrics ---
-  const allOpen = useMemo(() => issues.filter(i => i.status !== "CLOSED"), [issues]);
-  const allCrit = useMemo(() => issues.filter(i => i.sev === "CRITICAL" && i.status !== "CLOSED"), [issues]);
-  const allBlocked = useMemo(() => issues.filter(i => i.status === "BLOCKED"), [issues]);
-  const cascadeIssues = useMemo(() => issues.filter(i => i.status !== "CLOSED" && i.impacts?.length > 0), [issues]);
-  const draftIssues = useMemo(() => issues.filter(i => i.pid === selProject && i.status === "DRAFT"), [issues, selProject]);
 
   // --- Gate helpers ---
   const getGateProgress = (proj, phase) => {

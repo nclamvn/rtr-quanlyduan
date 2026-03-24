@@ -21,17 +21,17 @@ export class ErrorBoundary extends Component {
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', minHeight: '100vh', padding: '2rem',
-          fontFamily: 'system-ui, sans-serif', background: '#f9fafb',
+          fontFamily: 'system-ui, sans-serif', background: 'var(--bg-main, #f9fafb)',
         }}>
           <div style={{
-            background: 'white', borderRadius: '12px', padding: '2rem',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)', maxWidth: '480px',
-            textAlign: 'center',
+            background: 'var(--bg-card, white)', borderRadius: '12px', padding: '2rem',
+            boxShadow: '0 1px 3px var(--shadow-color, rgba(0,0,0,0.1))', maxWidth: '480px',
+            textAlign: 'center', border: '1px solid var(--border, #e5e7eb)',
           }}>
-            <h2 style={{ margin: '0 0 0.5rem', color: '#dc2626' }}>
+            <h2 style={{ margin: '0 0 0.5rem', color: '#EF4444' }}>
               Đã xảy ra lỗi / An error occurred
             </h2>
-            <p style={{ color: '#6b7280', margin: '0 0 1.5rem' }}>
+            <p style={{ color: 'var(--text-muted, #6b7280)', margin: '0 0 1.5rem' }}>
               Ứng dụng gặp sự cố không mong muốn. Vui lòng thử tải lại trang.<br />
               The application encountered an unexpected error. Please try reloading.
             </p>
@@ -40,8 +40,8 @@ export class ErrorBoundary extends Component {
                 onClick={() => window.location.reload()}
                 style={{
                   padding: '0.5rem 1.25rem', borderRadius: '8px',
-                  border: 'none', background: '#2563eb', color: 'white',
-                  cursor: 'pointer', fontWeight: 500,
+                  border: 'none', background: '#3B82F6', color: 'white',
+                  cursor: 'pointer', fontWeight: 600, fontSize: '14px',
                 }}
               >
                 Tải lại / Reload
@@ -50,7 +50,7 @@ export class ErrorBoundary extends Component {
                 onClick={() => this.setState({ hasError: false, error: null })}
                 style={{
                   padding: '0.5rem 1.25rem', borderRadius: '8px',
-                  border: '1px solid #d1d5db', background: 'white',
+                  border: '1px solid var(--border, #d1d5db)', background: 'var(--bg-card, white)',
                   cursor: 'pointer', fontWeight: 500,
                 }}
               >

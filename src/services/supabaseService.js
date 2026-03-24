@@ -49,4 +49,12 @@ export async function upsert(table, record) {
   return { data, error };
 }
 
+// Generic delete by ID
+export async function remove(table, id, idColumn = 'id') {
+  if (!isSupabaseConnected()) return { error: 'Offline mode' };
+  const { error } = await supabase.from(table).delete().eq(idColumn, id);
+  if (error) console.error(`Delete ${table} error:`, error);
+  return { error };
+}
+
 export { supabase, isSupabaseConnected };

@@ -10,6 +10,7 @@ import {
   Flame, Ban, Timer, Calendar, User, GitBranch,
   Search, Filter, ArrowUpDown, ExternalLink, Activity,
   TrendingUp, Zap, Eye, FileText,
+  BarChart3, Play, Pause, SkipForward, Table2, GanttChart, Mic,
 } from "lucide-react";
 import { PHASES, PHASE_COLORS, STATUS_COLORS, SEV_COLORS, mono, sans } from "../constants";
 import { useAIAdvisor } from "../hooks/useAIAdvisor";
@@ -81,10 +82,11 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
     } : null,
     lang
   );
+  const [viewMode, setViewMode] = useState("table"); // table | timeline | standup
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [sortCol, setSortCol] = useState("status"); // status | owner | due | updated
+  const [sortCol, setSortCol] = useState("status");
   const [sortDir, setSortDir] = useState("asc");
 
   // ── Normalize search for Vietnamese ──
@@ -583,7 +585,28 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
       {/* Cross-App MRP Widget */}
       <CrossAppWidget data={crossAppData} summary={crossAppSummary} loading={crossAppLoading} lang={lang} />
 
-      {/* Search + Filter Bar */}
+      {/* View Toggle + Search + Filter Bar */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        {/* View Mode Toggle */}
+        <div style={{ display: "flex", gap: 2, background: "var(--bg-input)", borderRadius: 6, padding: 2, border: "1px solid var(--border)" }}>
+          {[
+            { id: "table", icon: Table2, label: vi ? "Bảng" : "Table" },
+            { id: "timeline", icon: GanttChart, label: vi ? "Timeline" : "Timeline" },
+            { id: "standup", icon: Mic, label: "Standup" },
+          ].map(v => (
+            <button key={v.id} onClick={() => setViewMode(v.id)} style={{
+              background: viewMode === v.id ? "var(--bg-card)" : "transparent",
+              border: viewMode === v.id ? "1px solid var(--border)" : "1px solid transparent",
+              borderRadius: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600,
+              color: viewMode === v.id ? "var(--text-primary)" : "var(--text-faint)",
+              cursor: "pointer", display: "flex", alignItems: "center", gap: 4, fontFamily: sans,
+              boxShadow: viewMode === v.id ? "0 1px 2px var(--shadow-color)" : "none",
+            }}>
+              <v.icon size={12} /> {v.label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <div style={{ flex: 1, position: "relative" }}>
           <Search size={14} color="var(--text-faint)" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
@@ -617,8 +640,11 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
         </div>
       </div>
 
-      {/* Main Content: Table + Detail Panel */}
-      <div style={{ display: "flex", gap: 0, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", height: "calc(100vh - 280px)", minHeight: 400 }}>
+      {/* Main Content */}
+      {viewMode === "timeline" && <TimelineView grouped={grouped} projects={projects} vi={vi} onSelect={setSelectedIssue} />}
+      {viewMode === "standup" && <StandupView issues={filtered} enrichedIssues={enrichedIssues} teamMembers={teamMembers} vi={vi} lang={lang} onSelect={setSelectedIssue} />}
+      {viewMode === "table" && (
+      <div style={{ display: "flex", gap: 0, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", height: "calc(100vh - 320px)", minHeight: 400 }}>
         {/* Table */}
         <div style={{ flex: 1, overflowY: "auto", overflowX: "auto", minWidth: 0 }}>
           {/* Column Headers */}
@@ -653,6 +679,238 @@ export default function WorkplanDashboard({ issues, projects, lang, onNavigateIs
 
         {/* Detail Panel */}
         {selectedIssue && <DetailPanel issue={selectedIssue} />}
+      </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// TIMELINE / GANTT VIEW
+// ═══════════════════════════════════════════════════════════
+function TimelineView({ grouped, projects, vi, onSelect }) {
+  const today = new Date();
+  const startDate = new Date(today);
+  startDate.setMonth(startDate.getMonth() - 1);
+  const endDate = new Date(today);
+  endDate.setMonth(endDate.getMonth() + 5);
+  const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+
+  const dayToX = (dateStr) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    const diff = Math.ceil((d - startDate) / (1000 * 60 * 60 * 24));
+    return Math.max(0, Math.min(100, (diff / totalDays) * 100));
+  };
+
+  const todayX = dayToX(today.toISOString().split("T")[0]);
+
+  // Generate month labels
+  const months = [];
+  const d = new Date(startDate);
+  d.setDate(1);
+  while (d <= endDate) {
+    const x = dayToX(d.toISOString().split("T")[0]);
+    months.push({ label: d.toLocaleDateString(vi ? "vi-VN" : "en-US", { month: "short", year: "2-digit" }), x });
+    d.setMonth(d.getMonth() + 1);
+  }
+
+  return (
+    <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", height: "calc(100vh - 320px)", minHeight: 400 }}>
+      {/* Month header */}
+      <div style={{ position: "relative", height: 28, borderBottom: "1px solid var(--border)", background: "var(--bg-input)" }}>
+        {months.map((m, i) => (
+          <span key={i} style={{ position: "absolute", left: `${m.x}%`, fontSize: 10, color: "var(--text-dim)", fontFamily: mono, fontWeight: 600, top: 6, transform: "translateX(-50%)" }}>{m.label}</span>
+        ))}
+        {/* Today line */}
+        <div style={{ position: "absolute", left: `${todayX}%`, top: 0, bottom: 0, width: 2, background: "#EF4444", zIndex: 2 }} />
+      </div>
+
+      {/* Rows */}
+      <div style={{ overflowY: "auto", height: "calc(100% - 28px)" }}>
+        {grouped.map(group => (
+          <div key={group.id}>
+            {/* Group header */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", background: "var(--bg-input)", borderBottom: "1px solid var(--border)", position: "sticky", top: 0, zIndex: 1 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: PHASE_COLORS[group.phase] || "var(--text-primary)", fontFamily: sans }}>{group.name}</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: PHASE_COLORS[group.phase] || "var(--text-dim)", background: (PHASE_COLORS[group.phase] || "#666") + "15", padding: "1px 5px", borderRadius: 3, fontFamily: mono }}>{group.phase}</span>
+              <span style={{ fontSize: 10, color: "var(--text-faint)" }}>{group.issues.length}</span>
+            </div>
+
+            {/* Task bars */}
+            {group.issues.map(issue => {
+              const cfg = STATUS_CONFIG[issue._status] || STATUS_CONFIG.ON_TRACK;
+              const createdX = dayToX(issue.created);
+              const dueX = issue.due ? dayToX(issue.due) : dayToX(today.toISOString().split("T")[0]);
+              const barLeft = createdX != null ? createdX : 0;
+              const barWidth = Math.max(2, (dueX || barLeft + 5) - barLeft);
+
+              return (
+                <div key={issue.id} onClick={() => onSelect(issue)} style={{ display: "flex", alignItems: "center", height: 32, borderBottom: "1px solid var(--border-a10)", cursor: "pointer", position: "relative" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "var(--hover-bg-subtle)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  {/* Label */}
+                  <div style={{ width: 180, minWidth: 180, padding: "0 8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: 11, color: "var(--text-muted)", fontFamily: sans }}>
+                    {vi && issue.titleVi ? issue.titleVi : issue.title}
+                  </div>
+                  {/* Bar area */}
+                  <div style={{ flex: 1, position: "relative", height: "100%" }}>
+                    {/* Today line */}
+                    <div style={{ position: "absolute", left: `${todayX}%`, top: 0, bottom: 0, width: 1, background: "#EF444440" }} />
+                    {/* Bar */}
+                    <div style={{
+                      position: "absolute", top: 6, height: 18, borderRadius: 4,
+                      left: `${barLeft}%`, width: `${barWidth}%`, minWidth: 8,
+                      background: `${cfg.color}30`, border: `1px solid ${cfg.color}50`,
+                    }}>
+                      {/* Progress fill */}
+                      {issue.status === "CLOSED" && (
+                        <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "100%", background: `${cfg.color}50`, borderRadius: 3 }} />
+                      )}
+                      {/* Owner label inside bar */}
+                      <span style={{ position: "absolute", left: 4, top: 1, fontSize: 9, color: cfg.color, fontWeight: 600, fontFamily: sans, whiteSpace: "nowrap" }}>
+                        {issue.owner?.split(" ").pop() || ""}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// STANDUP MEETING MODE
+// ═══════════════════════════════════════════════════════════
+function StandupView({ issues, enrichedIssues, teamMembers, vi, lang, onSelect }) {
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [timerSec, setTimerSec] = useState(900); // 15 min
+  const [running, setRunning] = useState(false);
+
+  // Timer
+  useEffect(() => {
+    if (!running || timerSec <= 0) return;
+    const t = setInterval(() => setTimerSec(s => s - 1), 1000);
+    return () => clearInterval(t);
+  }, [running, timerSec]);
+
+  // Group by owner
+  const owners = useMemo(() => {
+    const map = {};
+    for (const issue of enrichedIssues) {
+      const owner = issue.owner || (vi ? "Chưa phân công" : "Unassigned");
+      if (!map[owner]) map[owner] = { name: owner, issues: [], active: 0, blocked: 0, newThisWeek: 0 };
+      map[owner].issues.push(issue);
+      if (issue._status !== "DONE") map[owner].active++;
+      if (issue._status === "BLOCKED" || issue._status === "CRITICAL") map[owner].blocked++;
+      const created = new Date(issue.created);
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      if (created > weekAgo) map[owner].newThisWeek++;
+    }
+    return Object.values(map).sort((a, b) => b.active - a.active);
+  }, [enrichedIssues, vi]);
+
+  const currentOwner = owners[currentIdx] || owners[0];
+  const timerMin = Math.floor(timerSec / 60);
+  const timerS = timerSec % 60;
+  const timerColor = timerSec < 60 ? "#EF4444" : timerSec < 180 ? "#F59E0B" : "var(--text-muted)";
+
+  return (
+    <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", height: "calc(100vh - 320px)", minHeight: 400, display: "flex" }}>
+      {/* Left: Owner list */}
+      <div style={{ width: 220, minWidth: 220, borderRight: "1px solid var(--border)", overflowY: "auto" }}>
+        {/* Timer bar */}
+        <div style={{ padding: "10px 12px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
+          <button onClick={() => setRunning(!running)} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 4, padding: "4px 8px", cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 3, fontSize: 10, fontFamily: sans }}>
+            {running ? <Pause size={10} /> : <Play size={10} />}
+            {running ? "Pause" : "Start"}
+          </button>
+          <span style={{ fontSize: 18, fontWeight: 800, color: timerColor, fontFamily: mono }}>{String(timerMin).padStart(2, "0")}:{String(timerS).padStart(2, "0")}</span>
+          <button onClick={() => { setCurrentIdx(i => Math.min(i + 1, owners.length - 1)); }} style={{ marginLeft: "auto", background: "#1D4ED8", border: "none", borderRadius: 4, padding: "4px 8px", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", gap: 3, fontSize: 10, fontFamily: sans, fontWeight: 600 }}>
+            <SkipForward size={10} /> Next
+          </button>
+        </div>
+
+        {/* Owner cards */}
+        {owners.map((o, i) => (
+          <div key={o.name} onClick={() => setCurrentIdx(i)} style={{
+            padding: "8px 12px", cursor: "pointer", borderBottom: "1px solid var(--border-a10)",
+            background: i === currentIdx ? "var(--hover-bg)" : "transparent",
+            borderLeft: i === currentIdx ? "3px solid #3B82F6" : "3px solid transparent",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 13, fontWeight: i === currentIdx ? 700 : 500, color: i === currentIdx ? "var(--text-primary)" : "var(--text-muted)", fontFamily: sans }}>{o.name}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: o.blocked > 0 ? "#EF4444" : "var(--text-faint)", fontFamily: mono }}>{o.active}</span>
+            </div>
+            {o.blocked > 0 && <span style={{ fontSize: 9, color: "#EF4444", fontFamily: mono }}>{o.blocked} blocked</span>}
+            {o.newThisWeek > 0 && <span style={{ fontSize: 9, color: "#3B82F6", fontFamily: mono, marginLeft: 6 }}>+{o.newThisWeek} new</span>}
+          </div>
+        ))}
+      </div>
+
+      {/* Right: Current person's tasks */}
+      <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+        {currentOwner && (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#3B82F615", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: "#3B82F6", fontFamily: mono }}>
+                {currentOwner.name[0]}
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-primary)", fontFamily: sans }}>{currentOwner.name}</div>
+                <div style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: sans }}>
+                  {currentOwner.active} {vi ? "đang mở" : "active"} · {currentOwner.blocked} {vi ? "bị chặn" : "blocked"} · {currentOwner.newThisWeek} {vi ? "mới tuần này" : "new this week"}
+                </div>
+              </div>
+            </div>
+
+            {/* AI suggestion */}
+            {(currentOwner.blocked > 0 || currentOwner.active > 8 || currentOwner.newThisWeek > 3) && (
+              <div style={{ background: "#8B5CF608", border: "1px solid #8B5CF625", borderRadius: 6, padding: "8px 12px", marginBottom: 12, display: "flex", gap: 6, alignItems: "flex-start" }}>
+                <Zap size={12} color="#8B5CF6" style={{ marginTop: 2, flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: "#A78BFA", fontFamily: sans, lineHeight: 1.4 }}>
+                  {currentOwner.blocked > 0 && (vi ? `${currentOwner.blocked} task bị chặn — hỏi cần hỗ trợ gì để unblock. ` : `${currentOwner.blocked} blocked tasks — ask what's needed to unblock. `)}
+                  {currentOwner.active > 8 && (vi ? `Đang giữ ${currentOwner.active} tasks — xem xét phân bổ lại. ` : `Holding ${currentOwner.active} tasks — consider rebalancing. `)}
+                  {currentOwner.newThisWeek > 3 && (vi ? `${currentOwner.newThisWeek} task mới tuần này — check ưu tiên. ` : `${currentOwner.newThisWeek} new this week — check prioritization. `)}
+                </span>
+              </div>
+            )}
+
+            {/* Task list grouped by status */}
+            {["BLOCKED", "CRITICAL", "IN_PROGRESS", "OPEN", "DRAFT"].map(status => {
+              const items = currentOwner.issues.filter(i => i.status === status);
+              if (items.length === 0) return null;
+              const statusCfg = STATUS_CONFIG[status === "CRITICAL" ? "CRITICAL" : status === "BLOCKED" ? "BLOCKED" : "ON_TRACK"] || STATUS_CONFIG.ON_TRACK;
+              return (
+                <div key={status} style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: statusCfg.color, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4, fontFamily: sans }}>{status.replace("_", " ")} ({items.length})</div>
+                  {items.map(issue => (
+                    <div key={issue.id} onClick={() => onSelect(issue)} style={{
+                      padding: "6px 10px", borderLeft: `3px solid ${statusCfg.color}`, marginBottom: 3,
+                      borderRadius: "0 4px 4px 0", background: "var(--bg-input)", cursor: "pointer",
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.background = "var(--hover-bg)"}
+                      onMouseLeave={e => e.currentTarget.style.background = "var(--bg-input)"}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", fontFamily: sans }}>{vi && issue.titleVi ? issue.titleVi : issue.title}</div>
+                      <div style={{ fontSize: 10, color: "var(--text-faint)", fontFamily: mono }}>{issue.id} · {issue.phase} · {issue.due || "no due"}</div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+
+            {/* Done tasks (collapsed) */}
+            {currentOwner.issues.filter(i => i.status === "CLOSED").length > 0 && (
+              <div style={{ fontSize: 10, color: "var(--text-faint)", fontFamily: sans, marginTop: 8 }}>
+                ✓ {currentOwner.issues.filter(i => i.status === "CLOSED").length} {vi ? "đã hoàn thành" : "completed"}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

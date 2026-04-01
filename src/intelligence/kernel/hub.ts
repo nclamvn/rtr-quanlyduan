@@ -3,34 +3,28 @@
  * Adapted for client-side use (no ingestion adapters)
  */
 
-import {
-  type Signal,
-  type SignalInput,
-  type SignalStore,
-  createSignal,
-  InMemorySignalStore,
-} from './signal';
-import type { DomainConfig } from './config';
-import { validateDomainConfig } from './config';
-import { ConvergenceDetector, type ConvergenceAlert } from './convergence';
-import { AnomalyDetector, type AnomalyResult } from './anomaly';
-import { ScoringEngine, type IndexScore } from './scoring';
-import { ClassificationEngine, type ClassificationResult } from './classification';
-import { FreshnessTracker, type FreshnessSummary } from './freshness';
-import { RelationshipDetector, type IssueInput, type ScanResult } from './relationship';
+import { type Signal, type SignalInput, type SignalStore, createSignal, InMemorySignalStore } from "./signal";
+import type { DomainConfig } from "./config";
+import { validateDomainConfig } from "./config";
+import { ConvergenceDetector, type ConvergenceAlert } from "./convergence";
+import { AnomalyDetector, type AnomalyResult } from "./anomaly";
+import { ScoringEngine, type IndexScore } from "./scoring";
+import { ClassificationEngine, type ClassificationResult } from "./classification";
+import { FreshnessTracker, type FreshnessSummary } from "./freshness";
+import { RelationshipDetector, type IssueInput, type ScanResult } from "./relationship";
 
 // ─── Hub Events ──────────────────────────────────────────────────────
 
 export type HubEvent =
-  | { type: 'signal_ingested'; signal: Signal }
-  | { type: 'signal_reclassified'; signal: Signal; previous: ClassificationResult }
-  | { type: 'convergence_detected'; alert: ConvergenceAlert }
-  | { type: 'anomaly_detected'; anomaly: AnomalyResult }
-  | { type: 'index_updated'; scores: IndexScore[] }
-  | { type: 'source_error'; sourceId: string; error: string }
-  | { type: 'source_recovered'; sourceId: string }
-  | { type: 'freshness_changed'; summary: FreshnessSummary }
-  | { type: 'scan_completed'; result: ScanResult };
+  | { type: "signal_ingested"; signal: Signal }
+  | { type: "signal_reclassified"; signal: Signal; previous: ClassificationResult }
+  | { type: "convergence_detected"; alert: ConvergenceAlert }
+  | { type: "anomaly_detected"; anomaly: AnomalyResult }
+  | { type: "index_updated"; scores: IndexScore[] }
+  | { type: "source_error"; sourceId: string; error: string }
+  | { type: "source_recovered"; sourceId: string }
+  | { type: "freshness_changed"; summary: FreshnessSummary }
+  | { type: "scan_completed"; result: ScanResult };
 
 export type HubEventHandler = (event: HubEvent) => void;
 
@@ -66,7 +60,7 @@ export class SignalHub {
   constructor(config: DomainConfig, store?: SignalStore) {
     const errors = validateDomainConfig(config);
     if (errors.length > 0) {
-      const messages = errors.map((e) => `  ${e.path}: ${e.message}`).join('\n');
+      const messages = errors.map((e) => `  ${e.path}: ${e.message}`).join("\n");
       throw new Error(`Invalid domain config:\n${messages}`);
     }
 
@@ -103,7 +97,7 @@ export class SignalHub {
       try {
         handler(event);
       } catch (e) {
-        console.error('[SignalHub] Event handler error:', e);
+        console.error("[SignalHub] Event handler error:", e);
       }
     }
   }
@@ -118,7 +112,8 @@ export class SignalHub {
     this.scoringTimer = setInterval(() => this.runScoring(), 2 * 60 * 1000);
     this.pruneTimer = setInterval(() => this.runPrune(), 10 * 60 * 1000);
 
-    if (import.meta.env.DEV) console.log(`[SignalHub] Started domain "${this.config.name}" with ${this.config.sources.length} sources`);
+    if (import.meta.env.DEV)
+      console.log(`[SignalHub] Started domain "${this.config.name}" with ${this.config.sources.length} sources`);
   }
 
   stop(): void {
@@ -139,7 +134,7 @@ export class SignalHub {
       severity: ruleResult.severity,
       categories: ruleResult.categories,
       confidence: ruleResult.confidence,
-      classifiedBy: ruleResult.source as Signal['classifiedBy'],
+      classifiedBy: ruleResult.source as Signal["classifiedBy"],
     };
 
     const signal = createSignal(classifiedInput);
@@ -147,13 +142,13 @@ export class SignalHub {
 
     const convergenceAlerts = this.convergence.ingest(signal);
     for (const alert of convergenceAlerts) {
-      this.emit({ type: 'convergence_detected', alert });
+      this.emit({ type: "convergence_detected", alert });
     }
 
     this.anomaly.record(signal);
     this.freshness.recordSuccess(signal.sourceId, 1);
 
-    this.emit({ type: 'signal_ingested', signal });
+    this.emit({ type: "signal_ingested", signal });
 
     return signal;
   }
@@ -164,7 +159,7 @@ export class SignalHub {
 
   recordSourceError(sourceId: string, error: string): void {
     this.freshness.recordError(sourceId, error);
-    this.emit({ type: 'source_error', sourceId, error });
+    this.emit({ type: "source_error", sourceId, error });
   }
 
   // ── Query API ──────────────────────────────────────────────────────
@@ -175,14 +170,12 @@ export class SignalHub {
       signalCount: this.store.count(),
       activeConvergences: this.convergence.getActiveConvergences(),
       latestAnomalies: this.latestAnomalies,
-      indexScores: new Map(
-        this.config.indexes.map((idx) => [idx.id, this.scoring.computeAll(idx.id, this.store)]),
-      ),
+      indexScores: new Map(this.config.indexes.map((idx) => [idx.id, this.scoring.computeAll(idx.id, this.store)])),
       freshness: this.freshness.getSummary(),
     };
   }
 
-  querySignals(filter: Parameters<SignalStore['query']>[0]): Signal[] {
+  querySignals(filter: Parameters<SignalStore["query"]>[0]): Signal[] {
     return this.store.query(filter);
   }
 
@@ -219,15 +212,21 @@ export class SignalHub {
   /** Scan issues for relationships and clusters */
   scanRelationships(issues: IssueInput[]): ScanResult {
     const result = this.relationship.scan(issues);
-    this.emit({ type: 'scan_completed', result });
+    this.emit({ type: "scan_completed", result });
     return result;
   }
 
   // ── Accessors ──────────────────────────────────────────────────────
 
-  get domainId(): string { return this.config.id; }
-  get domainName(): string { return this.config.name; }
-  get signalStore(): SignalStore { return this.store; }
+  get domainId(): string {
+    return this.config.id;
+  }
+  get domainName(): string {
+    return this.config.name;
+  }
+  get signalStore(): SignalStore {
+    return this.store;
+  }
 
   // ── Periodic Tasks ─────────────────────────────────────────────────
 
@@ -235,7 +234,7 @@ export class SignalHub {
     const anomalies = this.anomaly.checkAndFlush();
     this.latestAnomalies = anomalies;
     for (const anomaly of anomalies) {
-      this.emit({ type: 'anomaly_detected', anomaly });
+      this.emit({ type: "anomaly_detected", anomaly });
     }
     return anomalies;
   }
@@ -243,7 +242,7 @@ export class SignalHub {
   private runScoring(): void {
     for (const indexConfig of this.config.indexes) {
       const scores = this.scoring.computeAll(indexConfig.id, this.store);
-      this.emit({ type: 'index_updated', scores });
+      this.emit({ type: "index_updated", scores });
     }
   }
 

@@ -5,9 +5,9 @@
  * Pass 3: Union-find clustering → InsightCluster[]
  */
 
-import { extractKeywords, type KeywordResult } from './keywords';
-import type { Severity } from './signal';
-import { SEVERITY_PRIORITY, maxSeverity } from './signal';
+import { extractKeywords, type KeywordResult } from "./keywords";
+import type { Severity } from "./signal";
+import { SEVERITY_PRIORITY, maxSeverity } from "./signal";
 
 // ─── Types ───────────────────────────────────────────────────────────
 
@@ -54,10 +54,10 @@ export interface ScanResult {
 
 const WEIGHTS = {
   componentMatch: 0.35,
-  keywordOverlap: 0.30,
-  ownerMatch: 0.10,
-  phaseMatch: 0.10,
-  severityAlignment: 0.10,
+  keywordOverlap: 0.3,
+  ownerMatch: 0.1,
+  phaseMatch: 0.1,
+  severityAlignment: 0.1,
   projectMatch: 0.05,
 } as const;
 
@@ -175,7 +175,7 @@ export class RelationshipDetector {
     }
 
     for (const pairKey of candidatePairs) {
-      const [idA, idB] = pairKey.split('|');
+      const [idA, idB] = pairKey.split("|");
       const issueA = issueMap.get(idA)!;
       const issueB = issueMap.get(idB)!;
       const kwA = keywordMap.get(idA)!;
@@ -197,20 +197,18 @@ export class RelationshipDetector {
     for (const [, memberIds] of groups) {
       if (memberIds.length < 2) continue;
 
-      const clusterIssues = memberIds.map(id => issueMap.get(id)!);
-      const clusterEdges = edges.filter(e =>
-        memberIds.includes(e.issueA) && memberIds.includes(e.issueB)
-      );
+      const clusterIssues = memberIds.map((id) => issueMap.get(id)!);
+      const clusterEdges = edges.filter((e) => memberIds.includes(e.issueA) && memberIds.includes(e.issueB));
 
       // Aggregate shared dimensions
-      const allKw = memberIds.map(id => keywordMap.get(id)!);
-      const sharedComponents = this.findShared(allKw.map(k => k.components));
-      const sharedPhases = this.findShared(allKw.map(k => k.phases));
-      const sharedOwners = this.findSharedField(clusterIssues, 'owner');
-      const sharedProjects = this.findSharedField(clusterIssues, 'project');
+      const allKw = memberIds.map((id) => keywordMap.get(id)!);
+      const sharedComponents = this.findShared(allKw.map((k) => k.components));
+      const sharedPhases = this.findShared(allKw.map((k) => k.phases));
+      const sharedOwners = this.findSharedField(clusterIssues, "owner");
+      const sharedProjects = this.findSharedField(clusterIssues, "project");
 
       // Determine cluster severity (max of all issues)
-      let severity: Severity = 'info';
+      let severity: Severity = "info";
       for (const issue of clusterIssues) {
         if (issue.severity) {
           severity = maxSeverity(severity, issue.severity);
@@ -226,7 +224,13 @@ export class RelationshipDetector {
         sharedPhases,
         sharedOwners,
         sharedProjects,
-        explanation: this.generateExplanation(clusterIssues, sharedComponents, sharedOwners, sharedProjects, sharedPhases),
+        explanation: this.generateExplanation(
+          clusterIssues,
+          sharedComponents,
+          sharedOwners,
+          sharedProjects,
+          sharedPhases,
+        ),
         recommendation: this.generateRecommendation(clusterIssues, clusterEdges, severity),
       };
 
@@ -253,8 +257,10 @@ export class RelationshipDetector {
   // ── Pairwise Scoring ───────────────────────────────────────────────
 
   private scorePair(
-    a: IssueInput, b: IssueInput,
-    kwA: KeywordResult, kwB: KeywordResult,
+    a: IssueInput,
+    b: IssueInput,
+    kwA: KeywordResult,
+    kwB: KeywordResult,
   ): { score: number; reasons: string[] } {
     let score = 0;
     const reasons: string[] = [];
@@ -263,7 +269,7 @@ export class RelationshipDetector {
     const compOverlap = this.setIntersection(kwA.components, kwB.components);
     if (compOverlap.length > 0) {
       score += WEIGHTS.componentMatch;
-      reasons.push(`component: ${compOverlap.join(', ')}`);
+      reasons.push(`component: ${compOverlap.join(", ")}`);
     }
     // Also check explicit component field
     if (a.component && b.component && a.component === b.component && compOverlap.length === 0) {
@@ -279,7 +285,7 @@ export class RelationshipDetector {
       if (jaccard > 0.1) {
         score += WEIGHTS.keywordOverlap * Math.min(1, jaccard * 3); // scale up, cap at 1
         if (kwIntersect.length > 0) {
-          reasons.push(`keywords: ${kwIntersect.slice(0, 5).join(', ')}`);
+          reasons.push(`keywords: ${kwIntersect.slice(0, 5).join(", ")}`);
         }
       }
     }
@@ -294,11 +300,11 @@ export class RelationshipDetector {
     const phaseOverlap = this.setIntersection(kwA.phases, kwB.phases);
     if (phaseOverlap.length > 0 || (a.phase && b.phase && a.phase === b.phase)) {
       score += WEIGHTS.phaseMatch;
-      reasons.push(`phase: ${phaseOverlap.join(', ') || a.phase}`);
+      reasons.push(`phase: ${phaseOverlap.join(", ") || a.phase}`);
     }
 
     // Severity alignment (0.10)
-    if (a.severity && b.severity && a.severity === b.severity && a.severity !== 'info') {
+    if (a.severity && b.severity && a.severity === b.severity && a.severity !== "info") {
       score += WEIGHTS.severityAlignment;
       reasons.push(`severity: ${a.severity}`);
     }
@@ -316,7 +322,7 @@ export class RelationshipDetector {
 
   private setIntersection(a: string[], b: string[]): string[] {
     const setB = new Set(b);
-    return a.filter(x => setB.has(x));
+    return a.filter((x) => setB.has(x));
   }
 
   private findShared(arrays: string[][]): string[] {
@@ -338,7 +344,7 @@ export class RelationshipDetector {
     const counts = new Map<string, number>();
     for (const issue of issues) {
       const val = issue[field];
-      if (typeof val === 'string' && val) {
+      if (typeof val === "string" && val) {
         counts.set(val, (counts.get(val) || 0) + 1);
       }
     }
@@ -361,24 +367,24 @@ export class RelationshipDetector {
     const parts_en: string[] = [];
 
     if (components.length > 0) {
-      parts_vi.push(`component ${components.join(', ')}`);
-      parts_en.push(`component ${components.join(', ')}`);
+      parts_vi.push(`component ${components.join(", ")}`);
+      parts_en.push(`component ${components.join(", ")}`);
     }
     if (owners.length > 0) {
-      parts_vi.push(`owner ${owners.join(', ')}`);
-      parts_en.push(`owner ${owners.join(', ')}`);
+      parts_vi.push(`owner ${owners.join(", ")}`);
+      parts_en.push(`owner ${owners.join(", ")}`);
     }
     if (projects.length > 0) {
-      parts_vi.push(`dự án ${projects.join(', ')}`);
-      parts_en.push(`project ${projects.join(', ')}`);
+      parts_vi.push(`dự án ${projects.join(", ")}`);
+      parts_en.push(`project ${projects.join(", ")}`);
     }
     if (phases.length > 0) {
-      parts_vi.push(`giai đoạn ${phases.join(', ')}`);
-      parts_en.push(`phase ${phases.join(', ')}`);
+      parts_vi.push(`giai đoạn ${phases.join(", ")}`);
+      parts_en.push(`phase ${phases.join(", ")}`);
     }
 
-    const via_vi = parts_vi.length > 0 ? ` qua ${parts_vi.join(' và ')}` : '';
-    const via_en = parts_en.length > 0 ? ` via ${parts_en.join(' and ')}` : '';
+    const via_vi = parts_vi.length > 0 ? ` qua ${parts_vi.join(" và ")}` : "";
+    const via_en = parts_en.length > 0 ? ` via ${parts_en.join(" and ")}` : "";
 
     return {
       vi: `${count} issues liên quan${via_vi}`,
@@ -398,7 +404,7 @@ export class RelationshipDetector {
       connectionCount.set(edge.issueB, (connectionCount.get(edge.issueB) || 0) + 1);
     }
 
-    let topIssueId = '';
+    let topIssueId = "";
     let topCount = 0;
     for (const [id, count] of connectionCount) {
       if (count > topCount) {
@@ -407,20 +413,18 @@ export class RelationshipDetector {
       }
     }
 
-    const topIssue = issues.find(i => i.id === topIssueId);
+    const topIssue = issues.find((i) => i.id === topIssueId);
     const othersCount = issues.length - 1;
 
     if (topIssue && topCount >= 2) {
-      const titleShort = topIssue.title.length > 40
-        ? topIssue.title.slice(0, 40) + '...'
-        : topIssue.title;
+      const titleShort = topIssue.title.length > 40 ? topIssue.title.slice(0, 40) + "..." : topIssue.title;
       return {
         vi: `Giải quyết "${titleShort}" trước sẽ mở khóa ${othersCount} issues khác`,
         en: `Resolving "${titleShort}" first will unblock ${othersCount} other issues`,
       };
     }
 
-    if (severity === 'critical' || severity === 'high') {
+    if (severity === "critical" || severity === "high") {
       return {
         vi: `Nhóm ${issues.length} issues có mức độ ${severity} — cần xử lý đồng thời`,
         en: `Group of ${issues.length} ${severity} issues — address simultaneously`,

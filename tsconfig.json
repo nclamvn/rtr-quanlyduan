@@ -8,8 +8,9 @@
     "skipLibCheck": true,
     "jsx": "react-jsx",
     "esModuleInterop": true,
-    "allowJs": false,
-    "types": ["vite/client"]
+    "allowJs": true,
+    "checkJs": false,
+    "types": ["vite/client", "vitest/globals"]
   },
-  "include": ["src/intelligence/**/*.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

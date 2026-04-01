@@ -2,11 +2,11 @@
  * SignalHub Kernel — Domain Configuration Schema
  */
 
-import type { Severity } from './signal';
-import type { ConvergenceSpaceConfig } from './convergence';
-import type { AnomalyConfig } from './anomaly';
-import type { IndexConfig } from './scoring';
-import type { ClassificationRule } from './classification';
+import type { Severity } from "./signal";
+import type { ConvergenceSpaceConfig } from "./convergence";
+import type { AnomalyConfig } from "./anomaly";
+import type { IndexConfig } from "./scoring";
+import type { ClassificationRule } from "./classification";
 
 // ─── Top-level Config ────────────────────────────────────────────────
 
@@ -56,8 +56,8 @@ export interface ValidationError {
 export function validateDomainConfig(config: DomainConfig): ValidationError[] {
   const errors: ValidationError[] = [];
 
-  if (!config.id) errors.push({ path: 'id', message: 'Domain ID is required' });
-  if (!config.name) errors.push({ path: 'name', message: 'Domain name is required' });
+  if (!config.id) errors.push({ path: "id", message: "Domain ID is required" });
+  if (!config.name) errors.push({ path: "name", message: "Domain name is required" });
 
   const sourceIds = new Set<string>();
   for (let i = 0; i < config.sources.length; i++) {
@@ -67,7 +67,7 @@ export function validateDomainConfig(config: DomainConfig): ValidationError[] {
     }
     sourceIds.add(src.id);
     if (src.signalTypes.length === 0) {
-      errors.push({ path: `sources[${i}].signalTypes`, message: 'Must produce at least one signal type' });
+      errors.push({ path: `sources[${i}].signalTypes`, message: "Must produce at least one signal type" });
     }
   }
 
@@ -87,7 +87,7 @@ export function validateDomainConfig(config: DomainConfig): ValidationError[] {
     if (space.dimensionKeys.length === 0) {
       errors.push({
         path: `convergence.spaces[${i}].dimensionKeys`,
-        message: 'Must specify at least one dimension key',
+        message: "Must specify at least one dimension key",
       });
     }
   }
@@ -100,11 +100,11 @@ export function createMinimalConfig(id: string, name: string): DomainConfig {
     id,
     name,
     description: `${name} domain configuration`,
-    version: '1.0.0',
+    version: "1.0.0",
     sources: [],
     classification: { rules: [] },
     anomaly: {
-      baselineDimensions: [['signalType']],
+      baselineDimensions: [["signalType"]],
       thresholds: { low: 1.5, medium: 2.0, high: 2.5, critical: 3.0 },
       minSamples: 10,
       windowDays: 90,

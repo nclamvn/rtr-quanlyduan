@@ -1,28 +1,28 @@
-import { query, insert, update } from './supabaseService';
-import { supabase, isSupabaseConnected } from '../lib/supabase';
+import { query, insert, update } from "./supabaseService";
+import { supabase, isSupabaseConnected } from "../lib/supabase";
 
 export async function fetchIssues(projectId = null, limit = 500) {
   const options = {
-    select: '*, issue_impacts(*), issue_updates(*)',
-    order: { column: 'created_at', asc: false },
+    select: "*, issue_impacts(*), issue_updates(*)",
+    order: { column: "created_at", asc: false },
     limit,
   };
   if (projectId) options.eq = { project_id: projectId };
-  return query('issues', options);
+  return query("issues", options);
 }
 
 export async function fetchIssueById(issueId) {
-  if (!isSupabaseConnected()) return { data: null, error: 'Offline' };
+  if (!isSupabaseConnected()) return { data: null, error: "Offline" };
   const { data, error } = await supabase
-    .from('issues')
-    .select('*, issue_impacts(*), issue_updates(*)')
-    .eq('id', issueId)
+    .from("issues")
+    .select("*, issue_impacts(*), issue_updates(*)")
+    .eq("id", issueId)
     .single();
   return { data, error };
 }
 
 export async function createIssue(issueData) {
-  if (!isSupabaseConnected()) return { data: null, error: 'Offline' };
+  if (!isSupabaseConnected()) return { data: null, error: "Offline" };
 
   // Generate unique ID using timestamp + random suffix to avoid race conditions
   const ts = Date.now().toString(36);
@@ -36,7 +36,7 @@ export async function createIssue(issueData) {
     title_vi: issueData.titleVi,
     description: issueData.description || issueData.desc,
     severity: issueData.severity || issueData.sev,
-    source: issueData.source || issueData.src || 'INTERNAL',
+    source: issueData.source || issueData.src || "INTERNAL",
     status: issueData.status,
     owner_id: issueData.ownerId || null,
     owner_name: issueData.ownerName || issueData.owner,
@@ -47,18 +47,18 @@ export async function createIssue(issueData) {
     created_by_name: issueData.createdByName,
   };
 
-  const result = await insert('issues', record);
+  const result = await insert("issues", record);
 
   // Insert impacts if provided
   if (issueData.impacts?.length && result.data) {
-    const impacts = issueData.impacts.map(imp => ({
+    const impacts = issueData.impacts.map((imp) => ({
       issue_id: newId,
       affected_phase: imp.phase,
-      delay_weeks: imp.days ? Math.ceil(imp.days / 7) : (imp.delay_weeks || 0),
+      delay_weeks: imp.days ? Math.ceil(imp.days / 7) : imp.delay_weeks || 0,
       description: imp.desc || imp.description,
       description_vi: imp.descVi || imp.description_vi,
     }));
-    await supabase.from('issue_impacts').insert(impacts);
+    await supabase.from("issue_impacts").insert(impacts);
   }
 
   return result;
@@ -66,12 +66,12 @@ export async function createIssue(issueData) {
 
 export async function updateIssueStatus(issueId, newStatus) {
   const updates = { status: newStatus };
-  if (newStatus === 'CLOSED') updates.closed_at = new Date().toISOString();
-  return update('issues', issueId, updates);
+  if (newStatus === "CLOSED") updates.closed_at = new Date().toISOString();
+  return update("issues", issueId, updates);
 }
 
 export async function addIssueUpdate(issueId, content, authorId, authorName) {
-  return insert('issue_updates', {
+  return insert("issue_updates", {
     issue_id: issueId,
     author_id: authorId || null,
     author_name: authorName,

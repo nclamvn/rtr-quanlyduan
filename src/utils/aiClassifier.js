@@ -1,15 +1,17 @@
 // ═══ AI Sheet Classifier — Auto-detect data type from Excel sheet headers & content ═══
-import { HEADER_ALIASES, IMPORT_TYPE_FIELDS, autoMatchColumn, mapEnumValue } from './importExport';
+import { HEADER_ALIASES, IMPORT_TYPE_FIELDS, autoMatchColumn, mapEnumValue } from "./importExport";
 
 /**
  * Detect if a sheet is a workplan/Gantt (col0=id, col1=tasks, col2=owner, rest=dates/updates)
  */
-function detectWorkplan(headers, rawData) {
+function detectWorkplan(headers, _rawData) {
   if (headers.length < 5) return false;
-  const h = headers.map(h => (h || "").toLowerCase());
+  const h = headers.map((h) => (h || "").toLowerCase());
   // Check for "tasks" or "responsible" in first 3 columns
-  const hasTaskCol = h.slice(0, 3).some(x => x.includes("task") || x.includes("việc") || x.includes("công việc"));
-  const hasOwnerCol = h.slice(0, 4).some(x => x.includes("responsible") || x.includes("owner") || x.includes("party") || x.includes("phụ trách"));
+  const hasTaskCol = h.slice(0, 3).some((x) => x.includes("task") || x.includes("việc") || x.includes("công việc"));
+  const hasOwnerCol = h
+    .slice(0, 4)
+    .some((x) => x.includes("responsible") || x.includes("owner") || x.includes("party") || x.includes("phụ trách"));
   // Check if many columns are dates (numeric serial or date strings)
   let dateCols = 0;
   for (let j = 3; j < Math.min(headers.length, 20); j++) {
@@ -17,9 +19,14 @@ function detectWorkplan(headers, rawData) {
     if (!val) continue;
     // Excel date serial numbers (40000-50000 range) or date strings
     if (typeof val === "number" && val > 40000 && val < 55000) dateCols++;
-    else if (String(val).match(/\d{4}[-/]\d{1,2}[-/]\d{1,2}|mon|tue|wed|thu|fri|sat|sun|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i)) dateCols++;
+    else if (
+      String(val).match(
+        /\d{4}[-/]\d{1,2}[-/]\d{1,2}|mon|tue|wed|thu|fri|sat|sun|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i,
+      )
+    )
+      dateCols++;
   }
-  return (hasTaskCol || hasOwnerCol) || dateCols > 3;
+  return hasTaskCol || hasOwnerCol || dateCols > 3;
 }
 
 /**
@@ -27,21 +34,32 @@ function detectWorkplan(headers, rawData) {
  * @returns {Array<Object>} mapped rows with title, owner, description, status
  */
 function extractWorkplanRows(rawData, projectId) {
-  const headers = (rawData[0] || []).map(h => String(h || "").trim());
+  const headers = (rawData[0] || []).map((h) => String(h || "").trim());
   const rows = [];
 
   // Determine column indices
   let taskIdx = 1; // default: col B
   let ownerIdx = 2; // default: col C
-  const hLower = headers.map(h => h.toLowerCase());
+  const hLower = headers.map((h) => h.toLowerCase());
 
   // Find task column
   for (let j = 0; j < Math.min(hLower.length, 4); j++) {
-    if (hLower[j].includes("task") || hLower[j].includes("việc")) { taskIdx = j; break; }
+    if (hLower[j].includes("task") || hLower[j].includes("việc")) {
+      taskIdx = j;
+      break;
+    }
   }
   // Find owner column
   for (let j = 0; j < Math.min(hLower.length, 5); j++) {
-    if (hLower[j].includes("responsible") || hLower[j].includes("owner") || hLower[j].includes("party") || hLower[j].includes("phụ trách")) { ownerIdx = j; break; }
+    if (
+      hLower[j].includes("responsible") ||
+      hLower[j].includes("owner") ||
+      hLower[j].includes("party") ||
+      hLower[j].includes("phụ trách")
+    ) {
+      ownerIdx = j;
+      break;
+    }
   }
 
   for (let i = 1; i < rawData.length; i++) {
@@ -117,12 +135,12 @@ function extractWorkplanRows(rawData, projectId) {
 /**
  * Classify a single sheet
  */
-export function classifySheet(sheetName, headers, sampleRows = [], rawData = null) {
+export function classifySheet(sheetName, headers, _sampleRows = [], rawData = null) {
   const isWorkplan = detectWorkplan(headers, rawData);
 
   if (isWorkplan) {
     // Quick return — workplan is always classified as issues
-    const taskCount = rawData ? rawData.slice(1).filter(r => r && r[1] && String(r[1]).trim().length > 1).length : 0;
+    const taskCount = rawData ? rawData.slice(1).filter((r) => r && r[1] && String(r[1]).trim().length > 1).length : 0;
     return {
       type: "issues",
       confidence: 85,
@@ -161,9 +179,10 @@ export function classifySheet(sheetName, headers, sampleRows = [], rawData = nul
     confidence: Math.max(confidence, 30), // minimum 30% for any sheet with data
     matchedFields: matchDetails[bestType]?.matched || {},
     allScores: scores,
-    reason: confidence > 50
-      ? `${Object.keys(matchDetails[bestType]?.matched || {}).length} columns matched`
-      : "Auto-import as tasks",
+    reason:
+      confidence > 50
+        ? `${Object.keys(matchDetails[bestType]?.matched || {}).length} columns matched`
+        : "Auto-import as tasks",
     isWorkplan: false,
   };
 }
@@ -176,14 +195,14 @@ export function classifyAllSheets(sheets) {
   for (const [sheetName, rawData] of Object.entries(sheets)) {
     if (!rawData || rawData.length < 2) continue;
 
-    const headers = (rawData[0] || []).map(h => {
+    const headers = (rawData[0] || []).map((h) => {
       if (h === undefined || h === null || h === "") return "";
       return String(h).trim();
     });
     if (headers.filter(Boolean).length < 2) continue;
 
     const classification = classifySheet(sheetName, headers, [], rawData);
-    const taskCount = rawData.slice(1).filter(r => r && r[1] && String(r[1]).trim().length > 1).length;
+    const taskCount = rawData.slice(1).filter((r) => r && r[1] && String(r[1]).trim().length > 1).length;
 
     results.push({
       sheetName,
@@ -199,11 +218,11 @@ export function classifyAllSheets(sheets) {
  * Auto-map and transform — handles both workplan and standard formats
  */
 export function autoMapAndTransform(classification, rawData, projectId) {
-  const headers = (rawData[0] || []).map(h => String(h || "").trim());
+  const headers = (rawData[0] || []).map((h) => String(h || "").trim());
 
   // Build raw preview
   const rawPreview = [];
-  const previewHeaders = ["Tasks", "Responsible party"].filter(h => headers.includes(h));
+  const previewHeaders = ["Tasks", "Responsible party"].filter((h) => headers.includes(h));
   if (previewHeaders.length === 0) previewHeaders.push(...headers.slice(0, 3).filter(Boolean));
 
   for (let i = 1; i < Math.min(rawData.length, 8); i++) {
@@ -215,7 +234,10 @@ export function autoMapAndTransform(classification, rawData, projectId) {
     if (row[2]) preview["Owner"] = String(row[2]).substring(0, 30);
     let update = "";
     for (let j = 3; j < row.length; j++) {
-      if (row[j] && String(row[j]).trim().length > 2) { update = String(row[j]).substring(0, 80); break; }
+      if (row[j] && String(row[j]).trim().length > 2) {
+        update = String(row[j]).substring(0, 80);
+        break;
+      }
     }
     if (update) preview["Latest Update"] = update;
     if (Object.keys(preview).length > 0) rawPreview.push(preview);
@@ -234,7 +256,7 @@ export function autoMapAndTransform(classification, rawData, projectId) {
     if (config && Object.keys(matchedFields).length > 0) {
       for (let i = 1; i < rawData.length; i++) {
         const rawRow = rawData[i];
-        if (!rawRow || rawRow.every(c => !c && c !== 0)) continue;
+        if (!rawRow || rawRow.every((c) => !c && c !== 0)) continue;
         const mapped = { ...config.defaults, projectId };
         for (const [headerName, matchInfo] of Object.entries(matchedFields)) {
           const colIdx = headers.indexOf(headerName);
@@ -246,10 +268,11 @@ export function autoMapAndTransform(classification, rawData, projectId) {
             const r = mapEnumValue(String(rawVal), enumType);
             mapped[matchInfo.field] = r.value || String(rawVal);
           } else {
-            mapped[matchInfo.field] = rawVal instanceof Date ? rawVal.toISOString().split("T")[0] : String(rawVal).trim();
+            mapped[matchInfo.field] =
+              rawVal instanceof Date ? rawVal.toISOString().split("T")[0] : String(rawVal).trim();
           }
         }
-        const missing = config.required.filter(f => !mapped[f]);
+        const missing = config.required.filter((f) => !mapped[f]);
         if (missing.length === 0) mappedRows.push(mapped);
       }
     }

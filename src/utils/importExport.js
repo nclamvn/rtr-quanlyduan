@@ -66,7 +66,17 @@ export const HEADER_ALIASES = {
   // Issues
   title: ["vấn đề", "tiêu đề", "title", "tên", "mô tả vấn đề", "issue", "lỗi", "bug", "tên vấn đề", "issue title"],
   titleVi: ["tiêu đề vi", "title vi", "tên tiếng việt", "tiêu đề tiếng việt"],
-  owner: ["người phụ trách", "owner", "chịu trách nhiệm", "assignee", "phụ trách", "người xử lý", "pic", "assigned to", "chủ sở hữu"],
+  owner: [
+    "người phụ trách",
+    "owner",
+    "chịu trách nhiệm",
+    "assignee",
+    "phụ trách",
+    "người xử lý",
+    "pic",
+    "assigned to",
+    "chủ sở hữu",
+  ],
   severity: ["mức độ", "severity", "độ ưu tiên", "priority", "mức nghiêm trọng", "cấp độ", "sev"],
   status: ["tình trạng", "status", "trạng thái", "state", "tiến độ"],
   source: ["nguồn", "source", "loại nguồn", "type", "phân loại", "nguồn gốc"],
@@ -316,7 +326,18 @@ export function mapEnumValue(rawValue, enumType) {
 export const IMPORT_TYPE_FIELDS = {
   issues: {
     required: ["title"],
-    optional: ["titleVi", "owner", "severity", "status", "source", "rootCause", "dueDate", "createdDate", "phase", "description"],
+    optional: [
+      "titleVi",
+      "owner",
+      "severity",
+      "status",
+      "source",
+      "rootCause",
+      "dueDate",
+      "createdDate",
+      "phase",
+      "description",
+    ],
     enums: { severity: "severity", status: "status", source: "source", phase: "phase" },
     defaults: { status: "DRAFT", severity: "MEDIUM", source: "INTERNAL", rootCause: "Investigating" },
   },
@@ -340,7 +361,17 @@ export const IMPORT_TYPE_FIELDS = {
   },
   orders: {
     required: ["orderNumber", "customerName"],
-    optional: ["poNumber", "totalAmount", "orderDate", "requiredDeliveryDate", "shippingMethod", "paymentStatus", "orderPriority", "orderStatus", "description"],
+    optional: [
+      "poNumber",
+      "totalAmount",
+      "orderDate",
+      "requiredDeliveryDate",
+      "shippingMethod",
+      "paymentStatus",
+      "orderPriority",
+      "orderStatus",
+      "description",
+    ],
     enums: { orderStatus: "orderStatus", orderPriority: "orderPriority", paymentStatus: "paymentStatus" },
     defaults: { orderStatus: "QUOTE", orderPriority: "NORMAL", paymentStatus: "UNPAID", totalAmount: 0 },
   },
@@ -352,7 +383,18 @@ export const IMPORT_TYPE_FIELDS = {
   },
   inventory: {
     required: ["partNumber", "partName"],
-    optional: ["category", "warehouse", "inventoryLocation", "quantityOnHand", "minStock", "maxStock", "inventoryUnitCost", "unit", "leadTimeDays", "supplier"],
+    optional: [
+      "category",
+      "warehouse",
+      "inventoryLocation",
+      "quantityOnHand",
+      "minStock",
+      "maxStock",
+      "inventoryUnitCost",
+      "unit",
+      "leadTimeDays",
+      "supplier",
+    ],
     enums: { category: "inventoryCategory" },
     defaults: { warehouse: "HCM-MAIN", quantityOnHand: 0, unit: "pcs", inventoryUnitCost: 0 },
   },
@@ -424,9 +466,7 @@ export function validateRow(row, importType, existingItems = []) {
   // Duplicate detection (fuzzy title match for issues)
   if (importType === "issues" && row.title && existingItems.length > 0) {
     const titleLower = row.title.toLowerCase();
-    const duplicate = existingItems.find(
-      (item) => item.title && item.title.toLowerCase() === titleLower
-    );
+    const duplicate = existingItems.find((item) => item.title && item.title.toLowerCase() === titleLower);
     if (duplicate) {
       messages.push(`Possible duplicate of ${duplicate.id}`);
       if (status !== "error") status = "warning";

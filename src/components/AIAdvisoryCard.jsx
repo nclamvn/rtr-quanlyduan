@@ -2,17 +2,14 @@
 // RtR Control Tower — AI Advisory Card
 // Shows AI-generated task analysis in the detail panel
 // ═══════════════════════════════════════════════════════════
-import {
-  Brain, RefreshCw, AlertTriangle, CheckCircle2,
-  Flame, Shield, Lightbulb, Link2, Clock,
-} from "lucide-react";
+import { Brain, RefreshCw, AlertTriangle, CheckCircle2, Flame, Shield, Lightbulb, Link2, Clock } from "lucide-react";
 import { mono, sans } from "../constants";
 
 const RISK_CONFIG = {
   critical: { color: "#EF4444", icon: Flame, labelVi: "Nghiêm trọng", labelEn: "Critical" },
-  high:     { color: "#F59E0B", icon: AlertTriangle, labelVi: "Cao", labelEn: "High" },
-  medium:   { color: "#3B82F6", icon: Shield, labelVi: "Trung bình", labelEn: "Medium" },
-  low:      { color: "#10B981", icon: CheckCircle2, labelVi: "Thấp", labelEn: "Low" },
+  high: { color: "#F59E0B", icon: AlertTriangle, labelVi: "Cao", labelEn: "High" },
+  medium: { color: "#3B82F6", icon: Shield, labelVi: "Trung bình", labelEn: "Medium" },
+  low: { color: "#10B981", icon: CheckCircle2, labelVi: "Thấp", labelEn: "Low" },
 };
 
 export default function AIAdvisoryCard({ advisory, isLoading, error, onRefresh, lang }) {
@@ -24,7 +21,16 @@ export default function AIAdvisoryCard({ advisory, isLoading, error, onRefresh, 
       <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
           <Brain size={13} color="#8B5CF6" />
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#8B5CF6", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: sans }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "#8B5CF6",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              fontFamily: sans,
+            }}
+          >
             {vi ? "AI đang phân tích..." : "AI Analyzing..."}
           </span>
           <RefreshCw size={11} color="#8B5CF6" style={{ animation: "spin 1s linear infinite" }} />
@@ -51,7 +57,22 @@ export default function AIAdvisoryCard({ advisory, isLoading, error, onRefresh, 
             </span>
           </div>
           {onRefresh && (
-            <button onClick={onRefresh} style={{ background: "none", border: "1px solid var(--border)", borderRadius: 4, padding: "3px 8px", color: "var(--text-dim)", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", gap: 3, fontFamily: sans }}>
+            <button
+              onClick={onRefresh}
+              style={{
+                background: "none",
+                border: "1px solid var(--border)",
+                borderRadius: 4,
+                padding: "3px 8px",
+                color: "var(--text-dim)",
+                fontSize: 10,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+                fontFamily: sans,
+              }}
+            >
               <RefreshCw size={9} /> {vi ? "Thử lại" : "Retry"}
             </button>
           )}
@@ -73,17 +94,28 @@ export default function AIAdvisoryCard({ advisory, isLoading, error, onRefresh, 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Brain size={13} color="#8B5CF6" />
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#8B5CF6", textTransform: "uppercase", letterSpacing: "0.06em", fontFamily: sans }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "#8B5CF6",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              fontFamily: sans,
+            }}
+          >
             AI Advisory
           </span>
-          {advisory.cached && (
-            <span style={{ fontSize: 9, color: "var(--text-faint)", fontFamily: mono }}>cached</span>
-          )}
+          {advisory.cached && <span style={{ fontSize: 9, color: "var(--text-faint)", fontFamily: mono }}>cached</span>}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {timeAgo && <span style={{ fontSize: 9, color: "var(--text-faint)", fontFamily: mono }}>{timeAgo}</span>}
           {onRefresh && (
-            <button onClick={onRefresh} title={vi ? "Phân tích lại" : "Re-analyze"} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-faint)", padding: 2 }}>
+            <button
+              onClick={onRefresh}
+              title={vi ? "Phân tích lại" : "Re-analyze"}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-faint)", padding: 2 }}
+            >
               <RefreshCw size={10} />
             </button>
           )}
@@ -92,19 +124,30 @@ export default function AIAdvisoryCard({ advisory, isLoading, error, onRefresh, 
 
       {/* Summary */}
       {advisory.summary && (
-        <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: 10, fontFamily: sans }}>
+        <div
+          style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: 10, fontFamily: sans }}
+        >
           {advisory.summary}
         </div>
       )}
 
       {/* Risk Assessment */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: 6, padding: "6px 10px",
-        background: risk.color + "10", border: `1px solid ${risk.color}25`,
-        borderRadius: 5, marginBottom: 10,
-      }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "6px 10px",
+          background: risk.color + "10",
+          border: `1px solid ${risk.color}25`,
+          borderRadius: 5,
+          marginBottom: 10,
+        }}
+      >
         <RiskIcon size={13} color={risk.color} />
-        <span style={{ fontSize: 11, fontWeight: 700, color: risk.color, fontFamily: mono, textTransform: "uppercase" }}>
+        <span
+          style={{ fontSize: 11, fontWeight: 700, color: risk.color, fontFamily: mono, textTransform: "uppercase" }}
+        >
           {vi ? risk.labelVi : risk.labelEn}
         </span>
         {advisory.riskExplanation && (
@@ -117,12 +160,35 @@ export default function AIAdvisoryCard({ advisory, isLoading, error, onRefresh, 
       {/* Recommendations */}
       {advisory.recommendations?.length > 0 && (
         <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4, fontFamily: sans, display: "flex", alignItems: "center", gap: 4 }}>
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: "var(--text-dim)",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              marginBottom: 4,
+              fontFamily: sans,
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
             <Lightbulb size={10} /> {vi ? "Đề xuất" : "Recommendations"}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {advisory.recommendations.map((rec, i) => (
-              <div key={i} style={{ display: "flex", gap: 6, fontSize: 11, color: "var(--text-muted)", lineHeight: 1.4, fontFamily: sans }}>
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  fontSize: 11,
+                  color: "var(--text-muted)",
+                  lineHeight: 1.4,
+                  fontFamily: sans,
+                }}
+              >
                 <span style={{ color: "#8B5CF6", fontWeight: 700, fontFamily: mono, flexShrink: 0 }}>{i + 1}.</span>
                 <span>{rec}</span>
               </div>
@@ -135,7 +201,9 @@ export default function AIAdvisoryCard({ advisory, isLoading, error, onRefresh, 
       {advisory.relatedContext && (
         <div style={{ display: "flex", gap: 4, alignItems: "flex-start" }}>
           <Link2 size={10} color="var(--text-faint)" style={{ marginTop: 2, flexShrink: 0 }} />
-          <span style={{ fontSize: 11, color: "var(--text-faint)", lineHeight: 1.4, fontFamily: sans, fontStyle: "italic" }}>
+          <span
+            style={{ fontSize: 11, color: "var(--text-faint)", lineHeight: 1.4, fontFamily: sans, fontStyle: "italic" }}
+          >
             {advisory.relatedContext}
           </span>
         </div>

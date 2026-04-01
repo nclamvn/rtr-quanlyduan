@@ -43,6 +43,6 @@ export function usePermission() {
     isAdmin: () => role === "admin",
     isReadOnly: () => role === "viewer" || role === "guest",
     isGuest: () => role === "guest",
-    getNewIssueStatus: () => ["admin", "pm"].includes(role) ? "OPEN" : "DRAFT",
+    getNewIssueStatus: () => (["admin", "pm"].includes(role) ? "OPEN" : "DRAFT"),
   };
 }

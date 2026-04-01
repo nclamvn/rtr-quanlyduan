@@ -3,7 +3,7 @@
  */
 
 // ─── Severity ────────────────────────────────────────────────────────
-export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info';
+export type Severity = "critical" | "high" | "medium" | "low" | "info";
 
 export const SEVERITY_PRIORITY: Record<Severity, number> = {
   critical: 5,
@@ -33,7 +33,7 @@ export interface GeoLocation {
   lat: number;
   lon: number;
   name?: string;
-  accuracy?: 'exact' | 'approximate' | 'region';
+  accuracy?: "exact" | "approximate" | "region";
 }
 
 // ─── Signal ──────────────────────────────────────────────────────────
@@ -49,7 +49,7 @@ export interface Signal {
   severity: Severity;
   categories: string[];
   confidence: number;
-  classifiedBy: 'rule' | 'ai' | 'manual' | 'default';
+  classifiedBy: "rule" | "ai" | "manual" | "default";
   dimensions: Record<string, string | number>;
   geo?: GeoLocation;
   timestamp: Date;
@@ -72,7 +72,7 @@ export interface SignalInput {
   severity?: Severity;
   categories?: string[];
   confidence?: number;
-  classifiedBy?: Signal['classifiedBy'];
+  classifiedBy?: Signal["classifiedBy"];
   dimensions?: Record<string, string | number>;
   geo?: GeoLocation;
   timestamp?: Date;
@@ -103,10 +103,10 @@ export function createSignal(input: SignalInput): Signal {
     value: input.value,
     prevValue: input.prevValue,
     entities: input.entities ?? [],
-    severity: input.severity ?? 'info',
+    severity: input.severity ?? "info",
     categories: input.categories ?? [],
     confidence: input.confidence ?? 0.5,
-    classifiedBy: input.classifiedBy ?? 'default',
+    classifiedBy: input.classifiedBy ?? "default",
     dimensions: input.dimensions ?? {},
     geo: input.geo,
     timestamp,
@@ -201,8 +201,7 @@ export class InMemorySignalStore implements SignalStore {
 function matchesFilter(signal: Signal, filter: SignalFilter): boolean {
   if (filter.signalTypes && !filter.signalTypes.includes(signal.signalType)) return false;
   if (filter.severities && !filter.severities.includes(signal.severity)) return false;
-  if (filter.categories && !filter.categories.some((c) => signal.categories.includes(c)))
-    return false;
+  if (filter.categories && !filter.categories.some((c) => signal.categories.includes(c))) return false;
   if (filter.sourceIds && !filter.sourceIds.includes(signal.sourceId)) return false;
   if (filter.since && signal.timestamp < filter.since) return false;
   if (filter.until && signal.timestamp > filter.until) return false;

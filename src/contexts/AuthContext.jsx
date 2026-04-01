@@ -1,10 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import {
-  supabase,
-  withTimeout,
-  getConnectionStatus,
-  onConnectionStatusChange,
-} from "../lib/supabase";
+import { supabase, withTimeout, getConnectionStatus, onConnectionStatusChange } from "../lib/supabase";
 
 const STORAGE_KEY = "rtr_auth_user";
 const AUTH_URL = import.meta.env.VITE_AUTH_URL;
@@ -221,9 +216,7 @@ export function AuthProvider({ children }) {
             userObj.avatar = prof.avatar_initials || userObj.avatar;
             setProfile(prof);
           }
-          console.warn(
-            "[Auth] Supabase session bridge unavailable. Data writes may fail due to RLS.",
-          );
+          console.warn("[Auth] Supabase session bridge unavailable. Data writes may fail due to RLS.");
         }
       }
 
@@ -319,7 +312,6 @@ export function AuthProvider({ children }) {
 
   // ─── Initialize auth based on mode ───
   // Auth init is inherently async and must setState when complete.
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (USE_GATEWAY) {
       initGatewayAuth();
@@ -328,7 +320,6 @@ export function AuthProvider({ children }) {
       return cleanup;
     }
   }, [initGatewayAuth, initSupabaseAuth]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // ─── Login (dev fallback only — Gateway mode redirects instead) ───
   const login = useCallback(
@@ -361,9 +352,7 @@ export function AuthProvider({ children }) {
       }
 
       try {
-        const { data, error: authError } = await withTimeout(
-          supabase.auth.signInWithPassword({ email, password }),
-        );
+        const { data, error: authError } = await withTimeout(supabase.auth.signInWithPassword({ email, password }));
         if (authError) {
           setError(authError.message);
           return { success: false, error: authError.message };
@@ -521,7 +510,6 @@ export function AuthProvider({ children }) {
   );
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");

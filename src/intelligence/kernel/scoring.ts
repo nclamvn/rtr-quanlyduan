@@ -2,18 +2,18 @@
  * SignalHub Kernel — Composite Scoring Engine (Index Builder)
  */
 
-import type { Signal, Severity, SignalStore, SignalFilter } from './signal';
+import type { Signal, Severity, SignalStore, SignalFilter } from "./signal";
 
 // ─── Config ──────────────────────────────────────────────────────────
 
 export type AggregationMethod =
-  | 'count'
-  | 'count_weighted'
-  | 'sum_value'
-  | 'avg_value'
-  | 'max_value'
-  | 'ratio_vs_target'
-  | 'latest_value';
+  | "count"
+  | "count_weighted"
+  | "sum_value"
+  | "avg_value"
+  | "max_value"
+  | "ratio_vs_target"
+  | "latest_value";
 
 export interface IndexComponentConfig {
   id: string;
@@ -21,7 +21,7 @@ export interface IndexComponentConfig {
   signalTypes: string[];
   aggregation: AggregationMethod;
   windowMs: number;
-  scaling: 'linear' | 'logarithmic';
+  scaling: "linear" | "logarithmic";
   invert: boolean;
   target?: number;
   severityWeights?: Record<Severity, number>;
@@ -60,7 +60,7 @@ export interface IndexScore {
   level: string;
   components: Record<string, { raw: number; weighted: number; signalCount: number }>;
   activeModifiers: string[];
-  trend: 'rising' | 'stable' | 'falling';
+  trend: "rising" | "stable" | "falling";
   previousScore?: number;
   computedAt: Date;
 }
@@ -101,15 +101,13 @@ export class ScoringEngine {
       }
     }
 
-    return Array.from(entities).map((entityId) =>
-      this.computeOne(indexId, entityId, store),
-    );
+    return Array.from(entities).map((entityId) => this.computeOne(indexId, entityId, store));
   }
 
   computeOne(indexId: string, entityId: string, store: SignalStore): IndexScore {
     const config = this.configs.get(indexId)!;
     const now = Date.now();
-    const components: IndexScore['components'] = {};
+    const components: IndexScore["components"] = {};
     const activeModifiers: string[] = [];
 
     let totalScore = 0;
@@ -152,7 +150,7 @@ export class ScoringEngine {
 
     finalScore = Math.round(finalScore * 100) / 100;
 
-    let level = 'unknown';
+    let level = "unknown";
     for (const [name, [low, high]] of Object.entries(config.thresholds)) {
       if (finalScore >= low && finalScore < high) {
         level = name;
@@ -198,35 +196,33 @@ export class ScoringEngine {
     if (signals.length === 0) return 0;
 
     switch (comp.aggregation) {
-      case 'count':
+      case "count":
         return signals.length;
 
-      case 'count_weighted': {
+      case "count_weighted": {
         const weights = comp.severityWeights ?? DEFAULT_SEVERITY_WEIGHTS;
         return signals.reduce((sum, s) => sum + (weights[s.severity] ?? 1), 0);
       }
 
-      case 'sum_value':
+      case "sum_value":
         return signals.reduce((sum, s) => sum + (s.value ?? 0), 0);
 
-      case 'avg_value': {
+      case "avg_value": {
         const total = signals.reduce((sum, s) => sum + (s.value ?? 0), 0);
         return total / signals.length;
       }
 
-      case 'max_value':
+      case "max_value":
         return Math.max(...signals.map((s) => s.value ?? 0));
 
-      case 'ratio_vs_target': {
+      case "ratio_vs_target": {
         const total = signals.reduce((sum, s) => sum + (s.value ?? 0), 0);
         const target = comp.target ?? 1;
         return (total / target) * 100;
       }
 
-      case 'latest_value': {
-        const sorted = [...signals].sort(
-          (a, b) => b.timestamp.getTime() - a.timestamp.getTime(),
-        );
+      case "latest_value": {
+        const sorted = [...signals].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
         return sorted[0]?.value ?? 0;
       }
     }
@@ -237,7 +233,7 @@ export class ScoringEngine {
 
     let scaled = raw;
 
-    if (comp.scaling === 'logarithmic' && scaled > 0) {
+    if (comp.scaling === "logarithmic" && scaled > 0) {
       scaled = Math.log1p(scaled);
       const logMax = Math.log1p(max);
       scaled = (scaled / logMax) * (max - min) + min;
@@ -275,15 +271,15 @@ export class ScoringEngine {
     return true;
   }
 
-  private computeTrend(history: number[], current: number): 'rising' | 'stable' | 'falling' {
-    if (history.length < 3) return 'stable';
+  private computeTrend(history: number[], current: number): "rising" | "stable" | "falling" {
+    if (history.length < 3) return "stable";
 
     const recent = history.slice(-3);
     const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
     const diff = current - avg;
 
-    if (diff > 2) return 'rising';
-    if (diff < -2) return 'falling';
-    return 'stable';
+    if (diff > 2) return "rising";
+    if (diff < -2) return "falling";
+    return "stable";
   }
 }

@@ -3,10 +3,10 @@
 // Lazy-loads AI advisory when issue is selected
 // ═══════════════════════════════════════════════════════════
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchAIAdvisory } from '../services/aiAdvisorService';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { fetchAIAdvisory } from "../services/aiAdvisorService";
 
-export function useAIAdvisor(issue, context, lang = 'vi') {
+export function useAIAdvisor(issue, context, lang = "vi") {
   const [advisory, setAdvisory] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -51,7 +51,9 @@ export function useAIAdvisor(issue, context, lang = 'vi') {
       setAdvisory(null);
       setError(null);
     }
-    return () => { abortRef.current = true; };
+    return () => {
+      abortRef.current = true;
+    };
   }, [issue?.id, load]);
 
   const refresh = useCallback(() => {

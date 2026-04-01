@@ -1,7 +1,17 @@
 import { useState, useEffect } from "react";
 import {
-  Eye, EyeOff, LogIn, Globe, Lock, Mail, Sun, Moon,
-  UserPlus, User, ArrowLeft, CheckCircle2,
+  Eye,
+  EyeOff,
+  LogIn,
+  Globe,
+  Lock,
+  Mail,
+  Sun,
+  Moon,
+  UserPlus,
+  User,
+  ArrowLeft,
+  CheckCircle2,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -65,7 +75,7 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
   const [shake, setShake] = useState(false);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [theme, setTheme] = useState(() => localStorage.getItem('rtr-theme') || 'dark');
+  const [theme, setTheme] = useState(() => localStorage.getItem("rtr-theme") || "dark");
 
   const t = LANG[lang];
 
@@ -75,8 +85,8 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
   }, []);
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('rtr-theme', theme);
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("rtr-theme", theme);
   }, [theme]);
 
   const triggerError = (msg) => {
@@ -94,9 +104,7 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
       if (result.success) {
         onLogin(result.user, lang);
       } else {
-        triggerError(
-          result.error === "no_connection" ? t.noConnection : t.invalidCredentials
-        );
+        triggerError(result.error === "no_connection" ? t.noConnection : t.invalidCredentials);
       }
     } finally {
       setLoading(false);
@@ -107,9 +115,18 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
     e.preventDefault();
     setError("");
 
-    if (!fullName.trim()) { triggerError(t.nameRequired); return; }
-    if (password.length < 6) { triggerError(t.passwordTooShort); return; }
-    if (password !== confirmPassword) { triggerError(t.passwordMismatch); return; }
+    if (!fullName.trim()) {
+      triggerError(t.nameRequired);
+      return;
+    }
+    if (password.length < 6) {
+      triggerError(t.passwordTooShort);
+      return;
+    }
+    if (password !== confirmPassword) {
+      triggerError(t.passwordMismatch);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -121,9 +138,7 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
           onLogin(result.user, lang);
         }
       } else {
-        triggerError(
-          result.error === "no_connection" ? t.noConnection : result.error
-        );
+        triggerError(result.error === "no_connection" ? t.noConnection : result.error);
       }
     } finally {
       setLoading(false);
@@ -182,7 +197,11 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
         {/* Top gradient bar */}
         <div
           style={{
-            position: "absolute", top: 0, left: 0, right: 0, height: 2,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 2,
             background: "linear-gradient(90deg, #1D4ED8, #7C3AED, #1D4ED8)",
           }}
         />
@@ -191,10 +210,17 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
         <div style={{ textAlign: "center", marginBottom: 28 }}>
           <div
             style={{
-              width: 48, height: 48, borderRadius: 10,
+              width: 48,
+              height: 48,
+              borderRadius: 10,
               background: "linear-gradient(135deg, #1D4ED8, #7C3AED)",
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              fontSize: 22, fontWeight: 900, color: "#fff", marginBottom: 12,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 22,
+              fontWeight: 900,
+              color: "#fff",
+              marginBottom: 12,
             }}
           >
             R
@@ -202,7 +228,15 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
           <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
             {t.title}
           </div>
-          <div style={{ fontSize: 13, color: "var(--text-faint)", letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 2 }}>
+          <div
+            style={{
+              fontSize: 13,
+              color: "var(--text-faint)",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              marginTop: 2,
+            }}
+          >
             {t.sub}
           </div>
         </div>
@@ -220,10 +254,18 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
             <button
               onClick={() => switchMode("login")}
               style={{
-                background: "none", border: "1px solid var(--border)", borderRadius: 6,
-                padding: "8px 16px", color: "var(--text-primary)", fontSize: 13,
-                fontWeight: 600, cursor: "pointer", display: "inline-flex",
-                alignItems: "center", gap: 6, fontFamily: sans,
+                background: "none",
+                border: "1px solid var(--border)",
+                borderRadius: 6,
+                padding: "8px 16px",
+                color: "var(--text-primary)",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontFamily: sans,
               }}
             >
               <ArrowLeft size={14} /> {t.backToLogin}
@@ -238,11 +280,20 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
               <button
                 onClick={() => switchMode("login")}
                 style={{
-                  flex: 1, background: "none", border: "none",
+                  flex: 1,
+                  background: "none",
+                  border: "none",
                   borderBottom: mode === "login" ? "2px solid #3B82F6" : "2px solid transparent",
-                  padding: "8px 0", color: mode === "login" ? "var(--text-primary)" : "var(--text-dim)",
-                  fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: sans,
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  padding: "8px 0",
+                  color: mode === "login" ? "var(--text-primary)" : "var(--text-dim)",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: sans,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
                 }}
               >
                 <LogIn size={14} /> {t.loginTab}
@@ -250,11 +301,20 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
               <button
                 onClick={() => switchMode("register")}
                 style={{
-                  flex: 1, background: "none", border: "none",
+                  flex: 1,
+                  background: "none",
+                  border: "none",
                   borderBottom: mode === "register" ? "2px solid #7C3AED" : "2px solid transparent",
-                  padding: "8px 0", color: mode === "register" ? "var(--text-primary)" : "var(--text-dim)",
-                  fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: sans,
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  padding: "8px 0",
+                  color: mode === "register" ? "var(--text-primary)" : "var(--text-dim)",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontFamily: sans,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
                 }}
               >
                 <UserPlus size={14} /> {t.registerTab}
@@ -265,15 +325,23 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
               {/* Full Name (register only) */}
               {mode === "register" && (
                 <div style={{ position: "relative", marginBottom: 12 }}>
-                  <User size={14} color="var(--text-faint)" style={{ position: "absolute", left: 12, top: 12, zIndex: 1 }} />
+                  <User
+                    size={14}
+                    color="var(--text-faint)"
+                    style={{ position: "absolute", left: 12, top: 12, zIndex: 1 }}
+                  />
                   <input
                     type="text"
                     placeholder={t.fullName}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     style={inputStyle}
-                    onFocus={(e) => { e.target.style.borderColor = "#7C3AED"; }}
-                    onBlur={(e) => { e.target.style.borderColor = "var(--border)"; }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = "#7C3AED";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = "var(--border)";
+                    }}
                     required
                   />
                 </div>
@@ -281,39 +349,60 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
 
               {/* Email */}
               <div style={{ position: "relative", marginBottom: 12 }}>
-                <Mail size={14} color="var(--text-faint)" style={{ position: "absolute", left: 12, top: 12, zIndex: 1 }} />
+                <Mail
+                  size={14}
+                  color="var(--text-faint)"
+                  style={{ position: "absolute", left: 12, top: 12, zIndex: 1 }}
+                />
                 <input
                   type="email"
                   placeholder={t.email}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   style={inputStyle}
-                  onFocus={(e) => { e.target.style.borderColor = mode === "login" ? "#3B82F6" : "#7C3AED"; }}
-                  onBlur={(e) => { e.target.style.borderColor = "var(--border)"; }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = mode === "login" ? "#3B82F6" : "#7C3AED";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "var(--border)";
+                  }}
                   required
                 />
               </div>
 
               {/* Password */}
               <div style={{ position: "relative", marginBottom: 12 }}>
-                <Lock size={14} color="var(--text-faint)" style={{ position: "absolute", left: 12, top: 12, zIndex: 1 }} />
+                <Lock
+                  size={14}
+                  color="var(--text-faint)"
+                  style={{ position: "absolute", left: 12, top: 12, zIndex: 1 }}
+                />
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder={t.password}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   style={inputStyle}
-                  onFocus={(e) => { e.target.style.borderColor = mode === "login" ? "#3B82F6" : "#7C3AED"; }}
-                  onBlur={(e) => { e.target.style.borderColor = "var(--border)"; }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = mode === "login" ? "#3B82F6" : "#7C3AED";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "var(--border)";
+                  }}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   style={{
-                    position: "absolute", right: 8, top: 8,
-                    background: "none", border: "none", cursor: "pointer",
-                    padding: 4, color: "var(--text-faint)",
+                    position: "absolute",
+                    right: 8,
+                    top: 8,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 4,
+                    color: "var(--text-faint)",
                   }}
                 >
                   {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -323,15 +412,23 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
               {/* Confirm Password (register only) */}
               {mode === "register" && (
                 <div style={{ position: "relative", marginBottom: 12 }}>
-                  <Lock size={14} color="var(--text-faint)" style={{ position: "absolute", left: 12, top: 12, zIndex: 1 }} />
+                  <Lock
+                    size={14}
+                    color="var(--text-faint)"
+                    style={{ position: "absolute", left: 12, top: 12, zIndex: 1 }}
+                  />
                   <input
                     type={showPassword ? "text" : "password"}
                     placeholder={t.confirmPassword}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     style={inputStyle}
-                    onFocus={(e) => { e.target.style.borderColor = "#7C3AED"; }}
-                    onBlur={(e) => { e.target.style.borderColor = "var(--border)"; }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = "#7C3AED";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = "var(--border)";
+                    }}
                     required
                   />
                 </div>
@@ -341,10 +438,16 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
               {error && (
                 <div
                   style={{
-                    background: "#EF444415", border: "1px solid #EF444430",
-                    borderRadius: 4, padding: "6px 10px", marginBottom: 12,
-                    fontSize: 13, color: "#FCA5A5",
-                    display: "flex", alignItems: "center", gap: 6,
+                    background: "#EF444415",
+                    border: "1px solid #EF444430",
+                    borderRadius: 4,
+                    padding: "6px 10px",
+                    marginBottom: 12,
+                    fontSize: 13,
+                    color: "#FCA5A5",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
                   }}
                 >
                   <Lock size={12} /> {error}
@@ -357,21 +460,34 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
                 disabled={loading}
                 style={{
                   width: "100%",
-                  background: mode === "login"
-                    ? "linear-gradient(135deg, #1D4ED8, #2563EB)"
-                    : "linear-gradient(135deg, #6D28D9, #7C3AED)",
-                  border: "none", borderRadius: 6, padding: "10px 0",
-                  color: "#fff", fontSize: 15, fontWeight: 700,
-                  cursor: loading ? "wait" : "pointer", fontFamily: sans,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  gap: 6, transition: "opacity 0.2s",
+                  background:
+                    mode === "login"
+                      ? "linear-gradient(135deg, #1D4ED8, #2563EB)"
+                      : "linear-gradient(135deg, #6D28D9, #7C3AED)",
+                  border: "none",
+                  borderRadius: 6,
+                  padding: "10px 0",
+                  color: "#fff",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  cursor: loading ? "wait" : "pointer",
+                  fontFamily: sans,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  transition: "opacity 0.2s",
                   opacity: loading ? 0.7 : 1,
                 }}
-                onMouseEnter={(e) => { if (!loading) e.target.style.opacity = 0.9; }}
-                onMouseLeave={(e) => { if (!loading) e.target.style.opacity = 1; }}
+                onMouseEnter={(e) => {
+                  if (!loading) e.target.style.opacity = 0.9;
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) e.target.style.opacity = 1;
+                }}
               >
                 {mode === "login" ? <LogIn size={14} /> : <UserPlus size={14} />}
-                {loading ? "..." : (mode === "login" ? t.login : t.register)}
+                {loading ? "..." : mode === "login" ? t.login : t.register}
               </button>
             </form>
           </>
@@ -383,8 +499,11 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
         <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
           <div
             style={{
-              display: "inline-flex", border: "1px solid var(--border)",
-              borderRadius: 4, overflow: "hidden", alignItems: "center",
+              display: "inline-flex",
+              border: "1px solid var(--border)",
+              borderRadius: 4,
+              overflow: "hidden",
+              alignItems: "center",
             }}
           >
             <Globe size={11} style={{ margin: "0 6px", color: "var(--text-faint)" }} />
@@ -394,9 +513,12 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
                 onClick={() => setLang(l)}
                 style={{
                   background: lang === l ? "var(--hover-bg)" : "transparent",
-                  border: "none", padding: "4px 10px",
+                  border: "none",
+                  padding: "4px 10px",
                   color: lang === l ? "var(--text-primary)" : "var(--text-faint)",
-                  fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: "pointer",
                   textTransform: "uppercase",
                 }}
               >
@@ -405,15 +527,19 @@ export default function LoginScreen({ onLogin, initialLang = "vi" }) {
             ))}
           </div>
           <button
-            onClick={() => setTheme(th => th === 'dark' ? 'light' : 'dark')}
+            onClick={() => setTheme((th) => (th === "dark" ? "light" : "dark"))}
             style={{
-              background: "none", border: "1px solid var(--border)",
-              borderRadius: 4, padding: "4px 8px",
-              color: "var(--text-faint)", cursor: "pointer",
-              display: "flex", alignItems: "center",
+              background: "none",
+              border: "1px solid var(--border)",
+              borderRadius: 4,
+              padding: "4px 8px",
+              color: "var(--text-faint)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
             }}
           >
-            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
           </button>
         </div>
       </div>

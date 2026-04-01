@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
-import { isSupabaseConnected, withTimeout, warmUpSupabase, getConnectionStatus } from '../lib/supabase';
-import { useRealtimeSubscription } from './useRealtime';
-import { fetchBomParts, fetchSuppliers, fetchDeliveryRecords } from '../services/bomService';
-import { fetchFlightTests, fetchDecisions } from '../services/flightService';
-import { insert as sbInsert, update as sbUpdate } from '../services/supabaseService';
-import { calcBomCosts } from '../data/v2Data';
+import { useState, useEffect, useCallback } from "react";
+import { withTimeout, warmUpSupabase, getConnectionStatus } from "../lib/supabase";
+import { useRealtimeSubscription } from "./useRealtime";
+import { fetchBomParts, fetchSuppliers, fetchDeliveryRecords } from "../services/bomService";
+import { fetchFlightTests, fetchDecisions } from "../services/flightService";
+import { insert as sbInsert, update as sbUpdate } from "../services/supabaseService";
+import { calcBomCosts } from "../data/v2Data";
 
 // No mock data — start empty, populate via Supabase or AI Import
 const BOM_DATA = [];
@@ -33,7 +33,7 @@ function transformBomPart(row) {
     leadTimeDays: row.lead_time_days,
     lifecycleStatus: row.lifecycle_status,
     alternatePartIds: row.alternate_part_ids || [],
-    designator: row.designator || '',
+    designator: row.designator || "",
     sortOrder: row.sort_order,
     // Preserve nested supplier join if present
     _supplier: row.suppliers || null,
@@ -59,13 +59,13 @@ function transformFlightTest(row) {
     maxSpeed: row.max_speed,
     distanceCovered: row.distance_covered,
     sensorData: row.sensor_data || {},
-    anomalies: (row.flight_anomalies || []).map(a => ({
+    anomalies: (row.flight_anomalies || []).map((a) => ({
       timestamp: a.timestamp,
       description: a.description,
       descriptionVi: a.description_vi,
       severity: a.severity,
     })),
-    attachments: (row.flight_attachments || []).map(a => ({
+    attachments: (row.flight_attachments || []).map((a) => ({
       type: a.type,
       name: a.name,
     })),
@@ -154,10 +154,8 @@ export function useBomData(projectId) {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (getConnectionStatus() !== 'online') {
-      const items = projectId
-        ? BOM_DATA.filter(b => b.projectId === projectId)
-        : BOM_DATA;
+    if (getConnectionStatus() !== "online") {
+      const items = projectId ? BOM_DATA.filter((b) => b.projectId === projectId) : BOM_DATA;
       setData(calcBomCosts(items));
       setLoading(false);
       return;
@@ -169,29 +167,27 @@ export function useBomData(projectId) {
         const transformed = rows.map(transformBomPart);
         setData(calcBomCosts(transformed));
       } else {
-        const items = projectId
-          ? BOM_DATA.filter(b => b.projectId === projectId)
-          : BOM_DATA;
+        const items = projectId ? BOM_DATA.filter((b) => b.projectId === projectId) : BOM_DATA;
         setData(calcBomCosts(items));
       }
     } catch (err) {
-      console.warn('BOM fetch timeout, using static fallback:', err.message);
-      const items = projectId
-        ? BOM_DATA.filter(b => b.projectId === projectId)
-        : BOM_DATA;
+      console.warn("BOM fetch timeout, using static fallback:", err.message);
+      const items = projectId ? BOM_DATA.filter((b) => b.projectId === projectId) : BOM_DATA;
       setData(calcBomCosts(items));
     }
     setLoading(false);
   }, [projectId]);
 
-  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
+  useEffect(() => {
+    warmUpSupabase().then(() => refetch());
+  }, [refetch]);
 
   // Realtime: refresh on BOM changes
-  useRealtimeSubscription('bom_parts', {
+  useRealtimeSubscription("bom_parts", {
     onInsert: () => refetch(),
     onUpdate: () => refetch(),
     onDelete: () => refetch(),
-    filter: projectId ? { column: 'project_id', value: projectId } : undefined,
+    filter: projectId ? { column: "project_id", value: projectId } : undefined,
   });
 
   return { data, loading, refetch };
@@ -207,10 +203,8 @@ export function useFlightTestData(projectId) {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (getConnectionStatus() !== 'online') {
-      const items = projectId
-        ? FLIGHT_TESTS_DATA.filter(ft => ft.projectId === projectId)
-        : FLIGHT_TESTS_DATA;
+    if (getConnectionStatus() !== "online") {
+      const items = projectId ? FLIGHT_TESTS_DATA.filter((ft) => ft.projectId === projectId) : FLIGHT_TESTS_DATA;
       setData(items);
       setLoading(false);
       return;
@@ -221,29 +215,27 @@ export function useFlightTestData(projectId) {
       if (rows?.length) {
         setData(rows.map(transformFlightTest));
       } else {
-        const items = projectId
-          ? FLIGHT_TESTS_DATA.filter(ft => ft.projectId === projectId)
-          : FLIGHT_TESTS_DATA;
+        const items = projectId ? FLIGHT_TESTS_DATA.filter((ft) => ft.projectId === projectId) : FLIGHT_TESTS_DATA;
         setData(items);
       }
     } catch (err) {
-      console.warn('FlightTests fetch timeout, using static fallback:', err.message);
-      const items = projectId
-        ? FLIGHT_TESTS_DATA.filter(ft => ft.projectId === projectId)
-        : FLIGHT_TESTS_DATA;
+      console.warn("FlightTests fetch timeout, using static fallback:", err.message);
+      const items = projectId ? FLIGHT_TESTS_DATA.filter((ft) => ft.projectId === projectId) : FLIGHT_TESTS_DATA;
       setData(items);
     }
     setLoading(false);
   }, [projectId]);
 
-  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
+  useEffect(() => {
+    warmUpSupabase().then(() => refetch());
+  }, [refetch]);
 
   // Realtime: refresh on flight test changes
-  useRealtimeSubscription('flight_tests', {
+  useRealtimeSubscription("flight_tests", {
     onInsert: () => refetch(),
     onUpdate: () => refetch(),
     onDelete: () => refetch(),
-    filter: projectId ? { column: 'project_id', value: projectId } : undefined,
+    filter: projectId ? { column: "project_id", value: projectId } : undefined,
   });
 
   return { data, loading, refetch };
@@ -259,7 +251,7 @@ export function useSupplierData() {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (getConnectionStatus() !== 'online') {
+    if (getConnectionStatus() !== "online") {
       setData(SUPPLIERS_DATA);
       setLoading(false);
       return;
@@ -273,13 +265,15 @@ export function useSupplierData() {
         setData(SUPPLIERS_DATA);
       }
     } catch (err) {
-      console.warn('Suppliers fetch timeout, using static fallback:', err.message);
+      console.warn("Suppliers fetch timeout, using static fallback:", err.message);
       setData(SUPPLIERS_DATA);
     }
     setLoading(false);
   }, []);
 
-  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
+  useEffect(() => {
+    warmUpSupabase().then(() => refetch());
+  }, [refetch]);
 
   return { data, loading, refetch };
 }
@@ -294,9 +288,9 @@ export function useDeliveryData(supplierId) {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (getConnectionStatus() !== 'online') {
+    if (getConnectionStatus() !== "online") {
       const items = supplierId
-        ? DELIVERY_RECORDS_DATA.filter(d => d.supplierId === supplierId)
+        ? DELIVERY_RECORDS_DATA.filter((d) => d.supplierId === supplierId)
         : DELIVERY_RECORDS_DATA;
       setData(items);
       setLoading(false);
@@ -309,27 +303,29 @@ export function useDeliveryData(supplierId) {
         setData(rows.map(transformDelivery));
       } else {
         const items = supplierId
-          ? DELIVERY_RECORDS_DATA.filter(d => d.supplierId === supplierId)
+          ? DELIVERY_RECORDS_DATA.filter((d) => d.supplierId === supplierId)
           : DELIVERY_RECORDS_DATA;
         setData(items);
       }
     } catch (err) {
-      console.warn('Deliveries fetch timeout, using static fallback:', err.message);
+      console.warn("Deliveries fetch timeout, using static fallback:", err.message);
       const items = supplierId
-        ? DELIVERY_RECORDS_DATA.filter(d => d.supplierId === supplierId)
+        ? DELIVERY_RECORDS_DATA.filter((d) => d.supplierId === supplierId)
         : DELIVERY_RECORDS_DATA;
       setData(items);
     }
     setLoading(false);
   }, [supplierId]);
 
-  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
+  useEffect(() => {
+    warmUpSupabase().then(() => refetch());
+  }, [refetch]);
 
   // Realtime: refresh on delivery changes
-  useRealtimeSubscription('delivery_records', {
+  useRealtimeSubscription("delivery_records", {
     onInsert: () => refetch(),
     onUpdate: () => refetch(),
-    filter: supplierId ? { column: 'supplier_id', value: supplierId } : undefined,
+    filter: supplierId ? { column: "supplier_id", value: supplierId } : undefined,
   });
 
   return { data, loading, refetch };
@@ -345,10 +341,8 @@ export function useDecisionData(projectId) {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (getConnectionStatus() !== 'online') {
-      const items = projectId
-        ? DECISIONS_DATA.filter(d => d.projectId === projectId)
-        : DECISIONS_DATA;
+    if (getConnectionStatus() !== "online") {
+      const items = projectId ? DECISIONS_DATA.filter((d) => d.projectId === projectId) : DECISIONS_DATA;
       setData(items);
       setLoading(false);
       return;
@@ -359,33 +353,31 @@ export function useDecisionData(projectId) {
       if (rows?.length) {
         setData(rows.map(transformDecision));
       } else {
-        const items = projectId
-          ? DECISIONS_DATA.filter(d => d.projectId === projectId)
-          : DECISIONS_DATA;
+        const items = projectId ? DECISIONS_DATA.filter((d) => d.projectId === projectId) : DECISIONS_DATA;
         setData(items);
       }
     } catch (err) {
-      console.warn('Decisions fetch timeout, using static fallback:', err.message);
-      const items = projectId
-        ? DECISIONS_DATA.filter(d => d.projectId === projectId)
-        : DECISIONS_DATA;
+      console.warn("Decisions fetch timeout, using static fallback:", err.message);
+      const items = projectId ? DECISIONS_DATA.filter((d) => d.projectId === projectId) : DECISIONS_DATA;
       setData(items);
     }
     setLoading(false);
   }, [projectId]);
 
-  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
+  useEffect(() => {
+    warmUpSupabase().then(() => refetch());
+  }, [refetch]);
 
   const createDecision = useCallback(async (decision) => {
-    if (getConnectionStatus() === 'online') {
+    if (getConnectionStatus() === "online") {
       const insert = sbInsert;
       const row = {
         project_id: decision.projectId,
         title: decision.title,
         title_vi: decision.titleVi || null,
         phase: decision.phase,
-        status: decision.status || 'PROPOSED',
-        date: decision.date || new Date().toISOString().split('T')[0],
+        status: decision.status || "PROPOSED",
+        date: decision.date || new Date().toISOString().split("T")[0],
         decision_maker: decision.decisionMaker,
         chosen_option: decision.chosenOption || null,
         rationale: decision.rationale,
@@ -398,9 +390,9 @@ export function useDecisionData(projectId) {
         linked_flight_test_ids: decision.linkedFlightTestIds || [],
         linked_gate_conditions: decision.linkedGateConditions || [],
       };
-      const { data: created } = await insert('decisions', row);
+      const { data: created } = await insert("decisions", row);
       if (created) {
-        setData(prev => [transformDecision(created), ...prev]);
+        setData((prev) => [transformDecision(created), ...prev]);
         return created;
       }
     }
@@ -408,14 +400,14 @@ export function useDecisionData(projectId) {
     const localDec = {
       ...decision,
       id: `DEC-${Date.now()}`,
-      date: decision.date || new Date().toISOString().split('T')[0],
+      date: decision.date || new Date().toISOString().split("T")[0],
     };
-    setData(prev => [localDec, ...prev]);
+    setData((prev) => [localDec, ...prev]);
     return localDec;
   }, []);
 
   const updateDecision = useCallback(async (decisionId, updates) => {
-    if (getConnectionStatus() === 'online') {
+    if (getConnectionStatus() === "online") {
       const update = sbUpdate;
       const row = {};
       if (updates.status !== undefined) row.status = updates.status;
@@ -426,14 +418,14 @@ export function useDecisionData(projectId) {
       if (updates.costImpact !== undefined) row.cost_impact = updates.costImpact;
       if (updates.impactDescription !== undefined) row.impact_description = updates.impactDescription;
       if (updates.impactDescriptionVi !== undefined) row.impact_description_vi = updates.impactDescriptionVi;
-      const { data: updated } = await update('decisions', decisionId, row);
+      const { data: updated } = await update("decisions", decisionId, row);
       if (updated) {
-        setData(prev => prev.map(d => d.id === decisionId ? transformDecision(updated) : d));
+        setData((prev) => prev.map((d) => (d.id === decisionId ? transformDecision(updated) : d)));
         return updated;
       }
     }
     // Offline: update local state
-    setData(prev => prev.map(d => d.id === decisionId ? { ...d, ...updates } : d));
+    setData((prev) => prev.map((d) => (d.id === decisionId ? { ...d, ...updates } : d)));
   }, []);
 
   return { data, loading, refetch, createDecision, updateDecision };

@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { isSupabaseConnected, withTimeout, warmUpSupabase, getConnectionStatus } from '../lib/supabase';
-import { useRealtimeSubscription } from './useRealtime';
-import { fetchOrders, fetchCustomers } from '../services/orderService';
+import { useState, useEffect, useCallback } from "react";
+import { withTimeout, warmUpSupabase, getConnectionStatus } from "../lib/supabase";
+import { useRealtimeSubscription } from "./useRealtime";
+import { fetchOrders, fetchCustomers } from "../services/orderService";
 
 // ═══ Transform Supabase snake_case → App camelCase ═══
 
@@ -10,8 +10,8 @@ function transformOrder(row) {
     id: row.id,
     orderNumber: row.order_number,
     customerId: row.customer_id,
-    customerName: row.customers?.name || '',
-    customerCode: row.customers?.code || '',
+    customerName: row.customers?.name || "",
+    customerCode: row.customers?.code || "",
     projectId: row.project_id,
     status: row.status,
     priority: row.priority,
@@ -36,7 +36,7 @@ function transformOrder(row) {
     notes: row.notes,
     createdBy: row.created_by,
     createdAt: row.created_at,
-    items: (row.order_items || []).map(item => ({
+    items: (row.order_items || []).map((item) => ({
       id: item.id,
       productName: item.product_name,
       productSku: item.product_sku,
@@ -80,7 +80,7 @@ export function useOrders(projectId) {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (getConnectionStatus() !== 'online') {
+    if (getConnectionStatus() !== "online") {
       setData(STATIC_ORDERS);
       setLoading(false);
       return;
@@ -89,19 +89,21 @@ export function useOrders(projectId) {
       const { data: rows } = await withTimeout(fetchOrders(projectId));
       setData(rows?.length ? rows.map(transformOrder) : STATIC_ORDERS);
     } catch (err) {
-      console.warn('Orders fetch timeout:', err.message);
+      console.warn("Orders fetch timeout:", err.message);
       setData(STATIC_ORDERS);
     }
     setLoading(false);
   }, [projectId]);
 
-  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
+  useEffect(() => {
+    warmUpSupabase().then(() => refetch());
+  }, [refetch]);
 
-  useRealtimeSubscription('orders', {
+  useRealtimeSubscription("orders", {
     onInsert: () => refetch(),
     onUpdate: () => refetch(),
     onDelete: () => refetch(),
-    filter: projectId ? { column: 'project_id', value: projectId } : undefined,
+    filter: projectId ? { column: "project_id", value: projectId } : undefined,
   });
 
   return { data, loading, refetch };
@@ -113,7 +115,7 @@ export function useCustomers() {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (getConnectionStatus() !== 'online') {
+    if (getConnectionStatus() !== "online") {
       setData(STATIC_CUSTOMERS);
       setLoading(false);
       return;
@@ -122,13 +124,15 @@ export function useCustomers() {
       const { data: rows } = await withTimeout(fetchCustomers());
       setData(rows?.length ? rows.map(transformCustomer) : STATIC_CUSTOMERS);
     } catch (err) {
-      console.warn('Customers fetch timeout:', err.message);
+      console.warn("Customers fetch timeout:", err.message);
       setData(STATIC_CUSTOMERS);
     }
     setLoading(false);
   }, []);
 
-  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
+  useEffect(() => {
+    warmUpSupabase().then(() => refetch());
+  }, [refetch]);
 
   return { data, loading, refetch };
 }

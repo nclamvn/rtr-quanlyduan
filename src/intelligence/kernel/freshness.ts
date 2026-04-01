@@ -2,7 +2,7 @@
  * SignalHub Kernel — Freshness Tracker
  */
 
-export type FreshnessStatus = 'fresh' | 'stale' | 'very_stale' | 'no_data' | 'error' | 'disabled';
+export type FreshnessStatus = "fresh" | "stale" | "very_stale" | "no_data" | "error" | "disabled";
 
 export interface SourceHealth {
   sourceId: string;
@@ -21,7 +21,7 @@ export interface FreshnessSummary {
   stale: number;
   error: number;
   disabled: number;
-  overallHealth: 'healthy' | 'degraded' | 'critical';
+  overallHealth: "healthy" | "degraded" | "critical";
   coveragePercent: number;
   degradedDecisions: Array<{
     indexId: string;
@@ -56,7 +56,7 @@ export class FreshnessTracker {
     this.sources.set(sourceId, {
       sourceId,
       name,
-      status: enabled ? 'no_data' : 'disabled',
+      status: enabled ? "no_data" : "disabled",
       lastUpdate: null,
       lastError: null,
       signalCount: 0,
@@ -78,32 +78,32 @@ export class FreshnessTracker {
     source.lastUpdate = new Date();
     source.signalCount = signalCount;
     source.lastError = null;
-    source.status = 'fresh';
+    source.status = "fresh";
   }
 
   recordError(sourceId: string, error: string): void {
     const source = this.sources.get(sourceId);
     if (!source) return;
     source.lastError = error;
-    source.status = 'error';
+    source.status = "error";
   }
 
   refresh(): void {
     const now = Date.now();
     for (const source of this.sources.values()) {
       if (!source.enabled) {
-        source.status = 'disabled';
+        source.status = "disabled";
         continue;
       }
-      if (source.status === 'error') continue;
+      if (source.status === "error") continue;
       if (!source.lastUpdate) {
-        source.status = 'no_data';
+        source.status = "no_data";
         continue;
       }
       const age = now - source.lastUpdate.getTime();
-      if (age < this.config.freshThresholdMs) source.status = 'fresh';
-      else if (age < this.config.staleThresholdMs) source.status = 'stale';
-      else source.status = 'very_stale';
+      if (age < this.config.freshThresholdMs) source.status = "fresh";
+      else if (age < this.config.staleThresholdMs) source.status = "stale";
+      else source.status = "very_stale";
     }
   }
 
@@ -115,20 +115,30 @@ export class FreshnessTracker {
   getSummary(): FreshnessSummary {
     this.refresh();
 
-    let fresh = 0, stale = 0, error = 0, disabled = 0;
+    let fresh = 0,
+      stale = 0,
+      error = 0,
+      disabled = 0;
     const staleSources: string[] = [];
 
     for (const source of this.sources.values()) {
       switch (source.status) {
-        case 'fresh': fresh++; break;
-        case 'stale':
-        case 'very_stale':
-        case 'no_data':
+        case "fresh":
+          fresh++;
+          break;
+        case "stale":
+        case "very_stale":
+        case "no_data":
           stale++;
           staleSources.push(source.sourceId);
           break;
-        case 'error': error++; staleSources.push(source.sourceId); break;
-        case 'disabled': disabled++; break;
+        case "error":
+          error++;
+          staleSources.push(source.sourceId);
+          break;
+        case "disabled":
+          disabled++;
+          break;
       }
     }
 
@@ -136,7 +146,7 @@ export class FreshnessTracker {
     const active = total - disabled;
     const coverage = active > 0 ? Math.round((fresh / active) * 100) : 0;
 
-    const degradedDecisions: FreshnessSummary['degradedDecisions'] = [];
+    const degradedDecisions: FreshnessSummary["degradedDecisions"] = [];
     const staleSignalTypes = new Set<string>();
 
     for (const sourceId of staleSources) {
@@ -153,16 +163,16 @@ export class FreshnessTracker {
         });
         degradedDecisions.push({
           indexId,
-          reason: `Signal types [${affectedTypes.join(', ')}] are stale`,
+          reason: `Signal types [${affectedTypes.join(", ")}] are stale`,
           staleSources: affectedSources,
         });
       }
     }
 
-    let overallHealth: 'healthy' | 'degraded' | 'critical';
-    if (coverage >= 80 && error === 0) overallHealth = 'healthy';
-    else if (coverage >= 50) overallHealth = 'degraded';
-    else overallHealth = 'critical';
+    let overallHealth: "healthy" | "degraded" | "critical";
+    if (coverage >= 80 && error === 0) overallHealth = "healthy";
+    else if (coverage >= 50) overallHealth = "degraded";
+    else overallHealth = "critical";
 
     return {
       totalSources: total,

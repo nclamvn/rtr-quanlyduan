@@ -2,7 +2,7 @@
  * SignalHub Kernel — Anomaly Detector (Welford's algorithm)
  */
 
-import type { Signal, Severity } from './signal';
+import type { Signal, Severity } from "./signal";
 
 // ─── Config ──────────────────────────────────────────────────────────
 
@@ -16,7 +16,7 @@ export interface AnomalyConfig {
 }
 
 export const DEFAULT_ANOMALY_CONFIG: AnomalyConfig = {
-  baselineDimensions: [['signalType']],
+  baselineDimensions: [["signalType"]],
   thresholds: { low: 1.5, medium: 2.0, high: 2.5, critical: 3.0 },
   minSamples: 10,
   windowDays: 90,
@@ -98,16 +98,16 @@ export class InMemoryBaselineStore implements BaselineStore {
 
 // ─── Anomaly Detector ────────────────────────────────────────────────
 
-const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTH_NAMES = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export class AnomalyDetector {
   private config: AnomalyConfig;
   private store: BaselineStore;
-  private accumulators = new Map<string, { count: number; dimensions: Record<string, string | number>; signalType: string }>();
+  private accumulators = new Map<
+    string,
+    { count: number; dimensions: Record<string, string | number>; signalType: string }
+  >();
 
   constructor(config: Partial<AnomalyConfig> = {}, store?: BaselineStore) {
     this.config = { ...DEFAULT_ANOMALY_CONFIG, ...config };
@@ -125,7 +125,7 @@ export class AnomalyDetector {
       } else {
         const dims: Record<string, string | number> = {};
         for (const k of dimKeys) {
-          if (k === 'signalType') dims[k] = signal.signalType;
+          if (k === "signalType") dims[k] = signal.signalType;
           else if (signal.dimensions[k] !== undefined) dims[k] = signal.dimensions[k];
         }
         this.accumulators.set(accKey, {
@@ -202,7 +202,7 @@ export class AnomalyDetector {
   private buildAccumulatorKey(signal: Signal, dimKeys: string[]): string | null {
     const parts: string[] = [];
     for (const key of dimKeys) {
-      if (key === 'signalType') {
+      if (key === "signalType") {
         parts.push(signal.signalType);
       } else {
         const val = signal.dimensions[key];
@@ -210,7 +210,7 @@ export class AnomalyDetector {
         parts.push(`${key}:${val}`);
       }
     }
-    return parts.join('|');
+    return parts.join("|");
   }
 
   private buildBaselineKeys(accKey: string, now: Date): string[] {
@@ -227,19 +227,13 @@ export class AnomalyDetector {
   }
 
   private zScoreToSeverity(z: number): Severity {
-    if (z >= this.config.thresholds.critical) return 'critical';
-    if (z >= this.config.thresholds.high) return 'high';
-    if (z >= this.config.thresholds.medium) return 'medium';
-    return 'low';
+    if (z >= this.config.thresholds.critical) return "critical";
+    if (z >= this.config.thresholds.high) return "high";
+    if (z >= this.config.thresholds.medium) return "medium";
+    return "low";
   }
 
-  private formatMessage(
-    signalType: string,
-    count: number,
-    mean: number,
-    multiplier: number,
-    now: Date,
-  ): string {
+  private formatMessage(signalType: string, count: number, mean: number, multiplier: number, now: Date): string {
     const weekday = WEEKDAY_NAMES[now.getUTCDay()];
     const month = MONTH_NAMES[now.getUTCMonth()];
     const mult = multiplier < 10 ? `${multiplier.toFixed(1)}x` : `${Math.round(multiplier)}x`;

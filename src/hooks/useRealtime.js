@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { supabase, isSupabaseConnected } from '../lib/supabase';
+import { useEffect, useRef } from "react";
+import { supabase, isSupabaseConnected } from "../lib/supabase";
 
 /**
  * Subscribe to Supabase Realtime changes on a table.
@@ -17,8 +17,8 @@ export function useRealtimeSubscription(table, { onInsert, onUpdate, onDelete, f
     if (!isSupabaseConnected()) return;
 
     const config = {
-      event: '*',
-      schema: 'public',
+      event: "*",
+      schema: "public",
       table,
     };
     if (filter) {
@@ -26,16 +26,16 @@ export function useRealtimeSubscription(table, { onInsert, onUpdate, onDelete, f
     }
 
     const channel = supabase
-      .channel(`${table}_${filter?.value || 'all'}_changes`)
-      .on('postgres_changes', config, (payload) => {
+      .channel(`${table}_${filter?.value || "all"}_changes`)
+      .on("postgres_changes", config, (payload) => {
         switch (payload.eventType) {
-          case 'INSERT':
+          case "INSERT":
             callbacksRef.current.onInsert?.(payload.new);
             break;
-          case 'UPDATE':
+          case "UPDATE":
             callbacksRef.current.onUpdate?.(payload.new, payload.old);
             break;
-          case 'DELETE':
+          case "DELETE":
             callbacksRef.current.onDelete?.(payload.old);
             break;
         }

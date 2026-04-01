@@ -2,11 +2,24 @@
 // RtR CONTROL TOWER V3 — Email Notification System
 // Preferences UI, mock sending, toast feedback, templates
 // ===================================================================
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import {
-  Mail, Bell, BellOff, Zap, Calendar, Clock,
-  AlertTriangle, Plane, GitBranch, UserCheck, ShieldAlert,
-  FileText, Check, X, Send, Eye,
+  Mail,
+  Bell,
+  BellOff,
+  Zap,
+  Calendar,
+  Clock,
+  AlertTriangle,
+  Plane,
+  GitBranch,
+  UserCheck,
+  ShieldAlert,
+  FileText,
+  Check,
+  X,
+  Send,
+  Eye,
 } from "lucide-react";
 import { supabase, isSupabaseConnected } from "../lib/supabase";
 
@@ -17,39 +30,74 @@ const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
 
 export const EMAIL_EVENTS = [
   {
-    id: "CRITICAL_ISSUE_CREATED", icon: ShieldAlert, color: "#EF4444",
-    label: "Critical issue created", labelVi: "Tạo vấn đề nghiêm trọng",
-    defaultFreq: "REALTIME", defaultEmail: true, defaultInApp: true,
+    id: "CRITICAL_ISSUE_CREATED",
+    icon: ShieldAlert,
+    color: "#EF4444",
+    label: "Critical issue created",
+    labelVi: "Tạo vấn đề nghiêm trọng",
+    defaultFreq: "REALTIME",
+    defaultEmail: true,
+    defaultInApp: true,
   },
   {
-    id: "FLIGHT_TEST_FAIL", icon: Plane, color: "#EF4444",
-    label: "Flight test FAIL", labelVi: "Bay thử FAIL",
-    defaultFreq: "REALTIME", defaultEmail: true, defaultInApp: true,
+    id: "FLIGHT_TEST_FAIL",
+    icon: Plane,
+    color: "#EF4444",
+    label: "Flight test FAIL",
+    labelVi: "Bay thử FAIL",
+    defaultFreq: "REALTIME",
+    defaultEmail: true,
+    defaultInApp: true,
   },
   {
-    id: "CASCADE_DELAY_DETECTED", icon: Zap, color: "#F59E0B",
-    label: "Cascade delay detected", labelVi: "Phát hiện delay cascade",
-    defaultFreq: "REALTIME", defaultEmail: true, defaultInApp: true,
+    id: "CASCADE_DELAY_DETECTED",
+    icon: Zap,
+    color: "#F59E0B",
+    label: "Cascade delay detected",
+    labelVi: "Phát hiện delay cascade",
+    defaultFreq: "REALTIME",
+    defaultEmail: true,
+    defaultInApp: true,
   },
   {
-    id: "ISSUE_ASSIGNED", icon: UserCheck, color: "#3B82F6",
-    label: "Issue assigned to me", labelVi: "Gán vấn đề cho tôi",
-    defaultFreq: "DIGEST", defaultEmail: true, defaultInApp: true,
+    id: "ISSUE_ASSIGNED",
+    icon: UserCheck,
+    color: "#3B82F6",
+    label: "Issue assigned to me",
+    labelVi: "Gán vấn đề cho tôi",
+    defaultFreq: "DIGEST",
+    defaultEmail: true,
+    defaultInApp: true,
   },
   {
-    id: "PHASE_TRANSITION", icon: GitBranch, color: "#8B5CF6",
-    label: "Phase transition", labelVi: "Chuyển phase",
-    defaultFreq: "DIGEST", defaultEmail: true, defaultInApp: true,
+    id: "PHASE_TRANSITION",
+    icon: GitBranch,
+    color: "#8B5CF6",
+    label: "Phase transition",
+    labelVi: "Chuyển phase",
+    defaultFreq: "DIGEST",
+    defaultEmail: true,
+    defaultInApp: true,
   },
   {
-    id: "ISSUE_OVERDUE", icon: Clock, color: "#F97316",
-    label: "Issue overdue", labelVi: "Vấn đề quá hạn",
-    defaultFreq: "DIGEST", defaultEmail: true, defaultInApp: true,
+    id: "ISSUE_OVERDUE",
+    icon: Clock,
+    color: "#F97316",
+    label: "Issue overdue",
+    labelVi: "Vấn đề quá hạn",
+    defaultFreq: "DIGEST",
+    defaultEmail: true,
+    defaultInApp: true,
   },
   {
-    id: "DRAFT_PENDING_REVIEW", icon: FileText, color: "var(--text-dim)",
-    label: "DRAFT pending review", labelVi: "DRAFT chờ duyệt",
-    defaultFreq: "DIGEST", defaultEmail: false, defaultInApp: true,
+    id: "DRAFT_PENDING_REVIEW",
+    icon: FileText,
+    color: "var(--text-dim)",
+    label: "DRAFT pending review",
+    labelVi: "DRAFT chờ duyệt",
+    defaultFreq: "DIGEST",
+    defaultEmail: false,
+    defaultInApp: true,
   },
 ];
 
@@ -97,16 +145,16 @@ export class NotificationEngine {
         in_app_enabled: cfg.inApp,
         frequency: cfg.frequency,
       }));
-      supabase.from('email_preferences').upsert(rows, { onConflict: 'user_id,event_type' });
+      supabase.from("email_preferences").upsert(rows, { onConflict: "user_id,event_type" });
     }
   }
 
   async loadFromSupabase(userId) {
     if (!isSupabaseConnected() || !userId) return;
-    const { data } = await supabase.from('email_preferences').select('*').eq('user_id', userId);
+    const { data } = await supabase.from("email_preferences").select("*").eq("user_id", userId);
     if (data?.length) {
       const prefs = { ...this.preferences };
-      data.forEach(row => {
+      data.forEach((row) => {
         prefs[row.event_type] = {
           email: row.email_enabled,
           inApp: row.in_app_enabled,
@@ -144,7 +192,7 @@ export class NotificationEngine {
     if (pref.inApp) {
       this._toast(
         `${eventDef?.label || eventType}: ${data.title || data.message || ""}`,
-        eventType.includes("CRITICAL") || eventType.includes("FAIL") ? "warning" : "info"
+        eventType.includes("CRITICAL") || eventType.includes("FAIL") ? "warning" : "info",
       );
     }
 
@@ -221,19 +269,44 @@ export default function EmailPreferences({ lang, currentUser }) {
             {vi ? "Cài Đặt Email" : "Email Preferences"}
           </span>
         </div>
-        <button onClick={handleSave}
+        <button
+          onClick={handleSave}
           style={{
-            background: saved ? "#10B98120" : "#3B82F6", border: saved ? "1px solid #10B98140" : "none",
-            borderRadius: 4, padding: "6px 14px", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 4, fontFamily: sans,
-          }}>
-          {saved ? <><Check size={12} /> {vi ? "Đã lưu" : "Saved"}</> : <>{vi ? "Lưu" : "Save Preferences"}</>}
+            background: saved ? "#10B98120" : "#3B82F6",
+            border: saved ? "1px solid #10B98140" : "none",
+            borderRadius: 4,
+            padding: "6px 14px",
+            color: "#fff",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontFamily: sans,
+          }}
+        >
+          {saved ? (
+            <>
+              <Check size={12} /> {vi ? "Đã lưu" : "Saved"}
+            </>
+          ) : (
+            <>{vi ? "Lưu" : "Save Preferences"}</>
+          )}
         </button>
       </div>
 
       {/* Email address */}
       <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 6, padding: 12 }}>
-        <div style={{ fontSize: 12, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>
+        <div
+          style={{
+            fontSize: 12,
+            color: "var(--text-faint)",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            marginBottom: 4,
+          }}
+        >
           Email
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -244,8 +317,23 @@ export default function EmailPreferences({ lang, currentUser }) {
       </div>
 
       {/* Notification settings table */}
-      <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 60px 60px 90px 50px", gap: 8, padding: "8px 12px", borderBottom: "1px solid var(--border)", fontSize: 11, color: "var(--text-faint)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+      <div
+        style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden" }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 60px 60px 90px 50px",
+            gap: 8,
+            padding: "8px 12px",
+            borderBottom: "1px solid var(--border)",
+            fontSize: 11,
+            color: "var(--text-faint)",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+          }}
+        >
           <span>{vi ? "Sự kiện" : "Event"}</span>
           <span style={{ textAlign: "center" }}>Email</span>
           <span style={{ textAlign: "center" }}>In-App</span>
@@ -256,40 +344,74 @@ export default function EmailPreferences({ lang, currentUser }) {
           const pref = prefs[ev.id] || {};
           const EvIcon = ev.icon;
           return (
-            <div key={ev.id} style={{ display: "grid", gridTemplateColumns: "1fr 60px 60px 90px 50px", gap: 8, padding: "8px 12px", borderBottom: "1px solid var(--bg-input)", alignItems: "center" }}>
+            <div
+              key={ev.id}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 60px 60px 90px 50px",
+                gap: 8,
+                padding: "8px 12px",
+                borderBottom: "1px solid var(--bg-input)",
+                alignItems: "center",
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <EvIcon size={12} color={ev.color} />
-                <span style={{ fontSize: 13, color: "var(--text-primary)" }}>
-                  {vi ? ev.labelVi : ev.label}
-                </span>
+                <span style={{ fontSize: 13, color: "var(--text-primary)" }}>{vi ? ev.labelVi : ev.label}</span>
               </div>
               <div style={{ textAlign: "center" }}>
-                <button onClick={() => togglePref(ev.id, "email")}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}>
+                <button
+                  onClick={() => togglePref(ev.id, "email")}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}
+                >
                   {pref.email ? <Bell size={14} color="#3B82F6" /> : <BellOff size={14} color="var(--text-disabled)" />}
                 </button>
               </div>
               <div style={{ textAlign: "center" }}>
-                <button onClick={() => togglePref(ev.id, "inApp")}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}>
+                <button
+                  onClick={() => togglePref(ev.id, "inApp")}
+                  style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}
+                >
                   {pref.inApp ? <Bell size={14} color="#10B981" /> : <BellOff size={14} color="var(--text-disabled)" />}
                 </button>
               </div>
               <div style={{ textAlign: "center" }}>
-                <button onClick={() => toggleFreq(ev.id)}
+                <button
+                  onClick={() => toggleFreq(ev.id)}
                   style={{
                     background: pref.frequency === "REALTIME" ? "#EF444415" : "#3B82F615",
                     border: `1px solid ${pref.frequency === "REALTIME" ? "#EF444430" : "#3B82F630"}`,
-                    borderRadius: 3, padding: "2px 8px", fontSize: 11, fontWeight: 700,
+                    borderRadius: 3,
+                    padding: "2px 8px",
+                    fontSize: 11,
+                    fontWeight: 700,
                     color: pref.frequency === "REALTIME" ? "#FCA5A5" : "#60A5FA",
-                    cursor: "pointer", fontFamily: mono,
-                  }}>
-                  {pref.frequency === "REALTIME" ? <><Zap size={8} style={{ display: "inline", verticalAlign: "middle" }} /> RT</> : <><Calendar size={8} style={{ display: "inline", verticalAlign: "middle" }} /> Digest</>}
+                    cursor: "pointer",
+                    fontFamily: mono,
+                  }}
+                >
+                  {pref.frequency === "REALTIME" ? (
+                    <>
+                      <Zap size={8} style={{ display: "inline", verticalAlign: "middle" }} /> RT
+                    </>
+                  ) : (
+                    <>
+                      <Calendar size={8} style={{ display: "inline", verticalAlign: "middle" }} /> Digest
+                    </>
+                  )}
                 </button>
               </div>
               <div style={{ textAlign: "center" }}>
-                <button onClick={() => setPreviewEvent(previewEvent === ev.id ? null : ev.id)}
-                  style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: previewEvent === ev.id ? "#3B82F6" : "var(--text-faint)" }}>
+                <button
+                  onClick={() => setPreviewEvent(previewEvent === ev.id ? null : ev.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 2,
+                    color: previewEvent === ev.id ? "#3B82F6" : "var(--text-faint)",
+                  }}
+                >
                   <Eye size={12} />
                 </button>
               </div>
@@ -300,20 +422,41 @@ export default function EmailPreferences({ lang, currentUser }) {
 
       {/* Email preview */}
       {previewEvent && (
-        <EmailPreview eventType={previewEvent} lang={lang} currentUser={currentUser} onClose={() => setPreviewEvent(null)} />
+        <EmailPreview
+          eventType={previewEvent}
+          lang={lang}
+          currentUser={currentUser}
+          onClose={() => setPreviewEvent(null)}
+        />
       )}
 
       {/* Digest time */}
       <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 6, padding: 12 }}>
         <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
           <div>
-            <div style={{ fontSize: 11, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: "var(--text-faint)",
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                marginBottom: 2,
+              }}
+            >
               {vi ? "Giờ digest" : "Digest time"}
             </div>
             <span style={{ fontSize: 14, fontFamily: mono, color: "var(--text-primary)" }}>08:00 AM</span>
           </div>
           <div>
-            <div style={{ fontSize: 11, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: "var(--text-faint)",
+                textTransform: "uppercase",
+                letterSpacing: "0.06em",
+                marginBottom: 2,
+              }}
+            >
               {vi ? "Múi giờ" : "Timezone"}
             </div>
             <span style={{ fontSize: 14, fontFamily: mono, color: "var(--text-primary)" }}>Asia/Ho_Chi_Minh</span>
@@ -332,33 +475,69 @@ function EmailPreview({ eventType, lang, currentUser, onClose }) {
   const isDigest = ev?.defaultFreq === "DIGEST";
 
   return (
-    <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid var(--border)" }}>
+    <div
+      style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "8px 12px",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
         <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
           {vi ? "Xem trước Email" : "Email Preview"} — {vi ? ev?.labelVi : ev?.label}
         </span>
-        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-faint)" }}>
+        <button
+          onClick={onClose}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-faint)" }}
+        >
           <X size={12} />
         </button>
       </div>
 
       {/* Mock email */}
-      <div style={{ padding: 16, background: "var(--bg-input)", margin: 12, borderRadius: 6, border: "1px solid var(--border)" }}>
+      <div
+        style={{
+          padding: 16,
+          background: "var(--bg-input)",
+          margin: 12,
+          borderRadius: 6,
+          border: "1px solid var(--border)",
+        }}
+      >
         {!isDigest ? (
           // Realtime template
           <>
             <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 8 }}>
-              Subject: {ev?.id === "CRITICAL_ISSUE_CREATED" ? "🔴" : ev?.id === "FLIGHT_TEST_FAIL" ? "✈" : "⚡"} [RtR] {ev?.label} — RTR-X7
+              Subject: {ev?.id === "CRITICAL_ISSUE_CREATED" ? "🔴" : ev?.id === "FLIGHT_TEST_FAIL" ? "✈" : "⚡"} [RtR]{" "}
+              {ev?.label} — RTR-X7
             </div>
             <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
               <div style={{ fontSize: 13, color: "#3B82F6", fontWeight: 700, marginBottom: 8 }}>RtR Control Tower</div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>
                 {vi ? ev?.labelVi : ev?.label}
               </div>
-              <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 4, padding: 10, marginBottom: 8 }}>
-                <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{vi ? "Dự án" : "Project"}: <span style={{ color: "var(--text-primary)" }}>RTR-X7 Surveyor</span></div>
-                <div style={{ fontSize: 12, color: "var(--text-dim)" }}>Phase: <span style={{ color: "var(--text-primary)" }}>DVT</span></div>
-                <div style={{ fontSize: 12, color: "var(--text-dim)" }}>{vi ? "Mức độ" : "Severity"}: <span style={{ color: "#EF4444", fontWeight: 700 }}>CRITICAL</span></div>
+              <div
+                style={{
+                  background: "var(--bg-card)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 4,
+                  padding: 10,
+                  marginBottom: 8,
+                }}
+              >
+                <div style={{ fontSize: 12, color: "var(--text-dim)" }}>
+                  {vi ? "Dự án" : "Project"}: <span style={{ color: "var(--text-primary)" }}>RTR-X7 Surveyor</span>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-dim)" }}>
+                  Phase: <span style={{ color: "var(--text-primary)" }}>DVT</span>
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-dim)" }}>
+                  {vi ? "Mức độ" : "Severity"}: <span style={{ color: "#EF4444", fontWeight: 700 }}>CRITICAL</span>
+                </div>
               </div>
               <div style={{ fontSize: 12, color: "#3B82F6", textDecoration: "underline", cursor: "pointer" }}>
                 [{vi ? "Xem chi tiết" : "View Details"}]
@@ -369,12 +548,16 @@ function EmailPreview({ eventType, lang, currentUser, onClose }) {
           // Digest template
           <>
             <div style={{ fontSize: 11, color: "var(--text-faint)", marginBottom: 8 }}>
-              Subject: 📊 [RtR] {vi ? "Tổng hợp hàng ngày" : "Daily Digest"} — {new Date().toLocaleDateString(vi ? "vi-VN" : "en-US")}
+              Subject: 📊 [RtR] {vi ? "Tổng hợp hàng ngày" : "Daily Digest"} —{" "}
+              {new Date().toLocaleDateString(vi ? "vi-VN" : "en-US")}
             </div>
             <div style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
-              <div style={{ fontSize: 13, color: "#3B82F6", fontWeight: 700, marginBottom: 4 }}>RtR Control Tower — {vi ? "Tổng hợp hàng ngày" : "Daily Digest"}</div>
+              <div style={{ fontSize: 13, color: "#3B82F6", fontWeight: 700, marginBottom: 4 }}>
+                RtR Control Tower — {vi ? "Tổng hợp hàng ngày" : "Daily Digest"}
+              </div>
               <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 10 }}>
-                {vi ? "Chào" : "Hello"} {currentUser?.name}, {vi ? "đây là tổng hợp 24 giờ qua" : "here's your 24h summary"}:
+                {vi ? "Chào" : "Hello"} {currentUser?.name},{" "}
+                {vi ? "đây là tổng hợp 24 giờ qua" : "here's your 24h summary"}:
               </div>
               <div style={{ marginBottom: 6, fontSize: 12 }}>
                 <span style={{ color: "var(--text-faint)" }}>📌 {vi ? "Issues gán cho bạn" : "Issues assigned"}: </span>
@@ -388,13 +571,29 @@ function EmailPreview({ eventType, lang, currentUser, onClose }) {
                 <span style={{ color: "var(--text-faint)" }}>📋 {vi ? "DRAFT chờ duyệt" : "DRAFT pending"}: </span>
                 <span style={{ color: "var(--text-primary)", fontWeight: 700 }}>2</span>
               </div>
-              <div style={{ fontSize: 12, color: "#3B82F6", textDecoration: "underline", cursor: "pointer", marginTop: 10 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "#3B82F6",
+                  textDecoration: "underline",
+                  cursor: "pointer",
+                  marginTop: 10,
+                }}
+              >
                 [{vi ? "Mở Control Tower" : "Open Control Tower"}]
               </div>
             </div>
           </>
         )}
-        <div style={{ borderTop: "1px solid var(--border)", marginTop: 12, paddingTop: 8, fontSize: 10, color: "var(--text-disabled)" }}>
+        <div
+          style={{
+            borderTop: "1px solid var(--border)",
+            marginTop: 12,
+            paddingTop: 8,
+            fontSize: 10,
+            color: "var(--text-disabled)",
+          }}
+        >
           {vi ? "Tùy chỉnh tại Settings > Email Preferences" : "Manage notifications in Settings > Email Preferences"}
         </div>
       </div>
@@ -421,15 +620,29 @@ export function NotificationToast({ message, type, onClose }) {
   const Icon = c.icon;
 
   return (
-    <div style={{
-      position: "fixed", bottom: 20, right: 20, zIndex: 99999,
-      background: c.bg, border: `1px solid ${c.border}`, borderRadius: 6,
-      padding: "8px 14px", display: "flex", alignItems: "center", gap: 8,
-      maxWidth: 360, boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-    }}>
+    <div
+      style={{
+        position: "fixed",
+        bottom: 20,
+        right: 20,
+        zIndex: 99999,
+        background: c.bg,
+        border: `1px solid ${c.border}`,
+        borderRadius: 6,
+        padding: "8px 14px",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        maxWidth: 360,
+        boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+      }}
+    >
       <Icon size={14} color={c.text} />
       <span style={{ fontSize: 13, color: c.text, flex: 1 }}>{message}</span>
-      <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-faint)", cursor: "pointer", padding: 0 }}>
+      <button
+        onClick={onClose}
+        style={{ background: "none", border: "none", color: "var(--text-faint)", cursor: "pointer", padding: 0 }}
+      >
         <X size={10} />
       </button>
     </div>

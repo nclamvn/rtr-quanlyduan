@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { isSupabaseConnected, withTimeout, warmUpSupabase } from '../lib/supabase';
-import { supabase } from '../lib/supabase';
+import { useState, useEffect } from "react";
+import { isSupabaseConnected, withTimeout, warmUpSupabase } from "../lib/supabase";
+import { supabase } from "../lib/supabase";
 
 export function useTeamData() {
   const [data, setData] = useState([]);
@@ -19,8 +19,8 @@ export function useTeamData() {
         await warmUpSupabase();
         const { data: members, error } = await withTimeout(
           supabase
-            .from('project_members')
-            .select('project_id, profiles(id, full_name, role, avatar_initials, department)')
+            .from("project_members")
+            .select("project_id, profiles(id, full_name, role, avatar_initials, department)"),
         );
 
         if (error || !members || cancelled) {
@@ -58,7 +58,9 @@ export function useTeamData() {
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { data, loading };

@@ -2,19 +2,19 @@
  * SignalHub Kernel — Classification Engine (Two-stage)
  */
 
-import type { Signal, Severity, SignalInput } from './signal';
+import type { Signal, Severity, SignalInput } from "./signal";
 
 // ─── Rule Config ─────────────────────────────────────────────────────
 
 export type MatchCondition =
-  | { field: 'title' | 'body'; op: 'contains'; values: string[] }
-  | { field: 'title' | 'body'; op: 'regex'; pattern: string }
-  | { field: 'signalType'; op: 'equals'; value: string }
-  | { field: 'value'; op: 'gt' | 'lt' | 'gte' | 'lte'; threshold: number }
-  | { field: 'dimension'; key: string; op: 'equals'; value: string | number }
-  | { field: 'dimension'; key: string; op: 'in'; values: (string | number)[] }
-  | { field: 'sourceTier'; op: 'lte'; value: number }
-  | { field: 'any' };
+  | { field: "title" | "body"; op: "contains"; values: string[] }
+  | { field: "title" | "body"; op: "regex"; pattern: string }
+  | { field: "signalType"; op: "equals"; value: string }
+  | { field: "value"; op: "gt" | "lt" | "gte" | "lte"; threshold: number }
+  | { field: "dimension"; key: string; op: "equals"; value: string | number }
+  | { field: "dimension"; key: string; op: "in"; values: (string | number)[] }
+  | { field: "sourceTier"; op: "lte"; value: number }
+  | { field: "any" };
 
 export interface ClassificationRule {
   id: string;
@@ -34,7 +34,7 @@ export interface ClassificationResult {
   severity: Severity;
   categories: string[];
   confidence: number;
-  source: 'rule' | 'ai' | 'default';
+  source: "rule" | "ai" | "default";
   ruleId?: string;
 }
 
@@ -62,17 +62,17 @@ export class ClassificationEngine {
           severity: rule.assign.severity,
           categories: rule.assign.categories,
           confidence: adjustedConfidence,
-          source: 'rule',
+          source: "rule",
           ruleId: rule.id,
         };
       }
     }
 
     return {
-      severity: 'info',
-      categories: ['uncategorized'],
+      severity: "info",
+      categories: ["uncategorized"],
       confidence: 0.1,
-      source: 'default',
+      source: "default",
     };
   }
 
@@ -104,18 +104,18 @@ export class ClassificationEngine {
 
   private matchesCondition(input: SignalInput, cond: MatchCondition): boolean {
     switch (cond.field) {
-      case 'any':
+      case "any":
         return true;
 
-      case 'title':
-      case 'body': {
-        const text = (cond.field === 'title' ? input.title : input.body ?? '').toLowerCase();
-        if (cond.op === 'contains') {
+      case "title":
+      case "body": {
+        const text = (cond.field === "title" ? input.title : (input.body ?? "")).toLowerCase();
+        if (cond.op === "contains") {
           return cond.values.some((v) => text.includes(v.toLowerCase()));
         }
-        if (cond.op === 'regex') {
+        if (cond.op === "regex") {
           try {
-            return new RegExp(cond.pattern, 'i').test(text);
+            return new RegExp(cond.pattern, "i").test(text);
           } catch {
             return false;
           }
@@ -123,29 +123,33 @@ export class ClassificationEngine {
         return false;
       }
 
-      case 'signalType':
+      case "signalType":
         return input.signalType === cond.value;
 
-      case 'value': {
+      case "value": {
         const v = input.value ?? 0;
         switch (cond.op) {
-          case 'gt': return v > cond.threshold;
-          case 'lt': return v < cond.threshold;
-          case 'gte': return v >= cond.threshold;
-          case 'lte': return v <= cond.threshold;
+          case "gt":
+            return v > cond.threshold;
+          case "lt":
+            return v < cond.threshold;
+          case "gte":
+            return v >= cond.threshold;
+          case "lte":
+            return v <= cond.threshold;
         }
         return false;
       }
 
-      case 'dimension': {
+      case "dimension": {
         const dimVal = input.dimensions?.[cond.key];
         if (dimVal === undefined) return false;
-        if (cond.op === 'equals') return dimVal === cond.value;
-        if (cond.op === 'in') return cond.values.includes(dimVal);
+        if (cond.op === "equals") return dimVal === cond.value;
+        if (cond.op === "in") return cond.values.includes(dimVal);
         return false;
       }
 
-      case 'sourceTier':
+      case "sourceTier":
         return (input.sourceTier ?? 3) <= cond.value;
 
       default:

@@ -3,7 +3,7 @@
 // Calls ai-advisor Edge Function with in-memory session cache
 // ═══════════════════════════════════════════════════════════
 
-import { supabase, isSupabaseConnected } from '../lib/supabase';
+import { supabase, isSupabaseConnected } from "../lib/supabase";
 
 // In-memory session cache (cleared on page refresh)
 const sessionCache = new Map();
@@ -12,7 +12,7 @@ function getCacheKey(issue, lang) {
   return `${issue.id}:${issue.status}:${issue.sev || issue.severity}:${issue.impacts?.length || 0}:${issue.updates?.length || 0}:${lang}`;
 }
 
-export async function fetchAIAdvisory(issue, context, lang = 'vi') {
+export async function fetchAIAdvisory(issue, context, lang = "vi") {
   if (!issue?.id) return null;
 
   const key = getCacheKey(issue, lang);
@@ -23,10 +23,10 @@ export async function fetchAIAdvisory(issue, context, lang = 'vi') {
   }
 
   if (!isSupabaseConnected()) {
-    return { error: 'offline', summary: lang === 'vi' ? 'Không có kết nối' : 'No connection' };
+    return { error: "offline", summary: lang === "vi" ? "Không có kết nối" : "No connection" };
   }
 
-  const { data, error } = await supabase.functions.invoke('ai-advisor', {
+  const { data, error } = await supabase.functions.invoke("ai-advisor", {
     body: {
       issue: {
         id: issue.id,
@@ -50,7 +50,7 @@ export async function fetchAIAdvisory(issue, context, lang = 'vi') {
   });
 
   if (error) {
-    console.warn('[aiAdvisor] Edge function error:', error.message);
+    console.warn("[aiAdvisor] Edge function error:", error.message);
     return { error: error.message };
   }
 

@@ -4,8 +4,16 @@
  */
 import { useState } from "react";
 import {
-  Scan, ChevronDown, ChevronRight, AlertTriangle,
-  Link2, Users, Layers, FolderKanban, Lightbulb, Clock,
+  Scan,
+  ChevronDown,
+  ChevronRight,
+  AlertTriangle,
+  Link2,
+  Users,
+  Layers,
+  FolderKanban,
+  Lightbulb,
+  Clock,
 } from "lucide-react";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
@@ -21,15 +29,24 @@ const SEV_COLORS = {
 
 function Badge({ label, color, size = "sm" }) {
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 4,
-      padding: size === "sm" ? "1px 7px" : "3px 10px",
-      borderRadius: 3, background: color + "15", color,
-      fontSize: size === "sm" ? 9 : 10, fontWeight: 700,
-      letterSpacing: "0.06em", textTransform: "uppercase",
-      border: `1px solid ${color}25`, fontFamily: mono,
-      whiteSpace: "nowrap",
-    }}>
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: size === "sm" ? "1px 7px" : "3px 10px",
+        borderRadius: 3,
+        background: color + "15",
+        color,
+        fontSize: size === "sm" ? 9 : 10,
+        fontWeight: 700,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        border: `1px solid ${color}25`,
+        fontFamily: mono,
+        whiteSpace: "nowrap",
+      }}
+    >
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0 }} />
       {label}
     </span>
@@ -38,12 +55,20 @@ function Badge({ label, color, size = "sm" }) {
 
 function DimensionBadge({ icon: Icon, label }) {
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 3,
-      padding: "2px 8px", borderRadius: 3,
-      background: "var(--bg-secondary)", border: "1px solid var(--border)",
-      fontSize: 10, fontFamily: mono, color: "var(--text-dim)",
-    }}>
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 3,
+        padding: "2px 8px",
+        borderRadius: 3,
+        background: "var(--bg-secondary)",
+        border: "1px solid var(--border)",
+        fontSize: 10,
+        fontFamily: mono,
+        color: "var(--text-dim)",
+      }}
+    >
       <Icon size={10} />
       {label}
     </span>
@@ -57,12 +82,14 @@ function ClusterCard({ cluster, lang, onNavigateIssue }) {
   const recommendation = lang === "vi" ? cluster.recommendation.vi : cluster.recommendation.en;
 
   return (
-    <div style={{
-      background: "var(--bg-input)",
-      border: `1px solid ${color}30`,
-      borderRadius: 8,
-      overflow: "hidden",
-    }}>
+    <div
+      style={{
+        background: "var(--bg-input)",
+        border: `1px solid ${color}30`,
+        borderRadius: 8,
+        overflow: "hidden",
+      }}
+    >
       {/* Header */}
       <div
         style={{
@@ -75,7 +102,11 @@ function ClusterCard({ cluster, lang, onNavigateIssue }) {
         onClick={() => setExpanded(!expanded)}
       >
         <div style={{ flexShrink: 0, marginTop: 2 }}>
-          {expanded ? <ChevronDown size={14} color="var(--text-dim)" /> : <ChevronRight size={14} color="var(--text-dim)" />}
+          {expanded ? (
+            <ChevronDown size={14} color="var(--text-dim)" />
+          ) : (
+            <ChevronRight size={14} color="var(--text-dim)" />
+          )}
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -88,22 +119,24 @@ function ClusterCard({ cluster, lang, onNavigateIssue }) {
           </div>
 
           {/* Explanation */}
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", fontFamily: sans, lineHeight: 1.4 }}>
+          <div
+            style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", fontFamily: sans, lineHeight: 1.4 }}
+          >
             {explanation}
           </div>
 
           {/* Shared dimension badges */}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 8 }}>
-            {cluster.sharedComponents.map(c => (
+            {cluster.sharedComponents.map((c) => (
               <DimensionBadge key={`comp-${c}`} icon={Layers} label={c} />
             ))}
-            {cluster.sharedPhases.map(p => (
+            {cluster.sharedPhases.map((p) => (
               <DimensionBadge key={`phase-${p}`} icon={FolderKanban} label={p} />
             ))}
-            {cluster.sharedOwners.map(o => (
+            {cluster.sharedOwners.map((o) => (
               <DimensionBadge key={`owner-${o}`} icon={Users} label={o} />
             ))}
-            {cluster.sharedProjects.map(p => (
+            {cluster.sharedProjects.map((p) => (
               <DimensionBadge key={`proj-${p}`} icon={FolderKanban} label={p} />
             ))}
           </div>
@@ -114,36 +147,63 @@ function ClusterCard({ cluster, lang, onNavigateIssue }) {
       {expanded && (
         <div style={{ borderTop: "1px solid var(--border)", padding: "12px 14px 14px 38px" }}>
           {/* Recommendation */}
-          <div style={{
-            display: "flex", alignItems: "flex-start", gap: 6,
-            padding: "8px 10px", marginBottom: 10,
-            background: "#3B82F608", border: "1px solid #3B82F620",
-            borderRadius: 6, fontSize: 12, fontFamily: sans,
-            color: "#3B82F6", lineHeight: 1.4,
-          }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 6,
+              padding: "8px 10px",
+              marginBottom: 10,
+              background: "#3B82F608",
+              border: "1px solid #3B82F620",
+              borderRadius: 6,
+              fontSize: 12,
+              fontFamily: sans,
+              color: "#3B82F6",
+              lineHeight: 1.4,
+            }}
+          >
             <Lightbulb size={14} style={{ flexShrink: 0, marginTop: 1 }} />
             {recommendation}
           </div>
 
           {/* Issue list */}
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {cluster.issues.map(issue => (
+            {cluster.issues.map((issue) => (
               <div
                 key={issue.id}
                 style={{
-                  display: "flex", alignItems: "center", gap: 8,
-                  padding: "6px 8px", borderRadius: 4,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "6px 8px",
+                  borderRadius: 4,
                   background: "var(--bg-secondary)",
                   border: "1px solid var(--border)",
                   cursor: onNavigateIssue ? "pointer" : "default",
                 }}
                 onClick={() => onNavigateIssue?.(issue.id)}
               >
-                <span style={{
-                  width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
-                  background: SEV_COLORS[issue.severity] || SEV_COLORS.info,
-                }} />
-                <span style={{ flex: 1, fontSize: 11, fontFamily: sans, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    flexShrink: 0,
+                    background: SEV_COLORS[issue.severity] || SEV_COLORS.info,
+                  }}
+                />
+                <span
+                  style={{
+                    flex: 1,
+                    fontSize: 11,
+                    fontFamily: sans,
+                    color: "var(--text-primary)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   {issue.title}
                 </span>
                 {issue.owner && (
@@ -179,33 +239,50 @@ export default function AIScanPanel({ scanResult, issues, onRunScan, lang, onNav
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-
       {/* Scan button + summary */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <button
           onClick={handleScan}
           disabled={scanning || !issues?.length}
           style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "8px 16px", borderRadius: 6,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "8px 16px",
+            borderRadius: 6,
             background: scanning ? "var(--border)" : "#3B82F6",
-            color: "#fff", border: "none", cursor: scanning ? "wait" : "pointer",
-            fontSize: 13, fontWeight: 700, fontFamily: sans,
+            color: "#fff",
+            border: "none",
+            cursor: scanning ? "wait" : "pointer",
+            fontSize: 13,
+            fontWeight: 700,
+            fontFamily: sans,
             opacity: !issues?.length ? 0.5 : 1,
           }}
         >
           <Scan size={14} style={scanning ? { animation: "spin 1s linear infinite" } : {}} />
           {scanning
-            ? (lang === "vi" ? "Đang quét..." : "Scanning...")
-            : (lang === "vi" ? "AI Quét Liên Quan" : "AI Scan Relationships")}
+            ? lang === "vi"
+              ? "Đang quét..."
+              : "Scanning..."
+            : lang === "vi"
+              ? "AI Quét Liên Quan"
+              : "AI Scan Relationships"}
         </button>
 
         {hasResult && (
           <div style={{ display: "flex", gap: 14, fontSize: 11, fontFamily: mono, color: "var(--text-dim)" }}>
             <span>{scanResult.totalIssues} issues</span>
-            <span><Link2 size={10} style={{ display: "inline", verticalAlign: "middle" }} /> {scanResult.totalRelationships} {lang === "vi" ? "liên kết" : "relationships"}</span>
-            <span>{scanResult.clusters.length} {lang === "vi" ? "nhóm" : "clusters"}</span>
-            <span><Clock size={10} style={{ display: "inline", verticalAlign: "middle" }} /> {scanResult.scanTimeMs}ms</span>
+            <span>
+              <Link2 size={10} style={{ display: "inline", verticalAlign: "middle" }} /> {scanResult.totalRelationships}{" "}
+              {lang === "vi" ? "liên kết" : "relationships"}
+            </span>
+            <span>
+              {scanResult.clusters.length} {lang === "vi" ? "nhóm" : "clusters"}
+            </span>
+            <span>
+              <Clock size={10} style={{ display: "inline", verticalAlign: "middle" }} /> {scanResult.scanTimeMs}ms
+            </span>
           </div>
         )}
       </div>
@@ -213,13 +290,8 @@ export default function AIScanPanel({ scanResult, issues, onRunScan, lang, onNav
       {/* Results */}
       {hasResult && scanResult.clusters.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {scanResult.clusters.map(cluster => (
-            <ClusterCard
-              key={cluster.id}
-              cluster={cluster}
-              lang={lang}
-              onNavigateIssue={onNavigateIssue}
-            />
+          {scanResult.clusters.map((cluster) => (
+            <ClusterCard key={cluster.id} cluster={cluster} lang={lang} onNavigateIssue={onNavigateIssue} />
           ))}
         </div>
       )}

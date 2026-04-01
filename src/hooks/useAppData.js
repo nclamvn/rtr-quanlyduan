@@ -1,23 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
-import { isSupabaseConnected, withTimeout, warmUpSupabase, getConnectionStatus } from '../lib/supabase';
-import { useRealtimeSubscription } from './useRealtime';
-import {
-  fetchProjects,
-  fetchMilestones,
-  fetchGateConditions,
-  toggleGateCondition,
-  updateProject,
-} from '../services/projectService';
+import { useState, useEffect, useCallback } from "react";
+import { isSupabaseConnected, withTimeout, warmUpSupabase, getConnectionStatus } from "../lib/supabase";
+import { useRealtimeSubscription } from "./useRealtime";
+import { fetchProjects, fetchMilestones, fetchGateConditions, toggleGateCondition } from "../services/projectService";
 import {
   fetchIssues,
   createIssue as createIssueService,
   updateIssueStatus as updateIssueStatusService,
-} from '../services/issueService';
-import {
-  fetchNotifications,
-  markNotificationRead,
-  markAllRead,
-} from '../services/notificationService';
+} from "../services/issueService";
+import { fetchNotifications, markNotificationRead, markAllRead } from "../services/notificationService";
 
 // ═══ Transform Supabase → App.jsx shape ═══
 
@@ -25,7 +15,7 @@ import {
 function buildMilestonesMap(milestoneRows) {
   const map = {};
   for (const m of milestoneRows) {
-    const statusMap = { DONE: 'COMPLETED', DELAYED: 'IN_PROGRESS' };
+    const statusMap = { DONE: "COMPLETED", DELAYED: "IN_PROGRESS" };
     map[m.phase] = {
       target: m.target_date,
       actual: m.actual_date,
@@ -52,7 +42,7 @@ function buildGateChecksMap(gateRows) {
       label: g.label,
       label_vi: g.label_vi,
       required: g.is_required,
-      cat: g.category || 'general',
+      cat: g.category || "general",
     });
   }
   return { checks, config: configByPhase };
@@ -71,18 +61,18 @@ function transformIssue(row) {
     owner_id: row.owner_id,
     created_by: row.created_by,
     rootCause: row.root_cause,
-    created: row.created_at?.split('T')[0],
+    created: row.created_at?.split("T")[0],
     due: row.due_date,
-    impacts: (row.issue_impacts || []).map(imp => ({
+    impacts: (row.issue_impacts || []).map((imp) => ({
       ...imp,
       phase: imp.affected_phase,
       days: (imp.delay_weeks || 0) * 7,
       desc: imp.description,
       descVi: imp.description_vi,
     })),
-    updates: (row.issue_updates || []).map(upd => ({
+    updates: (row.issue_updates || []).map((upd) => ({
       ...upd,
-      date: upd.created_at?.split('T')[0],
+      date: upd.created_at?.split("T")[0],
       author: upd.author_name,
       text: upd.content,
     })),
@@ -113,7 +103,7 @@ export function useProjectsData() {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (getConnectionStatus() !== 'online') {
+    if (getConnectionStatus() !== "online") {
       setLoading(false);
       return; // App.jsx will use static fallback
     }
@@ -130,65 +120,73 @@ export function useProjectsData() {
       const allGateData = {};
       const mergedConfig = {};
 
-      await withTimeout(Promise.all(projData.map(async (proj) => {
-        const [milRes, gateRes] = await Promise.all([
-          fetchMilestones(proj.id),
-          fetchGateConditions(proj.id),
-        ]);
-        allMilestones[proj.id] = buildMilestonesMap(milRes.data || []);
-        const gd = buildGateChecksMap(gateRes.data || []);
-        allGateData[proj.id] = gd;
-        Object.entries(gd.config).forEach(([phase, cfg]) => {
-          if (!mergedConfig[phase]) mergedConfig[phase] = cfg;
-        });
-      })), 8000);
+      await withTimeout(
+        Promise.all(
+          projData.map(async (proj) => {
+            const [milRes, gateRes] = await Promise.all([fetchMilestones(proj.id), fetchGateConditions(proj.id)]);
+            allMilestones[proj.id] = buildMilestonesMap(milRes.data || []);
+            const gd = buildGateChecksMap(gateRes.data || []);
+            allGateData[proj.id] = gd;
+            Object.entries(gd.config).forEach(([phase, cfg]) => {
+              if (!mergedConfig[phase]) mergedConfig[phase] = cfg;
+            });
+          }),
+        ),
+        8000,
+      );
 
-      const transformed = projData.map(p =>
-        transformProject(p, allMilestones[p.id] || {}, allGateData[p.id] || { checks: {}, config: {} })
+      const transformed = projData.map((p) =>
+        transformProject(p, allMilestones[p.id] || {}, allGateData[p.id] || { checks: {}, config: {} }),
       );
 
       setProjects(transformed);
       setGateConfig(mergedConfig);
     } catch (err) {
-      console.warn('Projects fetch timeout/error, using static fallback:', err.message);
+      console.warn("Projects fetch timeout/error, using static fallback:", err.message);
     }
     setLoading(false);
   }, []);
 
-  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
+  useEffect(() => {
+    warmUpSupabase().then(() => refetch());
+  }, [refetch]);
 
   // Toggle gate condition (Supabase)
   const toggleGate = useCallback(async (gateId, isChecked, userId) => {
     if (!isSupabaseConnected()) return;
     await toggleGateCondition(gateId, isChecked, userId);
     // Optimistic update
-    setProjects(prev => prev.map(p => {
-      const newGateChecks = { ...p.gateChecks };
-      for (const phase of Object.keys(newGateChecks)) {
-        if (gateId in (newGateChecks[phase] || {})) {
-          newGateChecks[phase] = { ...newGateChecks[phase], [gateId]: isChecked };
+    setProjects((prev) =>
+      prev.map((p) => {
+        const newGateChecks = { ...p.gateChecks };
+        for (const phase of Object.keys(newGateChecks)) {
+          if (gateId in (newGateChecks[phase] || {})) {
+            newGateChecks[phase] = { ...newGateChecks[phase], [gateId]: isChecked };
+          }
         }
-      }
-      return { ...p, gateChecks: newGateChecks };
-    }));
+        return { ...p, gateChecks: newGateChecks };
+      }),
+    );
   }, []);
 
   // Realtime: gate condition toggled by another user
-  useRealtimeSubscription('gate_conditions', {
+  useRealtimeSubscription("gate_conditions", {
     onUpdate: (newRow) => {
-      setProjects(prev => prev.map(p => {
-        if (p.id !== newRow.project_id) return p;
-        const newGateChecks = { ...p.gateChecks };
-        if (newGateChecks[newRow.phase]) {
-          newGateChecks[newRow.phase] = { ...newGateChecks[newRow.phase], [newRow.id]: !!newRow.is_checked };
-        }
-        return { ...p, gateChecks: newGateChecks };
-      }));
+      setProjects((prev) =>
+        prev.map((p) => {
+          if (p.id !== newRow.project_id) return p;
+          const newGateChecks = { ...p.gateChecks };
+          if (newGateChecks[newRow.phase]) {
+            newGateChecks[newRow.phase] = { ...newGateChecks[newRow.phase], [newRow.id]: !!newRow.is_checked };
+          }
+          return { ...p, gateChecks: newGateChecks };
+        }),
+      );
     },
   });
 
   // Realtime: project phase/status changed
-  useRealtimeSubscription('projects', {
+  useRealtimeSubscription("projects", {
     onUpdate: () => refetch(),
   });
 
@@ -201,7 +199,7 @@ export function useIssuesData() {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (getConnectionStatus() !== 'online') {
+    if (getConnectionStatus() !== "online") {
       setLoading(false);
       return; // App.jsx will use static fallback
     }
@@ -210,44 +208,51 @@ export function useIssuesData() {
       const { data } = await withTimeout(fetchIssues());
       setIssues((data || []).map(transformIssue));
     } catch (err) {
-      console.warn('Issues fetch timeout/error, using static fallback:', err.message);
+      console.warn("Issues fetch timeout/error, using static fallback:", err.message);
     }
     setLoading(false);
   }, []);
 
-  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
+  useEffect(() => {
+    warmUpSupabase().then(() => refetch());
+  }, [refetch]);
 
   // Create issue via Supabase
-  const createIssue = useCallback(async (issueData) => {
-    if (!isSupabaseConnected()) return null;
-    const { data } = await createIssueService(issueData);
-    if (data) {
-      // Refetch to get the full issue with relations
-      refetch();
-    }
-    return data;
-  }, [refetch]);
+  const createIssue = useCallback(
+    async (issueData) => {
+      if (!isSupabaseConnected()) return null;
+      const { data } = await createIssueService(issueData);
+      if (data) {
+        // Refetch to get the full issue with relations
+        refetch();
+      }
+      return data;
+    },
+    [refetch],
+  );
 
   // Update issue status via Supabase
   const updateStatus = useCallback(async (issueId, newStatus) => {
     if (!isSupabaseConnected()) return;
     await updateIssueStatusService(issueId, newStatus);
     // Optimistic update
-    setIssues(prev => prev.map(i =>
-      i.id === issueId ? { ...i, status: newStatus } : i
-    ));
+    setIssues((prev) => prev.map((i) => (i.id === issueId ? { ...i, status: newStatus } : i)));
   }, []);
 
   // Realtime: auto-refresh on changes from other users
-  useRealtimeSubscription('issues', {
+  useRealtimeSubscription("issues", {
     onInsert: () => refetch(),
     onUpdate: (newRow) => {
-      setIssues(prev => prev.map(i =>
-        i.id === newRow.id ? { ...i, status: newRow.status, owner_name: newRow.owner_name, owner: newRow.owner_name } : i
-      ));
+      setIssues((prev) =>
+        prev.map((i) =>
+          i.id === newRow.id
+            ? { ...i, status: newRow.status, owner_name: newRow.owner_name, owner: newRow.owner_name }
+            : i,
+        ),
+      );
     },
     onDelete: (oldRow) => {
-      setIssues(prev => prev.filter(i => i.id !== oldRow.id));
+      setIssues((prev) => prev.filter((i) => i.id !== oldRow.id));
     },
   });
 
@@ -259,71 +264,76 @@ export function useNotificationsData(userId) {
   const [loading, setLoading] = useState(true);
 
   const refetch = useCallback(async () => {
-    if (getConnectionStatus() !== 'online' || !userId) {
+    if (getConnectionStatus() !== "online" || !userId) {
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
       const { data } = await withTimeout(fetchNotifications(userId));
-      setNotifications((data || []).map(n => ({
-        ...n,
-        titleVi: n.title_vi,
-        time: n.time_ago || formatTimeAgo(n.created_at),
-        timeVi: n.time_ago_vi || formatTimeAgo(n.created_at, 'vi'),
-        read: n.is_read,
-        ref: n.reference_id,
-      })));
+      setNotifications(
+        (data || []).map((n) => ({
+          ...n,
+          titleVi: n.title_vi,
+          time: n.time_ago || formatTimeAgo(n.created_at),
+          timeVi: n.time_ago_vi || formatTimeAgo(n.created_at, "vi"),
+          read: n.is_read,
+          ref: n.reference_id,
+        })),
+      );
     } catch (err) {
-      console.warn('Notifications fetch timeout/error:', err.message);
+      console.warn("Notifications fetch timeout/error:", err.message);
     }
     setLoading(false);
   }, [userId]);
 
-  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
+  useEffect(() => {
+    warmUpSupabase().then(() => refetch());
+  }, [refetch]);
 
   const markRead = useCallback(async (notifId) => {
     if (!isSupabaseConnected()) return;
     await markNotificationRead(notifId);
-    setNotifications(prev => prev.map(n =>
-      n.id === notifId ? { ...n, read: true, is_read: true } : n
-    ));
+    setNotifications((prev) => prev.map((n) => (n.id === notifId ? { ...n, read: true, is_read: true } : n)));
   }, []);
 
   const markAllAsRead = useCallback(async () => {
     if (!isSupabaseConnected() || !userId) return;
     await markAllRead(userId);
-    setNotifications(prev => prev.map(n => ({ ...n, read: true, is_read: true })));
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true, is_read: true })));
   }, [userId]);
 
   // Realtime: new notifications arrive in real-time
-  useRealtimeSubscription('notifications', {
+  useRealtimeSubscription("notifications", {
     onInsert: (newRow) => {
       if (newRow.user_id === userId) {
-        setNotifications(prev => [{
-          ...newRow,
-          titleVi: newRow.title_vi,
-          time: formatTimeAgo(newRow.created_at),
-          timeVi: formatTimeAgo(newRow.created_at, 'vi'),
-          read: newRow.is_read,
-          ref: newRow.reference_id,
-        }, ...prev]);
+        setNotifications((prev) => [
+          {
+            ...newRow,
+            titleVi: newRow.title_vi,
+            time: formatTimeAgo(newRow.created_at),
+            timeVi: formatTimeAgo(newRow.created_at, "vi"),
+            read: newRow.is_read,
+            ref: newRow.reference_id,
+          },
+          ...prev,
+        ]);
       }
     },
-    filter: userId ? { column: 'user_id', value: userId } : undefined,
+    filter: userId ? { column: "user_id", value: userId } : undefined,
   });
 
   return { notifications, loading, refetch, setNotifications, markRead, markAllAsRead };
 }
 
 // ═══ Utility ═══
-function formatTimeAgo(dateStr, lang = 'en') {
-  if (!dateStr) return '';
+function formatTimeAgo(dateStr, lang = "en") {
+  if (!dateStr) return "";
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
   const hours = Math.floor(mins / 60);
   const days = Math.floor(hours / 24);
-  if (lang === 'vi') {
+  if (lang === "vi") {
     if (mins < 60) return `${mins} phút trước`;
     if (hours < 24) return `${hours} giờ trước`;
     return `${days} ngày trước`;

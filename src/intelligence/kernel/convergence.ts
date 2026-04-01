@@ -2,8 +2,8 @@
  * SignalHub Kernel — Convergence Detector
  */
 
-import type { Signal, Severity } from './signal';
-import { SEVERITY_PRIORITY } from './signal';
+import type { Signal, Severity } from "./signal";
+import { SEVERITY_PRIORITY } from "./signal";
 
 // ─── Config ──────────────────────────────────────────────────────────
 
@@ -162,32 +162,29 @@ export class ConvergenceDetector {
     for (const key of config.dimensionKeys) {
       let value = signal.dimensions[key];
       if (value === undefined || value === null) {
-        if (key === 'geo.lat' && signal.geo) value = signal.geo.lat;
-        else if (key === 'geo.lon' && signal.geo) value = signal.geo.lon;
+        if (key === "geo.lat" && signal.geo) value = signal.geo.lat;
+        else if (key === "geo.lon" && signal.geo) value = signal.geo.lon;
         else return null;
       }
 
-      if (typeof value === 'number' && config.numericBinSize?.[key]) {
+      if (typeof value === "number" && config.numericBinSize?.[key]) {
         value = Math.floor(value / config.numericBinSize[key]) * config.numericBinSize[key];
       }
 
       parts.push(`${key}=${value}`);
     }
 
-    return parts.join('|');
+    return parts.join("|");
   }
 
-  private extractDimensions(
-    signal: Signal,
-    config: ConvergenceSpaceConfig,
-  ): Record<string, string | number> {
+  private extractDimensions(signal: Signal, config: ConvergenceSpaceConfig): Record<string, string | number> {
     const dims: Record<string, string | number> = {};
     for (const key of config.dimensionKeys) {
       let value = signal.dimensions[key];
-      if (value === undefined && key === 'geo.lat' && signal.geo) value = signal.geo.lat;
-      if (value === undefined && key === 'geo.lon' && signal.geo) value = signal.geo.lon;
+      if (value === undefined && key === "geo.lat" && signal.geo) value = signal.geo.lat;
+      if (value === undefined && key === "geo.lon" && signal.geo) value = signal.geo.lon;
       if (value !== undefined) {
-        if (typeof value === 'number' && config.numericBinSize?.[key]) {
+        if (typeof value === "number" && config.numericBinSize?.[key]) {
           dims[key] = Math.floor(value / config.numericBinSize[key]) * config.numericBinSize[key];
         } else {
           dims[key] = value;
@@ -197,11 +194,7 @@ export class ConvergenceDetector {
     return dims;
   }
 
-  private buildAlert(
-    spaceId: string,
-    config: ConvergenceSpaceConfig,
-    cell: ConvergenceCell,
-  ): ConvergenceAlert {
+  private buildAlert(spaceId: string, config: ConvergenceSpaceConfig, cell: ConvergenceCell): ConvergenceAlert {
     const signalTypes = Array.from(cell.byType.keys());
     const allSignals: Signal[] = [];
     let totalEvents = 0;
@@ -217,14 +210,14 @@ export class ConvergenceDetector {
 
     const pct = score / config.maxScore;
     let severity: Severity;
-    if (pct >= 0.8) severity = 'critical';
-    else if (pct >= 0.6) severity = 'high';
-    else if (pct >= 0.4) severity = 'medium';
-    else severity = 'low';
+    if (pct >= 0.8) severity = "critical";
+    else if (pct >= 0.6) severity = "high";
+    else if (pct >= 0.4) severity = "medium";
+    else severity = "low";
 
     const maxSignalSeverity = allSignals.reduce(
       (max, s) => (SEVERITY_PRIORITY[s.severity] > SEVERITY_PRIORITY[max] ? s.severity : max),
-      'info' as Severity,
+      "info" as Severity,
     );
     if (SEVERITY_PRIORITY[maxSignalSeverity] > SEVERITY_PRIORITY[severity]) {
       severity = maxSignalSeverity;
@@ -232,7 +225,7 @@ export class ConvergenceDetector {
 
     const dimDescription = Object.entries(cell.dimensionValues)
       .map(([k, v]) => `${k}=${v}`)
-      .join(', ');
+      .join(", ");
 
     return {
       spaceId,
@@ -243,7 +236,7 @@ export class ConvergenceDetector {
       score,
       severity,
       signals: allSignals,
-      description: `Convergence [${config.label ?? spaceId}]: ${signalTypes.length} signal types (${signalTypes.join(', ')}) at {${dimDescription}} — ${totalEvents} events`,
+      description: `Convergence [${config.label ?? spaceId}]: ${signalTypes.length} signal types (${signalTypes.join(", ")}) at {${dimDescription}} — ${totalEvents} events`,
       detectedAt: new Date(),
     };
   }

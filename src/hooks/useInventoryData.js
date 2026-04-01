@@ -1,16 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
-import { isSupabaseConnected, withTimeout, warmUpSupabase, getConnectionStatus } from '../lib/supabase';
-import { useRealtimeSubscription } from './useRealtime';
-import { fetchInventory, fetchInventoryTransactions } from '../services/inventoryService';
+import { useState, useEffect, useCallback } from "react";
+import { withTimeout, warmUpSupabase, getConnectionStatus } from "../lib/supabase";
+import { useRealtimeSubscription } from "./useRealtime";
+import { fetchInventory, fetchInventoryTransactions } from "../services/inventoryService";
 
 // ═══ Transform ═══
 
 function transformInventoryItem(row) {
-  const quantityAvailable = row.quantity_available ?? (row.quantity_on_hand - row.quantity_reserved);
+  const quantityAvailable = row.quantity_available ?? row.quantity_on_hand - row.quantity_reserved;
   const minStock = row.min_stock || 0;
-  let stockStatus = 'OK';
-  if (quantityAvailable <= 0) stockStatus = 'CRITICAL';
-  else if (minStock > 0 && quantityAvailable < minStock) stockStatus = 'LOW';
+  let stockStatus = "OK";
+  if (quantityAvailable <= 0) stockStatus = "CRITICAL";
+  else if (minStock > 0 && quantityAvailable < minStock) stockStatus = "LOW";
 
   return {
     id: row.id,
@@ -33,8 +33,8 @@ function transformInventoryItem(row) {
     leadTimeDays: row.lead_time_days || 0,
     lastCountedAt: row.last_counted_at,
     supplierId: row.supplier_id,
-    supplierName: row.suppliers?.name || '',
-    supplierCode: row.suppliers?.code || '',
+    supplierName: row.suppliers?.name || "",
+    supplierCode: row.suppliers?.code || "",
     notes: row.notes,
     stockStatus,
   };
@@ -66,7 +66,7 @@ export function useInventory(warehouse) {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (getConnectionStatus() !== 'online') {
+    if (getConnectionStatus() !== "online") {
       setData(STATIC_INVENTORY);
       setLoading(false);
       return;
@@ -75,19 +75,21 @@ export function useInventory(warehouse) {
       const { data: rows } = await withTimeout(fetchInventory(warehouse));
       setData(rows?.length ? rows.map(transformInventoryItem) : STATIC_INVENTORY);
     } catch (err) {
-      console.warn('Inventory fetch timeout:', err.message);
+      console.warn("Inventory fetch timeout:", err.message);
       setData(STATIC_INVENTORY);
     }
     setLoading(false);
   }, [warehouse]);
 
-  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
+  useEffect(() => {
+    warmUpSupabase().then(() => refetch());
+  }, [refetch]);
 
-  useRealtimeSubscription('inventory', {
+  useRealtimeSubscription("inventory", {
     onInsert: () => refetch(),
     onUpdate: () => refetch(),
     onDelete: () => refetch(),
-    filter: warehouse ? { column: 'warehouse', value: warehouse } : undefined,
+    filter: warehouse ? { column: "warehouse", value: warehouse } : undefined,
   });
 
   return { data, loading, refetch };
@@ -99,7 +101,7 @@ export function useInventoryTransactions(inventoryId) {
 
   const refetch = useCallback(async () => {
     setLoading(true);
-    if (getConnectionStatus() !== 'online') {
+    if (getConnectionStatus() !== "online") {
       setData(STATIC_TRANSACTIONS);
       setLoading(false);
       return;
@@ -108,13 +110,15 @@ export function useInventoryTransactions(inventoryId) {
       const { data: rows } = await withTimeout(fetchInventoryTransactions(inventoryId));
       setData(rows?.length ? rows.map(transformTransaction) : STATIC_TRANSACTIONS);
     } catch (err) {
-      console.warn('Transactions fetch timeout:', err.message);
+      console.warn("Transactions fetch timeout:", err.message);
       setData(STATIC_TRANSACTIONS);
     }
     setLoading(false);
   }, [inventoryId]);
 
-  useEffect(() => { warmUpSupabase().then(() => refetch()); }, [refetch]);
+  useEffect(() => {
+    warmUpSupabase().then(() => refetch());
+  }, [refetch]);
 
   return { data, loading, refetch };
 }

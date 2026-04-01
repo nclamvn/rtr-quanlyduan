@@ -2,7 +2,7 @@
  * SignalHub Kernel — Circuit Breaker
  */
 
-export type BreakerState = 'closed' | 'open' | 'half_open';
+export type BreakerState = "closed" | "open" | "half_open";
 
 export interface CircuitBreakerConfig {
   name: string;
@@ -12,7 +12,7 @@ export interface CircuitBreakerConfig {
 }
 
 const DEFAULTS: CircuitBreakerConfig = {
-  name: 'unnamed',
+  name: "unnamed",
   maxFailures: 2,
   cooldownMs: 5 * 60 * 1000,
   cacheTtlMs: 10 * 60 * 1000,
@@ -31,9 +31,9 @@ export class CircuitBreaker<T> {
 
   get state(): BreakerState {
     if (this.failures >= this.config.maxFailures) {
-      return Date.now() < this.cooldownUntil ? 'open' : 'half_open';
+      return Date.now() < this.cooldownUntil ? "open" : "half_open";
     }
-    return 'closed';
+    return "closed";
   }
 
   get isCacheValid(): boolean {
@@ -42,7 +42,7 @@ export class CircuitBreaker<T> {
   }
 
   async execute(fn: () => Promise<T>): Promise<{ data: T; fromCache: boolean }> {
-    if (this.state === 'open') {
+    if (this.state === "open") {
       if (this.cache) {
         return { data: this.cache.data, fromCache: true };
       }

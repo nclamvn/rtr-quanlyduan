@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { supabase } from './supabase';
+import { useState, useEffect } from "react";
+import { supabase } from "./supabase";
 
 // Generic hook for Supabase queries
 export function useSupabaseQuery(table, options = {}) {
@@ -7,7 +7,7 @@ export function useSupabaseQuery(table, options = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const { select = '*', filter, orderBy, limit } = options;
+  const { select = "*", filter, orderBy, limit } = options;
 
   useEffect(() => {
     if (!supabase) {
@@ -54,9 +54,9 @@ export function useAuth() {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => setUser(session?.user ?? null)
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
 
     return () => subscription.unsubscribe();
   }, []);

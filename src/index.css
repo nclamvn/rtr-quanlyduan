@@ -1,16 +1,38 @@
+@import "tailwindcss";
+
+/* ── Tailwind v4 Theme Extension ─────────────────────────────── */
+/* Map existing CSS variables to Tailwind utilities */
+/* Usage: bg-main, text-primary, border-app, etc. */
+@theme {
+  --color-main: var(--bg-main);
+  --color-card: var(--bg-card);
+  --color-input: var(--bg-input);
+  --color-modal: var(--bg-modal);
+  --color-txt-primary: var(--text-primary);
+  --color-txt-secondary: var(--text-secondary);
+  --color-txt-muted: var(--text-muted);
+  --color-txt-dim: var(--text-dim);
+  --color-txt-faint: var(--text-faint);
+  --color-txt-disabled: var(--text-disabled);
+  --color-border-app: var(--border);
+  --color-hover: var(--hover-bg);
+  --font-sans: "Outfit", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+}
+
 /* ── Theme Variables ─────────────────────────────────────────── */
 :root,
 [data-theme="dark"] {
-  --bg-main: #0C0A09;
-  --bg-card: #0F0D0C;
+  --bg-main: #0c0a09;
+  --bg-card: #0f0d0c;
   --bg-input: #171412;
-  --bg-modal: #110F0D;
-  --text-primary: #E7E5E4;
-  --text-secondary: #D6D3D1;
-  --text-muted: #A8A29E;
-  --text-dim: #78716C;
-  --text-faint: #57534E;
-  --text-disabled: #44403C;
+  --bg-modal: #110f0d;
+  --text-primary: #e7e5e4;
+  --text-secondary: #d6d3d1;
+  --text-muted: #a8a29e;
+  --text-dim: #78716c;
+  --text-faint: #57534e;
+  --text-disabled: #44403c;
   --border: #292524;
   --border-a10: #29252410;
   --border-a20: #29252420;
@@ -18,43 +40,45 @@
   --hover-bg-subtle: #171412;
   --shadow-color: rgba(0, 0, 0, 0.5);
   --overlay: rgba(0, 0, 0, 0.85);
-  --scrollbar-thumb-hover: #44403C;
-  --selection-color: #E7E5E4;
-  --login-gradient: radial-gradient(ellipse at 30% 20%, #1C1917 0%, #0C0A09 70%);
+  --scrollbar-thumb-hover: #44403c;
+  --selection-color: #e7e5e4;
+  --login-gradient: radial-gradient(ellipse at 30% 20%, #1c1917 0%, #0c0a09 70%);
 }
 
 [data-theme="light"] {
-  --bg-main: #F8FAFC;
-  --bg-card: #FFFFFF;
-  --bg-input: #F1F5F9;
-  --bg-modal: #FFFFFF;
-  --text-primary: #0F172A;
-  --text-secondary: #1E293B;
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-input: #f1f5f9;
+  --bg-modal: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #1e293b;
   --text-muted: #475569;
-  --text-dim: #64748B;
-  --text-faint: #94A3B8;
-  --text-disabled: #CBD5E1;
-  --border: #CBD5E1;
-  --border-a10: #CBD5E110;
-  --border-a20: #CBD5E120;
-  --hover-bg: #E2E8F0;
-  --hover-bg-subtle: #F1F5F9;
+  --text-dim: #64748b;
+  --text-faint: #94a3b8;
+  --text-disabled: #cbd5e1;
+  --border: #cbd5e1;
+  --border-a10: #cbd5e110;
+  --border-a20: #cbd5e120;
+  --hover-bg: #e2e8f0;
+  --hover-bg-subtle: #f1f5f9;
   --shadow-color: rgba(0, 0, 0, 0.1);
   --overlay: rgba(0, 0, 0, 0.5);
-  --scrollbar-thumb-hover: #94A3B8;
-  --selection-color: #0F172A;
-  --login-gradient: radial-gradient(ellipse at 30% 20%, #E0E7FF 0%, #F8FAFC 70%);
+  --scrollbar-thumb-hover: #94a3b8;
+  --selection-color: #0f172a;
+  --login-gradient: radial-gradient(ellipse at 30% 20%, #e0e7ff 0%, #f8fafc 70%);
 }
 
 /* ── Base Reset ─────────────────────────────────────────────── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
 body {
-  font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+  font-family: "Outfit", "Segoe UI", system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   background: var(--bg-main);
@@ -78,16 +102,18 @@ body {
   background: var(--scrollbar-thumb-hover);
 }
 
-input, select, textarea {
-  font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+input,
+select,
+textarea {
+  font-family: "Outfit", "Segoe UI", system-ui, sans-serif;
 }
 
 button {
-  font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+  font-family: "Outfit", "Segoe UI", system-ui, sans-serif;
 }
 
 ::selection {
-  background: #3B82F640;
+  background: #3b82f640;
   color: var(--selection-color);
 }
 
@@ -151,18 +177,31 @@ button {
 }
 
 /* ── Focus Styles (Accessibility) ────────────────────────── */
-button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, [role="button"]:focus-visible {
-  outline: 2px solid #3B82F6;
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid #3b82f6;
   outline-offset: 2px;
 }
 
 /* ── Vietnamese Text Safety ──────────────────────────────── */
 /* Ensure diacritics are never clipped even at small sizes */
-span, div, button, label, option, td, th, a {
+span,
+div,
+button,
+label,
+option,
+td,
+th,
+a {
   line-height: max(1.5, inherit);
 }
 /* Minimum font size for readability with Vietnamese diacritics */
-input, select, textarea {
+input,
+select,
+textarea {
   font-size: max(14px, inherit);
   line-height: 1.5;
 }
@@ -176,17 +215,16 @@ input, select, textarea {
 
 /* ── Loading Skeleton Shimmer ─────────────────────────────── */
 @keyframes skeleton-shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--bg-card) 25%,
-    var(--hover-bg) 50%,
-    var(--bg-card) 75%
-  );
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--hover-bg) 50%, var(--bg-card) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
   border-radius: 4px;

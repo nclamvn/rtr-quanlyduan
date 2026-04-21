@@ -189,6 +189,92 @@ Env vars needed: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `ANTHROPIC_API_KEY`
 
 `supabase/migrations/021_alerts_allocation.sql` — adds allocation columns to alerts table.
 
-## Planned Agents
+## Dispatch Agent
 
-- **Dispatch Agent** (TIP-L2-04): Notification routing via email/Telegram.
+**Type:** Rule-based gating, no LLM.
+**Schedule:** Every 15 minutes (`*/15 * * * *`).
+**Runner:** `node src/intelligence/runDispatch.js`
+
+### How it works
+
+1. Fetch open alerts with `suggested_assignee` but no `dispatched_at` (max 50, within 72h)
+2. Compute dispatch plan via confidence-based gate
+3. Execute channels in parallel (email, telegram, in_app)
+4. Log every attempt to `dispatch_log` table
+5. Mark alert `dispatched_at` + `dispatch_gate`
+
+### Gate matrix (confidence × severity)
+
+| Confidence | Critical | Warning | Info |
+|------------|----------|---------|------|
+| **≥ 0.85** | email + telegram + in_app (AUTO) | email + in_app (AUTO) | in_app (AUTO) |
+| **0.7 – 0.84** | email + in_app, CC lead (CC_LEAD) | in_app, CC lead (CC_LEAD) | skip |
+| **< 0.7** | in_app only (QUEUED_REVIEW) | in_app only (QUEUED_REVIEW) | skip |
+| **No assignee** | skip | skip | skip |
+
+### Channel adapters
+
+```
+dispatch/
+  ├── dispatchGate.js      — pure function, no IO
+  ├── emailAdapter.js      — INSERT into notifications (triggers send-email Edge Function)
+  ├── telegramAdapter.js   — MOCK (returns 'skipped' until TELEGRAM_BOT_TOKEN set)
+  ├── inAppAdapter.js      — INSERT into notifications (is_emailed=false)
+  └── emailTemplate.js     — Vietnamese email template renderer
+```
+
+**Adding Telegram later:** Set `TELEGRAM_BOT_TOKEN` env var. The adapter already has full implementation that activates when the token exists. Add `telegram_chat_id` to profiles table.
+
+### Email template
+
+Subject: `[RtR Control Tower] CRITICAL / NGHIÊM TRỌNG: {summary}`
+
+Body includes: severity, agent source, confidence %, summary, rationale, cascade chain, recommended action, deadline, alternatives, direct link to UI.
+
+Language: Vietnamese (internal team).
+
+### Cost
+
+No LLM cost �� dispatch is pure logic + HTTP calls.
+Email cost: via Resend (Edge Function), ~$0.001/email.
+Telegram: free when configured.
+
+### Runtime dependencies
+
+- Supabase Edge Function `send-email` must be deployed (migration 011)
+- `notifications` table must exist (migration 005)
+- `dispatch_log` table (migration 022)
+
+### Failure modes
+
+| Failure | Behavior |
+|---------|----------|
+| Email Edge Function down | dispatch_log records 'failed', alert still marked dispatched |
+| Telegram not configured | Returns 'skipped', logged, no throw |
+| notifications table missing | in_app adapter returns 'skipped' with warning |
+| Supabase down | Alert skipped, error logged, retry next cron cycle |
+
+### Deploy
+
+```bash
+# Crontab — every 15 minutes
+*/15 * * * * set -a && . /path/to/.env && node /path/to/src/intelligence/runDispatch.js >> /var/log/dispatch.log 2>&1
+```
+
+Env vars needed: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`
+Optional: `TELEGRAM_BOT_TOKEN`, `VITE_APP_URL`
+
+### Migration
+
+`supabase/migrations/022_dispatch.sql` — adds dispatch tracking columns + dispatch_log table.
+
+## Layer 2 Complete
+
+All 4 agents are operational:
+
+| Agent | Type | Schedule | Purpose |
+|-------|------|----------|---------|
+| Convergence | Statistical | Hourly | Detect clusters, anomalies, stalls |
+| Causal | LLM (Haiku/Sonnet) | Every 2h | Trace root cause + cascade chain |
+| Allocation | LLM (Sonnet/Haiku) | Hourly | Suggest assignee + deadline |
+| Dispatch | Rule-based | Every 15min | Route notifications by confidence gate |

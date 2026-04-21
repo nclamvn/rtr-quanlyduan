@@ -73,6 +73,7 @@ import {
 import { useAuth } from "./contexts/AuthContext";
 import { usePermission } from "./hooks/usePermission";
 import { useAuditLog } from "./contexts/AuditContext";
+import { useAlertsStore } from "./stores/alertsStore";
 import LoginScreen from "./components/LoginScreen";
 import AccessDenied from "./components/AccessDenied";
 // Note: These are static imports for functions/singletons used synchronously.
@@ -238,6 +239,13 @@ export default function App() {
 
   // All data hooks moved to DataContext — accessed via useData() above
 
+  // Agent alerts badge count
+  const alertsOpenCount = useAlertsStore((s) => s.openCount);
+  const loadOpenCount = useAlertsStore((s) => s.loadOpenCount);
+  useEffect(() => {
+    loadOpenCount();
+  }, []);
+
   useEffect(() => {
     const i = setInterval(() => setTime(new Date()), 60000);
     return () => clearInterval(i);
@@ -396,7 +404,7 @@ export default function App() {
       id: "intelligence",
       label: t.tabs.intelligence,
       Icon: Brain,
-      badge: intel.convergences.length > 0 ? intel.convergences.length : undefined,
+      badge: intel.convergences.length + alertsOpenCount || undefined,
     },
     { id: "settings", label: t.tabs.settings, Icon: Settings },
   ];

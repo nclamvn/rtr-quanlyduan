@@ -22,8 +22,11 @@ import {
   Radio,
   RefreshCw,
   Scan,
+  Inbox,
 } from "lucide-react";
+import { useAlertsStore } from "../stores/alertsStore";
 import AIScanPanel from "./AIScanPanel";
+import AlertInbox from "./intelligence/AlertInbox";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
 const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
@@ -362,12 +365,19 @@ function AnomalyCard({ anomaly, t }) {
 
 export default function IntelligencePanel({ intel, projects, lang, t, onNavigateIssue, issues }) {
   const [subTab, setSubTab] = useState("overview");
+  const openCount = useAlertsStore((s) => s.openCount);
 
   const { state, convergences, anomalies, projectScores, freshness } = intel;
   const healthColor = HEALTH_COLORS[freshness.overallHealth] || HEALTH_COLORS.degraded;
 
   const subTabs = [
     { id: "overview", label: t.intel?.overview || "Overview", Icon: Activity },
+    {
+      id: "inbox",
+      label: t.inbox?.title || (lang === "vi" ? "Hộp thư Agent" : "Agent Inbox"),
+      Icon: Inbox,
+      badge: openCount,
+    },
     {
       id: "convergence",
       label: t.intel?.convergence || (lang === "vi" ? "H\u1ED9i t\u1EE5" : "Convergence"),
@@ -534,6 +544,9 @@ export default function IntelligencePanel({ intel, projects, lang, t, onNavigate
             )}
           </div>
         )}
+
+        {/* Agent Inbox tab */}
+        {subTab === "inbox" && <AlertInbox lang={lang} t={t} />}
 
         {/* Convergence tab */}
         {subTab === "convergence" && (

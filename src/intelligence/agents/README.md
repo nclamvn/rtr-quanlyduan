@@ -117,7 +117,78 @@ Shared utility (`llmRouter.js`) for all LLM-powered agents:
 - `callLLM(system, user, options)` — single call with cost tracking
 - `callWithEscalation(system, user, deepSuffix)` — Haiku → Sonnet auto-escalation
 
+## Allocation Agent
+
+**Type:** LLM-powered (Sonnet default, Haiku for low-urgency).
+**Schedule:** Every hour (`0 * * * *`).
+**Runner:** `node src/intelligence/runAllocation.js`
+
+### How it works
+
+1. Fetch open alerts without `suggested_assignee` (max 30, created within 48h)
+2. For each alert, build context: project team, workload per member, similar past alerts
+3. LLM suggests assignee + deadline + rationale
+4. Persist suggestion to alerts table (idempotent — won't overwrite existing)
+5. Human reviews: accept or override → `actual_assignee` + `acknowledged` status
+
+### Model routing (decision tree)
+
+```
+urgency = low AND candidates ≤ 3?
+  ├── YES → Haiku (~$0.001)
+  └── NO  → Sonnet (~$0.01)
+
+No candidates available?
+  └── Heuristic fallback (no LLM call, $0)
+      Pick lowest-load member, deadline = severity-based default
+```
+
+### Cost estimate
+
+- Max 30 alerts/run, ~70% Sonnet / 20% Haiku / 10% heuristic
+- **Typical run:** 21 × $0.01 + 6 × $0.001 + 3 × $0 = ~$0.22
+- **Monthly (24 runs/day):** ~$158
+
+### Tuning
+
+| Parameter | Location | Default | Purpose |
+|-----------|----------|---------|---------|
+| `MAX_ALERTS_PER_RUN` | `runAllocation.js` | 30 | Cost control |
+| Haiku threshold | `allocationAgent.js` | urgency=low + ≤3 candidates | When to use cheap model |
+| Deadline formula | `allocationAgent.js` | critical=+2d, warning=+5d, info=+10d | Default deadlines |
+| Dedup window | `allocationSink.js` | idempotent (checks suggested_assignee IS NULL) | Prevent re-suggestion |
+| Alert age limit | `runAllocation.js` | 48 hours | Skip stale alerts |
+
+### Override flow
+
+```
+AI suggests → alert.suggested_assignee, suggested_deadline, rationale
+Human reviews in UI → sets actual_assignee, actual_deadline
+Status moves: open → acknowledged → resolved
+```
+
+### Failure modes
+
+| Failure | Behavior |
+|---------|----------|
+| No candidates found | Heuristic fallback, confidence=0.0, "escalate to project lead" |
+| LLM returns invalid assignee ID | Caught by validation, returns null (no assignment) |
+| LLM parse error | Falls back to heuristic |
+| Supabase down | Alert skipped, error logged, run continues |
+
+### Deploy
+
+```bash
+# Crontab — every hour
+0 * * * * set -a && . /path/to/.env && node /path/to/src/intelligence/runAllocation.js >> /var/log/allocation.log 2>&1
+```
+
+Env vars needed: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `ANTHROPIC_API_KEY`
+
+### Migration
+
+`supabase/migrations/021_alerts_allocation.sql` — adds allocation columns to alerts table.
+
 ## Planned Agents
 
-- **Allocation Agent** (TIP-L2-03): LLM-powered assignee + deadline suggestion.
 - **Dispatch Agent** (TIP-L2-04): Notification routing via email/Telegram.

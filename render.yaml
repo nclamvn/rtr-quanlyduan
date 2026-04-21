@@ -1,0 +1,60 @@
+services:
+  - type: cron
+    name: rtr-convergence-agent
+    runtime: node
+    region: singapore
+    schedule: "0 * * * *"
+    buildCommand: npm install
+    startCommand: node src/intelligence/runConvergence.js
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+    plan: free
+
+  - type: cron
+    name: rtr-causal-agent
+    runtime: node
+    region: singapore
+    schedule: "0 */2 * * *"
+    buildCommand: npm install
+    startCommand: node src/intelligence/runCausal.js
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+    plan: free
+
+  - type: cron
+    name: rtr-allocation-agent
+    runtime: node
+    region: singapore
+    schedule: "30 * * * *"
+    buildCommand: npm install
+    startCommand: node src/intelligence/runAllocation.js
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+    plan: free
+
+  - type: cron
+    name: rtr-dispatch-agent
+    runtime: node
+    region: singapore
+    schedule: "*/15 * * * *"
+    buildCommand: npm install
+    startCommand: node src/intelligence/runDispatch.js
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+    plan: free

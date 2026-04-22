@@ -58,3 +58,17 @@ services:
       - key: SUPABASE_SERVICE_KEY
         sync: false
     plan: free
+
+  - type: cron
+    name: rtr-forecast-agent
+    runtime: node
+    region: singapore
+    schedule: "0 23 * * *"
+    buildCommand: npm install
+    startCommand: node src/intelligence/runForecast.js
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+    plan: free

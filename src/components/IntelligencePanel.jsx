@@ -27,6 +27,7 @@ import {
 import { useAlertsStore } from "../stores/alertsStore";
 import AIScanPanel from "./AIScanPanel";
 import AlertInbox from "./intelligence/AlertInbox";
+import ForecastPanel from "./intelligence/ForecastPanel";
 
 const mono = "'JetBrains Mono', 'Fira Code', monospace";
 const sans = "'Outfit', 'Segoe UI', system-ui, sans-serif";
@@ -379,6 +380,11 @@ export default function IntelligencePanel({ intel, projects, lang, t, onNavigate
       badge: openCount,
     },
     {
+      id: "forecast",
+      label: t.forecast?.title || (lang === "vi" ? "Dự đoán" : "Forecast"),
+      Icon: TrendingUp,
+    },
+    {
       id: "convergence",
       label: t.intel?.convergence || (lang === "vi" ? "H\u1ED9i t\u1EE5" : "Convergence"),
       Icon: Zap,
@@ -547,6 +553,9 @@ export default function IntelligencePanel({ intel, projects, lang, t, onNavigate
 
         {/* Agent Inbox tab */}
         {subTab === "inbox" && <AlertInbox lang={lang} t={t} />}
+
+        {/* Forecast tab */}
+        {subTab === "forecast" && <ForecastPanel lang={lang} t={t} />}
 
         {/* Convergence tab */}
         {subTab === "convergence" && (

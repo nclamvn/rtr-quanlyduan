@@ -30,10 +30,10 @@ serve(async (req) => {
     const record = payload.record || payload;
 
     if (!record?.user_id || !record?.type) {
-      return new Response(
-        JSON.stringify({ error: "Missing user_id or type" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Missing user_id or type" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -50,7 +50,7 @@ serve(async (req) => {
     if (prefs && (!prefs.email_enabled || prefs.frequency === "DIGEST")) {
       return new Response(
         JSON.stringify({ skipped: true, reason: prefs.frequency === "DIGEST" ? "digest" : "disabled" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -62,10 +62,10 @@ serve(async (req) => {
       .single();
 
     if (!profile?.email) {
-      return new Response(
-        JSON.stringify({ error: "User email not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "User email not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // 3. Send via Resend API
@@ -87,21 +87,18 @@ serve(async (req) => {
 
     // 4. Mark notification as emailed
     if (emailRes.ok) {
-      await supabase
-        .from("notifications")
-        .update({ is_emailed: true })
-        .eq("id", record.id);
+      await supabase.from("notifications").update({ is_emailed: true }).eq("id", record.id);
     }
 
-    return new Response(
-      JSON.stringify({ sent: emailRes.ok, resend: emailResult }),
-      { status: emailRes.ok ? 200 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ sent: emailRes.ok, resend: emailResult }), {
+      status: emailRes.ok ? 200 : 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
 
@@ -115,16 +112,19 @@ const TYPE_COLORS: Record<string, string> = {
   PHASE_TRANSITION: "#8B5CF6",
   ISSUE_OVERDUE: "#F97316",
   DRAFT_PENDING_REVIEW: "#6B7280",
+  // Agent-generated alert types
+  alert_dispatch: "#F97316",
+  alert_critical: "#EF4444",
+  alert_warning: "#F59E0B",
+  alert_info: "#3B82F6",
 };
 
 function buildEmailHtml(
   notif: { type: string; title: string; title_vi?: string; body?: string; entity_id?: string },
-  profile: { full_name: string }
+  profile: { full_name: string },
 ): string {
   const color = TYPE_COLORS[notif.type] || "#3B82F6";
-  const entityUrl = notif.entity_id
-    ? `${APP_URL}?ref=${notif.entity_id}`
-    : APP_URL;
+  const entityUrl = notif.entity_id ? `${APP_URL}?ref=${notif.entity_id}` : APP_URL;
 
   return `<!DOCTYPE html>
 <html>

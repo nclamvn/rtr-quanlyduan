@@ -72,3 +72,19 @@ services:
       - key: SUPABASE_SERVICE_KEY
         sync: false
     plan: free
+
+  - type: cron
+    name: rtr-brief-weekly
+    runtime: node
+    region: singapore
+    schedule: "0 15 * * 0"
+    buildCommand: npm install
+    startCommand: node src/intelligence/runBrief.js
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+    plan: free
